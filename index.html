@@ -376,12 +376,19 @@
           <span id="headerSubtitle" class="text-[10px] text-on-surface-variant font-medium">мини-приложение</span>
         </div>
 
-        <!-- Right Action: Client/Master Toggle or More Options -->
-        <div class="flex items-center gap-1">
-          <button onclick="showQuickOptionsModal()" aria-label="Опции" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-all">
-            <span class="material-symbols-outlined text-[20px]">more_horiz</span>
+        <!-- Right Action: City Selector Dropdown & Profile Avatar -->
+        <div class="flex items-center gap-1.5">
+          <!-- City Selector Dropdown Pill Button -->
+          <button id="headerCityBtn" onclick="openCityModal()" aria-label="Выбрать город" class="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-surface-container-high/90 hover:bg-surface-container-highest border border-black/[0.04] text-on-surface text-xs font-semibold active:scale-95 transition-all shadow-2xs">
+            <span class="text-[13px] leading-none" id="headerCityIcon">🏙</span>
+            <span id="headerCityName" class="max-w-[76px] truncate text-[11px] font-bold">Москва</span>
+            <span class="material-symbols-outlined text-[15px] text-slate-500">expand_more</span>
           </button>
-          <div onclick="router.navigate('profile')" class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center shadow-xs cursor-pointer text-white overflow-hidden">
+
+          <button onclick="showQuickOptionsModal()" aria-label="Опции" class="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-[19px]">more_horiz</span>
+          </button>
+          <div onclick="router.navigate('profile')" class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center shadow-xs cursor-pointer text-white overflow-hidden shrink-0">
             <span id="headerUserInitials" class="text-xs font-bold">ТГ</span>
             <img id="headerUserPhoto" class="w-full h-full object-cover hidden" alt="User"/>
           </div>
@@ -456,8 +463,26 @@
               </div>
             </div>
 
+              <!-- Default City Selection on Welcome -->
+              <div class="mt-4 p-3.5 rounded-2xl bg-white shadow-xs border border-slate-200/70 flex flex-col gap-1.5 text-left">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ваш город по умолчанию</span>
+                  <span class="text-[10px] text-primary font-semibold">можно изменить</span>
+                </div>
+                <div class="relative">
+                  <select id="verifyCitySelect" onchange="setDefaultCity(this.value)" class="w-full pl-9 pr-8 py-2 rounded-xl bg-surface-container-low border border-slate-200 text-xs font-semibold text-on-surface outline-none appearance-none cursor-pointer focus:border-primary transition-all">
+                    <option value="all">🗺 Все регионы (15 салонов)</option>
+                    <option value="moscow" selected>🏙 Москва (5 салонов)</option>
+                    <option value="rostov">🌾 Ростовская область (7 салонов)</option>
+                    <option value="spb">🏛 Санкт-Петербург (3 салона)</option>
+                  </select>
+                  <span class="material-symbols-outlined text-[17px] text-primary absolute left-2.5 top-2 pointer-events-none">location_on</span>
+                  <span class="material-symbols-outlined text-[17px] text-slate-400 absolute right-2.5 top-2 pointer-events-none">expand_more</span>
+                </div>
+              </div>
+
             <!-- Telegram security notice -->
-            <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+            <div class="mt-3 flex items-center justify-center gap-2 text-xs text-slate-400">
               <span class="material-symbols-outlined text-[16px] text-emerald-500">shield</span>
               <span>Данные профиля проверены Telegram API</span>
             </div>
@@ -513,23 +538,6 @@
             </button>
             <button onclick="filterCategory('pedicure', this)" class="cat-pill flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-white/90 text-on-surface text-xs font-medium shadow-xs border border-black/[0.04] whitespace-nowrap active:scale-95 transition-all shrink-0">
               <span>🦶</span><span>Педикюр</span>
-            </button>
-          </div>
-
-          <!-- Region & City Switcher Chips -->
-          <div class="-mx-4 px-4 overflow-x-auto flex items-center gap-1.5 no-scrollbar pb-1">
-            <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider pl-1 pr-1 shrink-0">Регион:</span>
-            <button onclick="filterRegion('all', this)" class="region-pill active px-3 py-1 rounded-xl bg-slate-900 text-white text-[11px] font-semibold whitespace-nowrap shadow-xs active:scale-95 transition-all shrink-0">
-              Все регионы (15)
-            </button>
-            <button onclick="filterRegion('moscow', this)" class="region-pill px-3 py-1 rounded-xl bg-white/90 text-slate-700 text-[11px] font-medium border border-black/[0.05] whitespace-nowrap active:scale-95 transition-all shrink-0">
-              🏙 Москва (5)
-            </button>
-            <button onclick="filterRegion('rostov', this)" class="region-pill px-3 py-1 rounded-xl bg-white/90 text-slate-700 text-[11px] font-medium border border-black/[0.05] whitespace-nowrap active:scale-95 transition-all shrink-0">
-              🌾 Ростовская обл. (7)
-            </button>
-            <button onclick="filterRegion('spb', this)" class="region-pill px-3 py-1 rounded-xl bg-white/90 text-slate-700 text-[11px] font-medium border border-black/[0.05] whitespace-nowrap active:scale-95 transition-all shrink-0">
-              🏛 Санкт-Петербург (3)
             </button>
           </div>
         </div>
@@ -1207,6 +1215,21 @@
           <div class="flex flex-col gap-1.5">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Настройки</span>
             <div class="rounded-2xl bg-white shadow-xs border border-slate-200/60 overflow-hidden flex flex-col text-xs">
+              <!-- Default City in Profile -->
+              <div class="p-3 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openCityModal()">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-primary text-[18px]">location_city</span>
+                  <div class="flex flex-col">
+                    <span class="font-semibold text-on-surface">Город по умолчанию</span>
+                    <span id="profileCitySub" class="text-[10px] text-slate-400">Москва</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 text-slate-400 text-xs">
+                  <span id="profileCityBadge" class="font-bold text-primary text-[11px]">Москва</span>
+                  <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </div>
+              </div>
+              <div class="h-px bg-slate-100 mx-3"></div>
               <div class="p-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                   <span class="material-symbols-outlined text-primary text-[18px]">notifications</span>
@@ -1377,6 +1400,79 @@
         <span class="material-symbols-outlined text-[18px]">send</span>
         <span>Отправить заявку на подключение</span>
       </button>
+    </div>
+  <!-- City Selection Modal Bottom Sheet -->
+  <div id="citySelectModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div onclick="event.stopPropagation()" class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-primary-fixed/50 flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined text-[22px]">location_city</span>
+          </div>
+          <div class="flex flex-col">
+            <h3 class="font-bold text-base text-on-surface">Выберите город</h3>
+            <span class="text-[11px] text-slate-400">Показаны салоны и мастера региона</span>
+          </div>
+        </div>
+        <button onclick="closeCityModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
+      </div>
+
+      <!-- City Options List -->
+      <div class="flex flex-col gap-2 pt-1" id="cityOptionsList">
+        <!-- All Regions -->
+        <div onclick="selectCityOption('all')" data-city="all" class="city-option-item p-3.5 rounded-2xl border border-slate-200/80 hover:border-primary/40 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">🗺️</span>
+            <div class="flex flex-col">
+              <span class="font-bold text-xs text-on-surface">Все регионы России</span>
+              <span class="text-[10px] text-slate-400">15 салонов и мастеров по РФ</span>
+            </div>
+          </div>
+          <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
+        </div>
+
+        <!-- Moscow -->
+        <div onclick="selectCityOption('moscow')" data-city="moscow" class="city-option-item p-3.5 rounded-2xl border border-slate-200/80 hover:border-primary/40 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">🏙️</span>
+            <div class="flex flex-col">
+              <span class="font-bold text-xs text-on-surface">Москва</span>
+              <span class="text-[10px] text-slate-400">5 салонов (Тверской, Пресня, Арбат)</span>
+            </div>
+          </div>
+          <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
+        </div>
+
+        <!-- Rostov Region -->
+        <div onclick="selectCityOption('rostov')" data-city="rostov" class="city-option-item p-3.5 rounded-2xl border border-slate-200/80 hover:border-primary/40 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">🌾</span>
+            <div class="flex flex-col">
+              <span class="font-bold text-xs text-on-surface">Ростовская область</span>
+              <span class="text-[10px] text-slate-400">7 салонов (Ростов-на-Дону, Таганрог, Батайск)</span>
+            </div>
+          </div>
+          <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
+        </div>
+
+        <!-- Saint Petersburg -->
+        <div onclick="selectCityOption('spb')" data-city="spb" class="city-option-item p-3.5 rounded-2xl border border-slate-200/80 hover:border-primary/40 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">🏛️</span>
+            <div class="flex flex-col">
+              <span class="font-bold text-xs text-on-surface">Санкт-Петербург</span>
+              <span class="text-[10px] text-slate-400">3 салона (Центральный, Петроградка, ВО)</span>
+            </div>
+          </div>
+          <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
+        </div>
+      </div>
+
+      <!-- Set as Default Checkbox -->
+      <label class="flex items-center gap-2.5 p-3 rounded-2xl bg-surface-container-low cursor-pointer mt-1 select-none">
+        <input type="checkbox" id="saveAsDefaultCityCheck" checked class="w-4 h-4 accent-primary rounded cursor-pointer"/>
+        <span class="text-xs text-on-surface font-medium">Запомнить как мой город по умолчанию</span>
+      </label>
     </div>
   </div>
 
@@ -2064,16 +2160,9 @@
 
         // Clusterer: groups placemarks when zoomed out to prevent crowding
         mapClustererInstance = new ymaps.Clusterer({
-          clusterIconLayout: ClusterLayout,
-          clusterIconOffset: [0, 0],
-          clusterIconShape: {
-            type: 'Rectangle',
-            coordinates: [[-22, -19], [22, 19]]
-          },
+          preset: 'islands#violetClusterIcons',
           groupByCoordinates: false,
           clusterDisableClickZoom: false,
-          clusterHideIconOnBalloonOpen: false,
-          geoObjectHideIconOnBalloonOpen: false,
           minClusterSize: 2,
           gridSize: 64,
           maxZoom: 13,
@@ -2106,6 +2195,9 @@
           }
         );
         yandexMapInstance.geoObjects.add(userPlacemark);
+
+        // Add clusterer to map once
+        yandexMapInstance.geoObjects.add(mapClustererInstance);
 
         // Register all venues on Yandex Map inside clusterer
         rebuildMapPlacemarks(PinLayout);
@@ -2180,10 +2272,6 @@
       });
 
       mapClustererInstance.add(placemarksList);
-
-      if (!yandexMapInstance.geoObjects.contains(mapClustererInstance)) {
-        yandexMapInstance.geoObjects.add(mapClustererInstance);
-      }
     }
 
     // Render cards in horizontal carousel
@@ -2367,9 +2455,11 @@
 
       updateVenueCounter();
 
-      // Pan Yandex Map to coordinates
+      // Pan Yandex Map to coordinates and ensure zoom is high enough to uncluster
       if (yandexMapInstance && venue) {
-        yandexMapInstance.panTo(venue.coords, { flying: true, duration: 500 });
+        const curZoom = yandexMapInstance.getZoom ? yandexMapInstance.getZoom() : 14;
+        const targetZoom = Math.max(curZoom, 13);
+        yandexMapInstance.setCenter(venue.coords, targetZoom, { flying: true, duration: 500 });
       }
     }
 
@@ -2935,37 +3025,118 @@
       } catch (e) {}
     }
 
-    // Region filter switcher
-    function filterRegion(regionId, el) {
-      document.querySelectorAll('.region-pill').forEach(p => {
-        p.classList.remove('active', 'bg-slate-900', 'text-white');
-        p.classList.add('bg-white/90', 'text-slate-700');
+    // ==========================================
+    // CITY & REGION SELECTION MANAGEMENT
+    // ==========================================
+    const CITY_CONFIG = {
+      all: { name: 'Все регионы', short: 'Все', icon: '🗺️', count: 15, sub: '15 салонов и мастеров по РФ' },
+      moscow: { name: 'Москва', short: 'Москва', icon: '🏙️', count: 5, sub: '5 салонов (Тверской, Пресня, Арбат)' },
+      rostov: { name: 'Ростовская обл.', short: 'Ростов', icon: '🌾', count: 7, sub: '7 салонов (Ростов, Таганрог, Батайск)' },
+      spb: { name: 'Санкт-Петербург', short: 'СПб', icon: '🏛️', count: 3, sub: '3 салона (Центральный, Петроградка)' }
+    };
+
+    function openCityModal() {
+      const modal = document.getElementById('citySelectModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      updateCityModalUI();
+    }
+
+    function closeCityModal() {
+      const modal = document.getElementById('citySelectModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // Close city modal when clicking backdrop
+    window.addEventListener('click', (e) => {
+      const modal = document.getElementById('citySelectModal');
+      if (modal && e.target === modal) {
+        closeCityModal();
+      }
+    });
+
+    function updateCityModalUI() {
+      document.querySelectorAll('.city-option-item').forEach(el => {
+        const c = el.getAttribute('data-city');
+        const isSelected = (c === currentFilterRegion);
+        el.classList.toggle('bg-primary-fixed/30', isSelected);
+        el.classList.toggle('border-primary', isSelected);
+        el.classList.toggle('border-slate-200/80', !isSelected);
+        const check = el.querySelector('.city-check-icon');
+        if (check) check.classList.toggle('hidden', !isSelected);
       });
-      if (el) {
-        el.classList.add('active', 'bg-slate-900', 'text-white');
-        el.classList.remove('bg-white/90', 'text-slate-700');
+    }
+
+    function updateHeaderAndProfileCityUI() {
+      const info = CITY_CONFIG[currentFilterRegion] || CITY_CONFIG['all'];
+
+      // Update Header Pill
+      const hName = document.getElementById('headerCityName');
+      const hIcon = document.getElementById('headerCityIcon');
+      if (hName) hName.textContent = info.short;
+      if (hIcon) hIcon.textContent = info.icon;
+
+      // Update Profile settings row
+      const pBadge = document.getElementById('profileCityBadge');
+      const pSub = document.getElementById('profileCitySub');
+      if (pBadge) pBadge.textContent = info.name;
+      if (pSub) pSub.textContent = `${info.name} (${info.count} салонов)`;
+
+      // Update Welcome screen select if present
+      const vSelect = document.getElementById('verifyCitySelect');
+      if (vSelect) vSelect.value = currentFilterRegion;
+    }
+
+    // Called when user selects a city from the bottom sheet modal
+    function selectCityOption(cityId) {
+      if (!CITY_CONFIG[cityId]) cityId = 'all';
+      currentFilterRegion = cityId;
+
+      const saveDefault = document.getElementById('saveAsDefaultCityCheck');
+      if (saveDefault && saveDefault.checked) {
+        try {
+          localStorage.setItem('okoshko_default_city', cityId);
+        } catch (e) {}
       }
 
-      currentFilterRegion = regionId;
+      updateHeaderAndProfileCityUI();
+      closeCityModal();
 
       applyCombinedFilters();
 
       // Pan & Zoom map to selected region
-      if (yandexMapInstance && REGION_CENTERS[regionId]) {
-        const rc = REGION_CENTERS[regionId];
+      if (yandexMapInstance && REGION_CENTERS[cityId]) {
+        const rc = REGION_CENTERS[cityId];
         yandexMapInstance.setCenter(rc.center, rc.zoom, {
           flying: true,
           duration: 700
         });
       }
 
-      const regionLabels = {
-        all: 'Все регионы',
-        moscow: 'Москва',
-        rostov: 'Ростовская область',
-        spb: 'Санкт-Петербург'
-      };
-      showToast(`Выбран регион: ${regionLabels[regionId] || regionId} 🗺️`);
+      showToast(`Выбран город: ${CITY_CONFIG[cityId].name} 📍`);
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+      } catch (e) {}
+    }
+
+    // Called from initial verify welcome screen select
+    function setDefaultCity(cityId) {
+      if (!CITY_CONFIG[cityId]) cityId = 'all';
+      currentFilterRegion = cityId;
+      try {
+        localStorage.setItem('okoshko_default_city', cityId);
+      } catch (e) {}
+      updateHeaderAndProfileCityUI();
+    }
+
+    // Backward compatibility helper
+    function filterRegion(regionId) {
+      selectCityOption(regionId);
     }
 
     // Category filter in map
@@ -3123,6 +3294,15 @@
       window.Telegram.WebApp.expand();
     }
 
+    // Restore saved default city
+    try {
+      const savedCity = localStorage.getItem('okoshko_default_city');
+      if (savedCity && CITY_CONFIG[savedCity]) {
+        currentFilterRegion = savedCity;
+      }
+    } catch(e) {}
+    updateHeaderAndProfileCityUI();
+
     // Initialize user profile from Telegram
     state.user = getTelegramUser();
     syncUserProfileUI(state.user);
@@ -3136,6 +3316,7 @@
 
     state.verified = isAlreadyVerified;
     if (isAlreadyVerified) {
+      applyCombinedFilters();
       router.navigate('map', false);
       setTimeout(initYandexMap, 200);
     } else {
