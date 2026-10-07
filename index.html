@@ -810,9 +810,6 @@
 
               <div class="flex flex-col min-w-0 flex-1">
                 <div class="flex items-center gap-1.5 mb-0.5">
-                  <span id="masterGradeBadge" class="bg-primary-fixed text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    PRO TOP
-                  </span>
                   <span class="flex items-center text-amber-500 text-xs font-bold">
                     <span>★</span>
                     <span id="masterRating" class="text-on-surface ml-0.5">5.0</span>
@@ -839,8 +836,8 @@
             </p>
           </div>
 
-          <!-- Master Stats Grid -->
-          <div class="grid grid-cols-4 gap-2">
+          <!-- Master Stats Grid (Rating, Reviews, Experience) -->
+          <div class="grid grid-cols-3 gap-2">
             <div class="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-xs border border-slate-200/60">
               <div class="flex items-center text-amber-500 mb-0.5 text-xs font-bold">
                 <span>★</span>
@@ -855,10 +852,6 @@
             <div class="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-xs border border-slate-200/60">
               <span id="masterStatExp" class="text-xs font-bold text-on-surface mb-0.5">5 лет</span>
               <span class="text-[11px] text-slate-400">Опыт</span>
-            </div>
-            <div class="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-xs border border-slate-200/60">
-              <span id="masterStatRetention" class="text-xs font-bold text-primary mb-0.5">98%</span>
-              <span class="text-[11px] text-slate-400">Возврат</span>
             </div>
           </div>
 
@@ -972,6 +965,37 @@
               </div>
             </div>
           </div>
+
+          <!-- Master Reviews Section -->
+          <div class="bg-white rounded-3xl p-4 shadow-xs border border-slate-200/60 flex flex-col gap-3">
+            <div class="flex items-center justify-between px-1">
+              <h3 class="font-bold text-sm text-on-surface">Отзывы клиентов</h3>
+              <button id="masterReviewsLabel" onclick="openMasterReviews()" class="text-xs text-primary font-semibold hover:underline active:scale-95 transition-transform flex items-center gap-0.5">
+                <span>Все (156)</span>
+                <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </button>
+            </div>
+
+            <!-- Single Featured Review Card -->
+            <div class="p-3.5 rounded-2xl bg-surface-container-low/60 border border-slate-200/60">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                  <div id="masterReviewAvatar" class="w-7 h-7 rounded-full bg-primary-fixed text-primary flex items-center justify-center text-xs font-bold">ЕВ</div>
+                  <div>
+                    <div id="masterReviewAuthor" class="text-xs font-bold text-on-surface">Елена Васильева</div>
+                    <div id="masterReviewMeta" class="text-[10px] text-slate-400">1 год 2 мес. на платформе</div>
+                  </div>
+                </div>
+                <div id="masterReviewStars" class="text-amber-400 text-xs">★★★★★</div>
+              </div>
+              <p id="masterReviewText" class="text-xs text-slate-600 leading-relaxed">
+                «Невероятная аккуратность и бережное отношение. Маникюр носится уже 4 недели без единого скола!»
+              </p>
+            </div>
+          </div>
+
+          <!-- Space buffer before fixed dock -->
+          <div class="w-full h-28 pointer-events-none" aria-hidden="true"></div>
         </div>
 
         <!-- Sticky Floating Booking Action Dock with iOS Frosted Glass -->
@@ -2171,11 +2195,18 @@
           renderFavorites();
         } else if (screen === 'reviews') {
           backIcon.textContent = 'arrow_back_ios_new';
-          const currentVenue = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) : null;
-          headerTitle.textContent = 'Отзывы клиентов';
-          headerSubtitle.textContent = currentVenue ? currentVenue.name : 'Салон красоты';
+          if (state.reviewsTargetType === 'master') {
+            const activeMaster = (typeof getMasterById === 'function') ? getMasterById(state.activeMaster) : null;
+            headerTitle.textContent = 'Отзывы о мастере';
+            headerSubtitle.textContent = activeMaster ? activeMaster.name : 'Мастер';
+            renderMasterReviewsScreen(state.activeMaster);
+          } else {
+            const currentVenue = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) : null;
+            headerTitle.textContent = 'Отзывы клиентов';
+            headerSubtitle.textContent = currentVenue ? currentVenue.name : 'Салон красоты';
+            renderSalonReviewsScreen(state.activeSalon);
+          }
           globalNav.classList.add('hidden');
-          renderSalonReviewsScreen(state.activeSalon);
         } else if (screen === 'profile') {
           backIcon.textContent = 'close';
           headerTitle.textContent = 'Профиль';
@@ -3534,18 +3565,19 @@
       const bioEl = document.getElementById('masterBio');
       if (bioEl) bioEl.textContent = masterInfo.bio || 'Индивидуальный подход и премиальное качество услуг.';
 
-      // 2. Stats Grid
+      // 2. Stats Grid & Reviews Info
+      const { avg, count } = calculateMasterAverageRating(masterInfo.id, masterInfo);
+      masterInfo.rating = avg.toFixed(1);
+      masterInfo.reviews_count = count;
+
       const sRat = document.getElementById('masterStatRating');
-      if (sRat) sRat.textContent = masterInfo.rating || '5.0';
+      if (sRat) sRat.textContent = avg.toFixed(1);
 
       const sRev = document.getElementById('masterStatReviews');
-      if (sRev) sRev.textContent = `${masterInfo.reviews_count || 50}+`;
+      if (sRev) sRev.textContent = `${count}`;
 
       const sExp = document.getElementById('masterStatExp');
       if (sExp) sExp.textContent = masterInfo.experience || '4 года';
-
-      const sRet = document.getElementById('masterStatRetention');
-      if (sRet) sRet.textContent = masterInfo.retention_rate || '97%';
 
       // 3. Time Slots
       const slotsContainer = document.getElementById('masterTimeSlotsContainer');
@@ -3588,6 +3620,34 @@
             </div>
           `;
         }).join('');
+      }
+
+      // 5. Master Reviews on Screen
+      const masterReviews = getMasterReviewsList(masterInfo.id, masterInfo);
+      const revCount = masterReviews.length;
+      const latestRev = masterReviews[0] || {
+        author: 'Клиент',
+        rating: 5,
+        service: mServices[0].name,
+        userDuration: '1 год на платформе',
+        text: '«Невероятная аккуратность и бережное отношение. Маникюр носится уже 4 недели без единого скола!»'
+      };
+
+      const mRevLabel = document.getElementById('masterReviewsLabel');
+      const mRevAuthor = document.getElementById('masterReviewAuthor');
+      const mRevMeta = document.getElementById('masterReviewMeta');
+      const mRevText = document.getElementById('masterReviewText');
+      const mRevAvatar = document.getElementById('masterReviewAvatar');
+      const mRevStars = document.getElementById('masterReviewStars');
+
+      if (mRevLabel) mRevLabel.innerHTML = `<span>Все (${revCount})</span><span class="material-symbols-outlined text-[14px]">arrow_forward</span>`;
+      if (mRevAuthor) mRevAuthor.textContent = latestRev.author;
+      if (mRevMeta) mRevMeta.textContent = latestRev.userDuration ? `${latestRev.userDuration} • ${latestRev.service || 'Процедура'}` : (latestRev.service || 'Проверенный отзыв');
+      if (mRevText) mRevText.textContent = latestRev.text;
+      if (mRevStars) mRevStars.textContent = '★'.repeat(latestRev.rating || 5) + '☆'.repeat(5 - (latestRev.rating || 5));
+      if (mRevAvatar) {
+        const initials = latestRev.author.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'КЛ';
+        mRevAvatar.textContent = initials;
       }
 
       updateDock();
@@ -3713,15 +3773,51 @@
       ]
     };
 
+    // Master reviews initial seed data
+    const INITIAL_MASTER_REVIEWS = {
+      master_beauty_alina: [
+        {
+          id: 'rev_ma1',
+          author: 'Елена Васильева',
+          rating: 5,
+          service: 'Аппаратный маникюр + Luxio',
+          userDuration: '1 год 2 мес. на платформе',
+          date: 'Вчера, 14:30',
+          text: 'Невероятная аккуратность и бережное отношение к кутикуле. Маникюр носится уже 4 недели без единого скола! Алина — настоящий мастер своего дела.'
+        },
+        {
+          id: 'rev_ma2',
+          author: 'Ольга Кузнецова',
+          rating: 5,
+          service: 'Smart-педикюр полный',
+          userDuration: '8 месяцев на платформе',
+          date: '4 дня назад',
+          text: 'Очень нежно, бережно и стерильно. Пяточки гладкие, покрытие идеальное под кутикулу.'
+        }
+      ],
+      master_beauty_daria: [
+        {
+          id: 'rev_md1',
+          author: 'Мария Селезнева',
+          rating: 5,
+          service: 'Архитектура и окрашивание бровей',
+          userDuration: '9 месяцев на платформе',
+          date: '3 дня назад',
+          text: 'Дарья сделала брови мечты! Очень натурально, краска легла ровно, без эффекта маркера.'
+        }
+      ]
+    };
+
     function getAllStoredReviews() {
       try {
         const raw = localStorage.getItem(REVIEWS_STORAGE_KEY);
         if (raw) return JSON.parse(raw);
       } catch (e) {}
+      const combined = { ...INITIAL_SALON_REVIEWS, ...INITIAL_MASTER_REVIEWS };
       try {
-        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(INITIAL_SALON_REVIEWS));
+        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(combined));
       } catch (e) {}
-      return { ...INITIAL_SALON_REVIEWS };
+      return combined;
     }
 
     function saveAllStoredReviews(data) {
@@ -3734,7 +3830,6 @@
       const all = getAllStoredReviews();
       let list = all[salonId] || [];
       if (list.length === 0) {
-        // Fallback default review for salon
         const venue = venues.find(v => v.id === salonId);
         if (venue && venue.review) {
           list = [
@@ -3753,12 +3848,37 @@
       return list;
     }
 
-    // Check if current user already left a review for this salon
-    function hasUserReviewedSalon(salonId) {
+    function getMasterReviewsList(masterId, fallbackMaster) {
       const all = getAllStoredReviews();
-      const list = all[salonId] || [];
+      let list = all[masterId] || [];
+      if (list.length === 0) {
+        const m = fallbackMaster || (typeof getMasterById === 'function' ? getMasterById(masterId) : null);
+        const svcName = (m && m.services && m.services[0]) ? m.services[0].name : 'Процедура';
+        list = [
+          {
+            id: `rev_def_m_${masterId}`,
+            author: 'Елена Васильева',
+            rating: 5,
+            service: svcName,
+            userDuration: '1 год 2 мес. на платформе',
+            date: 'Вчера',
+            text: 'Невероятная аккуратность и бережное отношение. Маникюр носится уже 4 недели без единого скола!'
+          }
+        ];
+      }
+      return list;
+    }
+
+    // Check if current user already left a review for target (salon or master)
+    function hasUserReviewedTarget(targetId) {
+      const all = getAllStoredReviews();
+      const list = all[targetId] || [];
       const currentUserId = state.user?.id || 8949973080;
       return list.some(r => r.userId === currentUserId);
+    }
+
+    function hasUserReviewedSalon(salonId) {
+      return hasUserReviewedTarget(salonId);
     }
 
     // Calculate arithmetic mean rating for salon
@@ -3779,21 +3899,48 @@
       };
     }
 
-    // Open Screen: Reviews
+    // Calculate arithmetic mean rating for master
+    function calculateMasterAverageRating(masterId, fallbackMaster) {
+      const reviews = getMasterReviewsList(masterId, fallbackMaster);
+      if (!reviews || reviews.length === 0) {
+        const m = fallbackMaster || (typeof getMasterById === 'function' ? getMasterById(masterId) : null);
+        return {
+          avg: parseFloat(m?.rating || '5.0'),
+          count: m?.reviews_count || 1
+        };
+      }
+      const sum = reviews.reduce((acc, r) => acc + (parseFloat(r.rating) || 5), 0);
+      const avg = (sum / reviews.length).toFixed(1);
+      return {
+        avg: parseFloat(avg),
+        count: reviews.length
+      };
+    }
+
+    // Open Screen: Reviews for salon
     function openSalonReviews(salonId) {
       const targetId = salonId || state.activeSalon || 'beauty';
       state.activeSalon = targetId;
+      state.reviewsTargetType = 'salon';
       router.navigate('reviews');
     }
 
-    // Render Screen: Reviews
+    // Open Screen: Reviews for master
+    function openMasterReviews(masterId) {
+      const targetId = masterId || state.activeMaster || 'master_beauty_alina';
+      state.activeMaster = targetId;
+      state.reviewsTargetType = 'master';
+      router.navigate('reviews');
+    }
+
+    // Render Screen: Reviews for Salon
     function renderSalonReviewsScreen(salonId) {
+      state.reviewsTargetType = 'salon';
       const targetId = salonId || state.activeSalon || 'beauty';
       const venue = venues.find(v => v.id === targetId) || venues[0];
       const reviews = getSalonReviewsList(targetId);
       const { avg, count } = calculateSalonAverageRating(targetId);
 
-      // Update venue data in memory
       venue.rating = avg.toFixed(1);
       venue.reviewsCount = count;
 
@@ -3807,8 +3954,7 @@
       if (sBadge) sBadge.textContent = `(${count})`;
       if (sNotice) sNotice.textContent = `Средний балл ${avg.toFixed(1)} на основе ${count} отзывов`;
 
-      // Check if user already reviewed
-      const userAlreadyReviewed = hasUserReviewedSalon(targetId);
+      const userAlreadyReviewed = hasUserReviewedTarget(targetId);
       const topBtn = document.getElementById('openAddReviewTopBtn');
       const bottomBanner = document.getElementById('addReviewBottomBanner');
 
@@ -3837,7 +3983,7 @@
           bottomBanner.innerHTML = `
             <div class="flex flex-col pr-2">
               <span class="text-xs font-bold text-on-surface">Были в салоне «${venue.name}»?</span>
-              <span class="text-[11px] text-slate-500 mt-0.5">Поделитесь впечатлениями и оценкой мастера</span>
+              <span class="text-[11px] text-slate-500 mt-0.5">Поделитесь впечатлениями и оценкой мастеров</span>
             </div>
             <button onclick="openAddReviewModal()" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-bold shadow-xs active:scale-95 transition-all shrink-0">
               Оставить отзыв
@@ -3847,11 +3993,80 @@
         }
       }
 
-      // Render reviews list
+      renderReviewsListHTML(reviews, venue.name);
+    }
+
+    // Render Screen: Reviews for Master
+    function renderMasterReviewsScreen(masterId) {
+      state.reviewsTargetType = 'master';
+      const targetId = masterId || state.activeMaster || 'master_beauty_alina';
+      const master = (typeof getMasterById === 'function') ? getMasterById(targetId) : null;
+      const mName = master ? master.name : 'Мастер';
+      const reviews = getMasterReviewsList(targetId, master);
+      const { avg, count } = calculateMasterAverageRating(targetId, master);
+
+      if (master) {
+        master.rating = avg.toFixed(1);
+        master.reviews_count = count;
+      }
+
+      const sName = document.getElementById('reviewsSalonName');
+      const sAvg = document.getElementById('reviewsAverageRating');
+      const sBadge = document.getElementById('reviewsCountBadge');
+      const sNotice = document.getElementById('reviewsAverageNotice');
+
+      if (sName) sName.textContent = `${mName} • ${master ? master.role_title : 'Специалист'}`;
+      if (sAvg) sAvg.textContent = avg.toFixed(1);
+      if (sBadge) sBadge.textContent = `(${count})`;
+      if (sNotice) sNotice.textContent = `Средний балл ${avg.toFixed(1)} на основе ${count} отзывов`;
+
+      const userAlreadyReviewed = hasUserReviewedTarget(targetId);
+      const topBtn = document.getElementById('openAddReviewTopBtn');
+      const bottomBanner = document.getElementById('addReviewBottomBanner');
+
+      if (topBtn) {
+        if (userAlreadyReviewed) {
+          topBtn.disabled = true;
+          topBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          topBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">check</span><span>Отзыв оставлен</span>';
+        } else {
+          topBtn.disabled = false;
+          topBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          topBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">rate_review</span><span>Написать</span>';
+        }
+      }
+
+      if (bottomBanner) {
+        if (userAlreadyReviewed) {
+          bottomBanner.innerHTML = `
+            <div class="flex items-center gap-2 text-emerald-800">
+              <span class="material-symbols-outlined text-emerald-600">verified</span>
+              <span class="text-xs font-semibold">Вы уже оставили отзыв об этом мастере. Спасибо за вашу оценку!</span>
+            </div>
+          `;
+          bottomBanner.className = 'rounded-2xl p-3.5 bg-emerald-50 border border-emerald-200/60 flex items-center justify-between';
+        } else {
+          bottomBanner.innerHTML = `
+            <div class="flex flex-col pr-2">
+              <span class="text-xs font-bold text-on-surface">Были на процедуре у мастера ${mName}?</span>
+              <span class="text-[11px] text-slate-500 mt-0.5">Поделитесь впечатлениями и качеством работы</span>
+            </div>
+            <button onclick="openAddReviewModal()" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-bold shadow-xs active:scale-95 transition-all shrink-0">
+              Оставить отзыв
+            </button>
+          `;
+          bottomBanner.className = 'rounded-2xl p-4 bg-primary-fixed/30 border border-primary/20 flex items-center justify-between';
+        }
+      }
+
+      renderReviewsListHTML(reviews, mName);
+    }
+
+    function renderReviewsListHTML(reviews, targetTitle) {
       const listContainer = document.getElementById('salonReviewsFullList');
       if (!listContainer) return;
 
-      if (reviews.length === 0) {
+      if (!reviews || reviews.length === 0) {
         listContainer.innerHTML = `
           <div class="rounded-3xl bg-white p-6 shadow-xs border border-slate-200/70 text-center flex flex-col items-center gap-3">
             <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center">
@@ -3859,7 +4074,7 @@
             </div>
             <div>
               <h3 class="font-bold text-sm text-on-surface">Пока нет отзывов</h3>
-              <p class="text-xs text-slate-400 mt-1 max-w-[240px]">Станьте первым, кто поделится впечатлением о салоне «${venue.name}»</p>
+              <p class="text-xs text-slate-400 mt-1 max-w-[240px]">Станьте первым, кто поделится впечатлением о «${targetTitle}»</p>
             </div>
             <button onclick="openAddReviewModal()" class="mt-1 px-5 py-2.5 rounded-full bg-primary text-white text-xs font-semibold shadow-xs active:scale-95 transition-transform flex items-center gap-1.5">
               <span>Оставить первый отзыв</span>
@@ -3903,7 +4118,7 @@
             <!-- Service Tag -->
             <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface-container-low text-slate-600 text-[11px] font-semibold w-fit">
               <span class="material-symbols-outlined text-[13px] text-primary">spa</span>
-              <span>${r.service || 'Услуга салона'}</span>
+              <span>${r.service || 'Услуга'}</span>
             </div>
 
             <!-- Review Text -->
@@ -3915,21 +4130,49 @@
       }).join('');
     }
 
-    // Modal: Open Add Review
+    // Modal: Open Add Review (Unified for Salon and Master)
     function openAddReviewModal() {
-      const salonId = state.activeSalon || 'beauty';
-      if (hasUserReviewedSalon(salonId)) {
-        showToast('Вы уже оставили отзыв об этом салоне ⚠️ (лимит: 1 отзыв)');
+      const isMaster = (state.reviewsTargetType === 'master');
+      const targetId = isMaster ? (state.activeMaster || 'master_beauty_alina') : (state.activeSalon || 'beauty');
+
+      if (hasUserReviewedTarget(targetId)) {
+        showToast(isMaster ? 'Вы уже оставили отзыв об этом мастере ⚠️ (лимит: 1 отзыв)' : 'Вы уже оставили отзыв об этом салоне ⚠️ (лимит: 1 отзыв)');
         return;
       }
 
-      const venue = venues.find(v => v.id === salonId) || venues[0];
       const modal = document.getElementById('addReviewModal');
       if (!modal) return;
 
-      // Populate Salon Name
       const sSub = document.getElementById('addReviewSalonSubtitle');
-      if (sSub) sSub.textContent = venue.name;
+      const svcSelect = document.getElementById('addReviewServiceSelect');
+
+      if (isMaster) {
+        const master = (typeof getMasterById === 'function') ? getMasterById(targetId) : null;
+        if (sSub) sSub.textContent = master ? `Мастер: ${master.name}` : 'Мастер';
+        if (svcSelect) {
+          const services = (master && master.services) ? master.services : [];
+          if (services.length > 0) {
+            svcSelect.innerHTML = services.map(s => `
+              <option value="${s.name}">${s.name} (${s.price.toLocaleString('ru-RU')} ₽)</option>
+            `).join('');
+          } else {
+            svcSelect.innerHTML = '<option value="Процедура">Процедура мастера</option>';
+          }
+        }
+      } else {
+        const venue = venues.find(v => v.id === targetId) || venues[0];
+        if (sSub) sSub.textContent = venue.name;
+        if (svcSelect) {
+          const salonServices = venue.services || [];
+          if (salonServices.length > 0) {
+            svcSelect.innerHTML = salonServices.map(s => `
+              <option value="${s.name}">${s.name} (${s.price.toLocaleString('ru-RU')} ₽)</option>
+            `).join('');
+          } else {
+            svcSelect.innerHTML = `<option value="${venue.categoryText || 'Услуга'}">${venue.categoryText || 'Услуга салона'}</option>`;
+          }
+        }
+      }
 
       // Populate User Info & Platform Duration
       const regDate = getUserRegistrationDate();
@@ -3944,19 +4187,6 @@
       if (nameEl) nameEl.textContent = uName;
       if (regEl) regEl.textContent = `На платформе: ${userDur}`;
       if (avEl) avEl.textContent = initials;
-
-      // Populate Services Dropdown
-      const svcSelect = document.getElementById('addReviewServiceSelect');
-      if (svcSelect) {
-        const salonServices = venue.services || [];
-        if (salonServices.length > 0) {
-          svcSelect.innerHTML = salonServices.map(s => `
-            <option value="${s.name}">${s.name} (${s.price.toLocaleString('ru-RU')} ₽)</option>
-          `).join('');
-        } else {
-          svcSelect.innerHTML = `<option value="${venue.categoryText || 'Услуга'}">${venue.categoryText || 'Услуга салона'}</option>`;
-        }
-      }
 
       // Reset fields
       setReviewRating(5);
@@ -4008,14 +4238,14 @@
       } catch (e) {}
     }
 
-    // Submit review with 1-review restriction & average rating update
+    // Submit review with 1-review restriction & average rating update (Salon or Master)
     function submitSalonReview() {
-      const salonId = state.activeSalon || 'beauty';
-      const venue = venues.find(v => v.id === salonId) || venues[0];
+      const isMaster = (state.reviewsTargetType === 'master');
+      const targetId = isMaster ? (state.activeMaster || 'master_beauty_alina') : (state.activeSalon || 'beauty');
 
-      // Check restriction: only 1 review per salon per user
-      if (hasUserReviewedSalon(salonId)) {
-        showToast('Вы уже оставили отзыв об этом салоне ⚠️');
+      // Check restriction: only 1 review per salon/master per user
+      if (hasUserReviewedTarget(targetId)) {
+        showToast(isMaster ? 'Вы уже оставили отзыв об этом мастере ⚠️' : 'Вы уже оставили отзыв об этом салоне ⚠️');
         closeAddReviewModal();
         return;
       }
@@ -4029,7 +4259,7 @@
       }
 
       const svcSelect = document.getElementById('addReviewServiceSelect');
-      const chosenService = svcSelect?.value || (venue.services && venue.services[0] ? venue.services[0].name : 'Услуга салона');
+      const chosenService = svcSelect?.value || 'Процедура';
 
       const regDate = getUserRegistrationDate();
       const userDur = formatUserDuration(regDate);
@@ -4048,18 +4278,27 @@
       };
 
       const all = getAllStoredReviews();
-      if (!all[salonId]) all[salonId] = [];
-      all[salonId].unshift(newReview);
+      if (!all[targetId]) all[targetId] = [];
+      all[targetId].unshift(newReview);
       saveAllStoredReviews(all);
 
-      // Recalculate average rating
-      const { avg, count } = calculateSalonAverageRating(salonId);
-      venue.rating = avg.toFixed(1);
-      venue.reviewsCount = count;
-
-      // Update salon screen if currently rendered
-      renderSalonDetails(salonId);
-      renderSalonReviewsScreen(salonId);
+      if (isMaster) {
+        const master = (typeof getMasterById === 'function') ? getMasterById(targetId) : null;
+        const { avg, count } = calculateMasterAverageRating(targetId, master);
+        if (master) {
+          master.rating = avg.toFixed(1);
+          master.reviews_count = count;
+        }
+        renderMasterDetails(targetId);
+        renderMasterReviewsScreen(targetId);
+      } else {
+        const venue = venues.find(v => v.id === targetId) || venues[0];
+        const { avg, count } = calculateSalonAverageRating(targetId);
+        venue.rating = avg.toFixed(1);
+        venue.reviewsCount = count;
+        renderSalonDetails(targetId);
+        renderSalonReviewsScreen(targetId);
+      }
 
       closeAddReviewModal();
       showToast('🎉 Спасибо! Ваш отзыв опубликован');
@@ -4069,8 +4308,8 @@
         if (window.Telegram?.WebApp?.sendData) {
           window.Telegram.WebApp.sendData(JSON.stringify({
             action: 'review_added',
-            salon_id: salonId,
-            salon_name: venue.name,
+            target_type: isMaster ? 'master' : 'salon',
+            target_id: targetId,
             user_name: uName,
             service_name: chosenService,
             rating: currentReviewRating,
