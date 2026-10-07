@@ -6,6 +6,12 @@
   <meta content="mobile_tab" name="shell-type"/>
   <title>Окошко — Telegram Mini App</title>
 
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Yandex Maps API 2.1 -->
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+
   <!-- Google Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
@@ -160,6 +166,99 @@
     .animate-pulse-ring {
       animation: pulse-ring 2s infinite ease-in-out;
     }
+
+    /* Custom Yandex Map Pins */
+    .ymap-custom-marker {
+      transform: translate(-50%, -100%);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 10px 24px -4px rgba(18, 19, 22, 0.22);
+      border: 1.5px solid #ffffff;
+      font-family: 'Plus Jakarta Sans', 'Geologica', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: #1b1b1f;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: none;
+      pointer-events: auto;
+    }
+    .ymap-custom-marker:after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 9px;
+      height: 9px;
+      background: inherit;
+      border-right: 1.5px solid #ffffff;
+      border-bottom: 1.5px solid #ffffff;
+    }
+    .ymap-custom-marker.active {
+      background: #5f3add;
+      color: #ffffff;
+      box-shadow: 0 12px 28px -4px rgba(95, 58, 221, 0.55);
+      border-color: #7857f8;
+      z-index: 50;
+    }
+    .ymap-custom-marker.active:after {
+      background: #5f3add;
+      border-right-color: #7857f8;
+      border-bottom-color: #7857f8;
+    }
+    .ymap-pin-star {
+      color: #f59e0b;
+      font-size: 11px;
+    }
+    .ymap-custom-marker.active .ymap-pin-star {
+      color: #fde047;
+    }
+    .ymap-pin-sep {
+      opacity: 0.4;
+      font-size: 10px;
+    }
+
+    /* User Pulse Location Marker on Yandex Maps */
+    .ymap-user-marker {
+      position: relative;
+      width: 22px;
+      height: 22px;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .ymap-user-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #5f3add;
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(95, 58, 221, 0.5);
+      position: relative;
+      z-index: 2;
+    }
+    .ymap-user-pulse {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(95, 58, 221, 0.25);
+      animation: ymap-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    @keyframes ymap-ping {
+      0% { transform: scale(0.5); opacity: 0.9; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
   </style>
 </head>
 <body class="bg-[#faf9fd] text-on-surface antialiased flex flex-col items-center justify-start min-h-screen">
@@ -189,8 +288,9 @@
           <button onclick="showQuickOptionsModal()" aria-label="Опции" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-all">
             <span class="material-symbols-outlined text-[20px]">more_horiz</span>
           </button>
-          <div onclick="router.navigate('profile')" class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center shadow-xs cursor-pointer text-white">
-            <span class="material-symbols-outlined text-[17px]">person</span>
+          <div onclick="router.navigate('profile')" class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center shadow-xs cursor-pointer text-white overflow-hidden">
+            <span id="headerUserInitials" class="text-xs font-bold">ТГ</span>
+            <img id="headerUserPhoto" class="w-full h-full object-cover hidden" alt="User"/>
           </div>
         </div>
       </div>
@@ -205,9 +305,94 @@
     </header>
 
       <!-- ======================================================== -->
+      <!-- SCREEN 0: TELEGRAM AUTH & VERIFICATION -->
+      <!-- ======================================================== -->
+      <section id="screen-verify" class="screen active relative pb-10 min-h-screen flex flex-col justify-between px-4 pt-6">
+        <div class="flex flex-col items-center text-center">
+          <!-- App Logo & Verification Badge -->
+          <div class="relative mb-5">
+            <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-primary to-primary-container p-0.5 shadow-xl flex items-center justify-center">
+              <div class="w-full h-full bg-white rounded-[22px] flex items-center justify-center">
+                <span class="material-symbols-outlined text-[42px] text-primary" style="font-variation-settings: 'FILL' 1;">spa</span>
+              </div>
+            </div>
+            <div class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md border-2 border-white">
+              <span class="material-symbols-outlined text-[18px]">verified</span>
+            </div>
+          </div>
+
+          <h1 class="text-2xl font-bold text-on-surface tracking-tight">Добро пожаловать в «Окошко»</h1>
+          <p class="text-xs text-slate-500 mt-1 max-w-[290px]">
+            Онлайн-запись к бьюти-мастерам и в салоны красоты через Telegram
+          </p>
+
+          <!-- Telegram Identity Card -->
+          <div class="w-full mt-5 p-4 rounded-3xl bg-white shadow-[0_12px_36px_rgba(95,58,221,0.08)] border border-slate-200/70 flex flex-col gap-3.5">
+            <div class="flex items-center gap-3.5 text-left">
+              <!-- Avatar -->
+              <div class="relative shrink-0">
+                <div id="verifyAvatarContainer" class="w-16 h-16 rounded-2xl overflow-hidden shadow-xs bg-primary-fixed/50 flex items-center justify-center text-primary font-bold text-lg border-2 border-primary/20">
+                  <span id="verifyAvatarInitials">ТГ</span>
+                  <img id="verifyAvatarImg" class="w-full h-full object-cover hidden" alt="Avatar"/>
+                </div>
+                <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] ring-2 ring-white">
+                  <span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">check</span>
+                </span>
+              </div>
+
+              <!-- Identity Details -->
+              <div class="flex flex-col min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                  <h2 id="verifyUserName" class="font-bold text-base text-on-surface truncate">Пользователь</h2>
+                  <span id="verifyPremiumBadge" class="hidden px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] font-bold">★ Premium</span>
+                </div>
+                <span id="verifyUserHandle" class="text-xs text-primary font-semibold truncate">@telegram_user</span>
+                <span id="verifyUserId" class="text-[10px] text-slate-400 mt-0.5">ID: 8949973080</span>
+              </div>
+            </div>
+
+            <!-- Verification Status Badges -->
+            <div class="p-3 rounded-2xl bg-surface-container-low/70 border border-slate-200/50 flex flex-col gap-2 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">Авторизация:</span>
+                <span class="font-semibold text-emerald-600 flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Подтверждено Telegram
+                </span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">Карты:</span>
+                <span class="font-semibold text-on-surface">Яндекс.Карты (online)</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">Синхронизация:</span>
+                <span class="font-semibold text-primary">История и статус клиента</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Telegram security notice -->
+          <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+            <span class="material-symbols-outlined text-[16px] text-emerald-500">shield</span>
+            <span>Данные профиля проверены Telegram API</span>
+          </div>
+        </div>
+
+        <!-- Continue Button -->
+        <div class="w-full flex flex-col gap-2.5 mt-8">
+          <button id="verifyContinueBtn" onclick="completeVerification()" class="w-full py-4 rounded-2xl bg-primary text-white font-bold text-base shadow-[0_12px_28px_rgba(95,58,221,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+            <span id="verifyBtnText">Продолжить как Пользователь</span>
+            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+          </button>
+          <p class="text-[11px] text-slate-400 text-center">
+            Нажимая кнопку, вы подтверждаете вход в сервис «Окошко»
+          </p>
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
       <!-- SCREEN 1: MAP / EXPLORE VIEW (based on _1/code.html) -->
       <!-- ======================================================== -->
-      <section id="screen-map" class="screen active relative pb-28 min-h-screen">
+      <section id="screen-map" class="screen relative pb-28 min-h-screen">
         <!-- Floating Search & Category Pills -->
         <div class="sticky top-0 z-20 flex flex-col gap-2 px-4 pt-2 pb-2 bg-surface/90 backdrop-blur-md">
           <!-- Search Bar -->
@@ -242,76 +427,13 @@
           </div>
         </div>
 
-        <!-- Interactive Map Container -->
-        <div class="relative w-full h-[460px] overflow-hidden bg-[#F4F3F8]">
-          <!-- Vector Map Background -->
-          <svg class="absolute inset-0 w-full h-full object-cover pointer-events-none" preserveAspectRatio="none" viewBox="0 0 400 560" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="parkGrad" x1="0%" x2="100%" y1="0%" y2="100%">
-                <stop offset="0%" stop-color="#E2F5EA"></stop>
-                <stop offset="100%" stop-color="#D5EFE2"></stop>
-              </linearGradient>
-            </defs>
-            <rect fill="#F4F3F8" height="100%" width="100%"></rect>
-            <!-- City blocks -->
-            <rect fill="#FFFFFF" fill-opacity="0.85" height="90" rx="14" width="100" x="20" y="40"></rect>
-            <rect fill="#FFFFFF" fill-opacity="0.8" height="85" rx="14" width="130" x="135" y="50"></rect>
-            <rect fill="#FFFFFF" fill-opacity="0.9" height="110" rx="16" width="110" x="280" y="30"></rect>
-            <!-- Park area -->
-            <path d="M -10,160 Q 40,150 90,190 T 140,270 Q 110,320 40,310 T -20,280 Z" fill="url(#parkGrad)"></path>
-            <rect fill="#FFFFFF" fill-opacity="0.9" height="135" rx="18" width="110" x="160" y="155"></rect>
-            <rect fill="#FFFFFF" fill-opacity="0.75" height="120" rx="16" width="100" x="285" y="160"></rect>
-            <rect fill="#FFFFFF" fill-opacity="0.85" height="150" rx="18" width="125" x="15" y="335"></rect>
-            <rect fill="#FFFFFF" fill-opacity="0.8" height="180" rx="20" width="230" x="155" y="310"></rect>
-            <!-- Streets -->
-            <path d="M -20,145 L 420,145" stroke="#FFFFFF" stroke-linecap="round" stroke-width="16"></path>
-            <path d="M 145,-10 L 145,580" stroke="#FFFFFF" stroke-linecap="round" stroke-width="14"></path>
-            <path d="M 275,-10 L 275,300 Q 275,340 310,360 L 420,400" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="12"></path>
-            <path d="M -10,320 L 420,300" stroke="#FFFFFF" stroke-linecap="round" stroke-width="15"></path>
-            <path d="M 20,240 Q 80,240 145,210" fill="none" stroke="#FAF8FC" stroke-width="6"></path>
-            <path d="M 210,145 L 210,290" stroke="#FAF8FC" stroke-width="7"></path>
-          </svg>
-
-          <!-- User Pulse Location -->
-          <div class="absolute left-[38%] top-[52%] -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
-            <span class="absolute w-12 h-12 rounded-full bg-primary/20 animate-ping duration-1000"></span>
-            <span class="absolute w-7 h-7 rounded-full bg-primary/30"></span>
-            <span class="relative w-4 h-4 rounded-full bg-primary shadow-md flex items-center justify-center">
-              <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
-            </span>
-          </div>
-
-          <!-- Pin 1: Mono Studio (Secondary) -->
-          <div onclick="selectMapPin('mono')" class="absolute right-[14%] top-[22%] -translate-x-1/2 z-10 cursor-pointer active:scale-95 transition-transform">
-            <div id="pin-mono" class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md shadow-md border border-white">
-              <span class="text-amber-500 text-xs font-bold">★</span>
-              <span class="text-xs font-bold text-on-surface">5.0</span>
-              <span class="text-text-subtle text-xs">·</span>
-              <span class="text-xs font-semibold text-on-surface">Mono</span>
-            </div>
-          </div>
-
-          <!-- Pin 2: Beauty Studio (Primary Active) -->
-          <div onclick="selectMapPin('beauty')" class="absolute left-[54%] top-[34%] -translate-x-1/2 z-10 flex flex-col items-center cursor-pointer group active:scale-95 transition-transform">
-            <div id="pin-beauty" class="flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-primary text-white shadow-[0_12px_28px_-4px_rgba(95,58,221,0.5)]">
-              <span class="text-amber-300 text-xs">★</span>
-              <span class="text-xs font-bold">4.9</span>
-              <span class="opacity-70 text-xs">·</span>
-              <span class="text-xs font-bold whitespace-nowrap">Beauty Studio</span>
-            </div>
-            <div class="w-2.5 h-2.5 bg-primary rotate-45 -mt-1 rounded-xs"></div>
-            <div class="w-5 h-1.5 rounded-full bg-black/15 blur-[2px] mt-0.5"></div>
-          </div>
-
-          <!-- Pin 3: Cluster +4 -->
-          <div onclick="showClusterAlert()" class="absolute left-[16%] top-[60%] -translate-x-1/2 z-10 cursor-pointer active:scale-95 transition-transform">
-            <div class="w-9 h-9 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-xs font-bold text-primary shadow-md border border-white">
-              +4
-            </div>
-          </div>
+        <!-- Interactive Yandex Map Container -->
+        <div class="relative w-full h-[470px] overflow-hidden bg-[#EAE7F0]">
+          <!-- Real Yandex Map element -->
+          <div id="yandexMap" class="w-full h-full"></div>
 
           <!-- Center to my location button -->
-          <button onclick="centerLocation()" aria-label="Мое местоположение" class="absolute right-4 top-[50%] z-10 w-11 h-11 rounded-full bg-white/90 backdrop-blur-xl shadow-lg flex items-center justify-center text-primary active:scale-90 transition-all border border-white">
+          <button onclick="centerLocation()" aria-label="Мое местоположение" class="absolute right-4 bottom-20 z-10 w-11 h-11 rounded-full bg-white/95 backdrop-blur-xl shadow-lg flex items-center justify-center text-primary active:scale-90 transition-all border border-white">
             <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">near_me</span>
           </button>
         </div>
@@ -961,20 +1083,22 @@
           <!-- Profile Card -->
           <div class="flex flex-col items-center text-center">
             <div class="relative mb-2">
-              <div class="w-20 h-20 rounded-full overflow-hidden shadow-md bg-surface-container p-1">
-                <img class="w-full h-full object-cover rounded-full" alt="Alexey Morozov" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrotO_X1rSSNwHujQgzX6gB55SAHCURjRmH2jJ8ryMJ6PU-GjdC02UvcYu8OULzI6a5TWdSYDW6OUBk0MxNcD3f24quw5xsc_ys1etQvKRfEu6C1H0BvzahRslsdEl2na4dUYv95f_tAK_0e_yolLdRNYBnBtd7v1A0Yx9H0LBM3rhyC143jh204ni5OQNXsL967xw1ZlAIrMuV53Qe8k7ctOyA4AzMYw3M6inEw"/>
+              <div id="profileAvatarContainer" class="w-20 h-20 rounded-full overflow-hidden shadow-md bg-primary-fixed/50 p-1 flex items-center justify-center border-2 border-primary/20">
+                <img id="profileAvatarImg" class="w-full h-full object-cover rounded-full hidden" alt="Telegram Avatar"/>
+                <span id="profileAvatarInitials" class="text-xl font-bold text-primary">ТГ</span>
               </div>
-              <button onclick="alert('Редактирование профиля')" aria-label="Редактировать" class="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
-                <span class="material-symbols-outlined text-[13px]">edit</span>
+              <button onclick="reverifyTelegram()" aria-label="Синхронизировать" title="Синхронизировать профиль" class="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
+                <span class="material-symbols-outlined text-[13px]">sync</span>
               </button>
             </div>
 
-            <h1 class="font-bold text-lg text-on-surface">Алексей Морозов</h1>
+            <h1 id="profileUserName" class="font-bold text-lg text-on-surface">Пользователь</h1>
             <div class="flex items-center gap-1 mt-0.5 justify-center">
-              <span class="text-xs text-primary font-semibold">@morozov_alex</span>
+              <span id="profileUserHandle" class="text-xs text-primary font-semibold">@telegram_user</span>
               <span class="material-symbols-outlined text-primary text-[15px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+              <span id="profilePremiumStar" class="hidden px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">★ Premium</span>
             </div>
-            <span class="text-[11px] text-slate-400 mt-0.5">Клиент Окошка с октября 2024</span>
+            <span id="profileClientSince" class="text-[11px] text-slate-400 mt-0.5">Верифицированный профиль Telegram</span>
 
             <!-- Stats Capsule -->
             <div class="w-full mt-3 p-3 rounded-2xl bg-white shadow-xs border border-slate-200/60 flex items-center justify-around">
@@ -1019,12 +1143,12 @@
           <div class="flex flex-col gap-1.5">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Мои данные</span>
             <div class="rounded-2xl bg-white shadow-xs border border-slate-200/60 overflow-hidden flex flex-col text-xs">
-              <div class="p-3 flex items-center justify-between active:bg-slate-50 cursor-pointer">
+              <div class="p-3 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="reverifyTelegram()">
                 <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-primary text-[18px]">call</span>
+                  <span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
                   <div class="flex flex-col">
-                    <span class="font-semibold text-on-surface">+7 999 123-45-67</span>
-                    <span class="text-[10px] text-slate-400">Telegram номер</span>
+                    <span id="profileTgIdText" class="font-semibold text-on-surface">ID: 8949973080</span>
+                    <span class="text-[10px] text-slate-400">Telegram аккаунт</span>
                   </div>
                 </div>
                 <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">Подтвержден</span>
@@ -1167,16 +1291,125 @@
   <script>
     // State management
     const state = {
-      currentScreen: 'map',
-      screenHistory: ['map'],
+      currentScreen: 'verify',
+      screenHistory: ['verify'],
       userRole: 'client',
       selectedDate: 'Ср, 8 ноября',
       selectedTime: '14:00',
       selectedServices: [
         { id: 's1', name: 'Аппаратный маникюр + Luxio', price: 2500, duration: 90 }
       ],
-      activeSalon: 'beauty'
+      activeSalon: 'beauty',
+      verified: false,
+      user: null
     };
+
+    // User profile extractor from Telegram WebApp
+    function getTelegramUser() {
+      const defaultUser = {
+        id: 8949973080,
+        first_name: "Пользователь",
+        last_name: "",
+        username: "okoshko_user",
+        is_premium: true,
+        photo_url: ""
+      };
+
+      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (tgUser && (tgUser.first_name || tgUser.username || tgUser.id)) {
+        return {
+          id: tgUser.id || defaultUser.id,
+          first_name: tgUser.first_name || 'Пользователь',
+          last_name: tgUser.last_name || '',
+          username: tgUser.username || '',
+          is_premium: !!tgUser.is_premium,
+          photo_url: tgUser.photo_url || ''
+        };
+      }
+      return defaultUser;
+    }
+
+    // Sync all user profile displays across screens
+    function syncUserProfileUI(user) {
+      if (!user) return;
+      const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Пользователь';
+      const handle = user.username ? `@${user.username}` : `ID: ${user.id}`;
+      const initials = ((user.first_name ? user.first_name[0] : 'Т') + (user.last_name ? user.last_name[0] : 'Г')).toUpperCase();
+
+      // Screen 0: Verify Screen
+      const vName = document.getElementById('verifyUserName');
+      const vHandle = document.getElementById('verifyUserHandle');
+      const vId = document.getElementById('verifyUserId');
+      const vBtn = document.getElementById('verifyBtnText');
+      const vPrem = document.getElementById('verifyPremiumBadge');
+      const vInit = document.getElementById('verifyAvatarInitials');
+      const vImg = document.getElementById('verifyAvatarImg');
+
+      if (vName) vName.textContent = fullName;
+      if (vHandle) vHandle.textContent = handle;
+      if (vId) vId.textContent = `ID: ${user.id}`;
+      if (vBtn) vBtn.textContent = `Продолжить как ${user.first_name || 'Пользователь'}`;
+      if (vPrem) vPrem.classList.toggle('hidden', !user.is_premium);
+
+      if (user.photo_url) {
+        if (vImg) { vImg.src = user.photo_url; vImg.classList.remove('hidden'); }
+        if (vInit) vInit.classList.add('hidden');
+      } else {
+        if (vInit) { vInit.textContent = initials; vInit.classList.remove('hidden'); }
+        if (vImg) vImg.classList.add('hidden');
+      }
+
+      // Screen 5: Profile Screen
+      const pName = document.getElementById('profileUserName');
+      const pHandle = document.getElementById('profileUserHandle');
+      const pTgId = document.getElementById('profileTgIdText');
+      const pPrem = document.getElementById('profilePremiumStar');
+      const pInit = document.getElementById('profileAvatarInitials');
+      const pImg = document.getElementById('profileAvatarImg');
+
+      if (pName) pName.textContent = fullName;
+      if (pHandle) pHandle.textContent = handle;
+      if (pTgId) pTgId.textContent = `ID: ${user.id}`;
+      if (pPrem) pPrem.classList.toggle('hidden', !user.is_premium);
+
+      if (user.photo_url) {
+        if (pImg) { pImg.src = user.photo_url; pImg.classList.remove('hidden'); }
+        if (pInit) pInit.classList.add('hidden');
+      } else {
+        if (pInit) { pInit.textContent = initials; pInit.classList.remove('hidden'); }
+        if (pImg) pImg.classList.add('hidden');
+      }
+
+      // Top Header Avatar
+      const hInit = document.getElementById('headerUserInitials');
+      const hPhoto = document.getElementById('headerUserPhoto');
+      if (user.photo_url) {
+        if (hPhoto) { hPhoto.src = user.photo_url; hPhoto.classList.remove('hidden'); }
+        if (hInit) hInit.classList.add('hidden');
+      } else {
+        if (hInit) { hInit.textContent = initials; hInit.classList.remove('hidden'); }
+        if (hPhoto) hPhoto.classList.add('hidden');
+      }
+    }
+
+    // Complete initial Telegram verification
+    function completeVerification() {
+      state.verified = true;
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+      } catch (e) {}
+
+      showToast(`Добро пожаловать, ${state.user.first_name}! ✨`);
+      router.navigate('map');
+      setTimeout(initYandexMap, 200);
+    }
+
+    // Quick re-verification from profile
+    function reverifyTelegram() {
+      router.navigate('verify');
+    }
 
     // Router
     const router = {
@@ -1219,8 +1452,18 @@
         const backIcon = document.getElementById('headerBackIcon');
         const headerTitle = document.getElementById('headerTitle');
         const headerSubtitle = document.getElementById('headerSubtitle');
+        const globalHeader = document.getElementById('globalHeader');
         const globalNav = document.getElementById('globalNav');
         const roleToggleBar = document.getElementById('roleToggleBar');
+
+        // On verification screen, hide header and bottom navigation
+        if (screen === 'verify') {
+          globalHeader.classList.add('hidden');
+          globalNav.classList.add('hidden');
+          return;
+        } else {
+          globalHeader.classList.remove('hidden');
+        }
 
         // Update Nav button active states
         document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -1240,17 +1483,20 @@
           headerSubtitle.textContent = 'мини-приложение';
           globalNav.classList.remove('hidden');
           roleToggleBar.classList.remove('hidden');
+          if (yandexMapInstance && yandexMapInstance.container) {
+            setTimeout(() => yandexMapInstance.container.fitToViewport(), 150);
+          }
         } else if (screen === 'salon') {
           backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Beauty Studio';
           headerSubtitle.textContent = 'Салон красоты';
-          globalNav.classList.add('hidden'); // Screen has its own sticky CTA bar
+          globalNav.classList.add('hidden');
           roleToggleBar.classList.add('hidden');
         } else if (screen === 'master') {
           backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Алина Романова';
           headerSubtitle.textContent = 'Топ-мастер';
-          globalNav.classList.add('hidden'); // Master has its own sticky booking dock
+          globalNav.classList.add('hidden');
           roleToggleBar.classList.add('hidden');
         } else if (screen === 'appointments') {
           backIcon.textContent = 'close';
@@ -1261,7 +1507,8 @@
         } else if (screen === 'profile') {
           backIcon.textContent = 'close';
           headerTitle.textContent = 'Профиль';
-          headerSubtitle.textContent = '@morozov_alex';
+          const u = state.user || {};
+          headerSubtitle.textContent = u.username ? `@${u.username}` : (u.first_name || 'клиент');
           globalNav.classList.remove('hidden');
           roleToggleBar.classList.remove('hidden');
         }
@@ -1290,9 +1537,143 @@
       }
     }
 
+    // ==========================================
+    // YANDEX MAPS INTEGRATION
+    // ==========================================
+    let yandexMapInstance = null;
+    let mapPlacemarks = {};
+    const userCoordinates = [55.764500, 37.601000];
+
+    function initYandexMap() {
+      if (yandexMapInstance) {
+        if (yandexMapInstance.container) {
+          yandexMapInstance.container.fitToViewport();
+        }
+        return;
+      }
+
+      if (typeof ymaps === 'undefined') {
+        console.warn('Yandex Maps API is loading...');
+        setTimeout(initYandexMap, 500);
+        return;
+      }
+
+      ymaps.ready(() => {
+        const mapContainer = document.getElementById('yandexMap');
+        if (!mapContainer || yandexMapInstance) return;
+
+        yandexMapInstance = new ymaps.Map('yandexMap', {
+          center: [55.766324, 37.604245],
+          zoom: 14,
+          controls: []
+        }, {
+          suppressMapOpenBlock: true
+        });
+
+        // Custom template layout for glass pins
+        const PinLayout = ymaps.templateLayoutFactory.createClass(
+          '<div id="ymap-pin-$[properties.id]" class="ymap-custom-marker $[properties.activeClass]">' +
+            '<span class="ymap-pin-star">★</span>' +
+            '<span class="ymap-pin-rating">$[properties.rating]</span>' +
+            '<span class="ymap-pin-sep">·</span>' +
+            '<span class="ymap-pin-name">$[properties.title]</span>' +
+          '</div>'
+        );
+
+        // User Location Pin
+        const UserPinLayout = ymaps.templateLayoutFactory.createClass(
+          '<div class="ymap-user-marker">' +
+            '<span class="ymap-user-pulse"></span>' +
+            '<span class="ymap-user-dot"></span>' +
+          '</div>'
+        );
+
+        const userPlacemark = new ymaps.Placemark(
+          userCoordinates,
+          {},
+          {
+            iconLayout: UserPinLayout,
+            iconOffset: [-11, -11]
+          }
+        );
+        yandexMapInstance.geoObjects.add(userPlacemark);
+
+        // Salons & Masters
+        const locations = [
+          {
+            id: 'beauty',
+            coords: [55.767500, 37.607800],
+            title: 'Beauty Studio',
+            rating: '4.9',
+            category: 'nails hair',
+            activeClass: 'active'
+          },
+          {
+            id: 'mono',
+            coords: [55.769800, 37.596500],
+            title: 'Mono Studio',
+            rating: '5.0',
+            category: 'brows',
+            activeClass: ''
+          },
+          {
+            id: 'alina',
+            coords: [55.762100, 37.611000],
+            title: 'Алина Романова',
+            rating: '5.0',
+            category: 'nails',
+            activeClass: ''
+          },
+          {
+            id: 'kristina',
+            coords: [55.760000, 37.603000],
+            title: 'Кристина Ли',
+            rating: '4.9',
+            category: 'pedicure',
+            activeClass: ''
+          }
+        ];
+
+        locations.forEach(loc => {
+          const pm = new ymaps.Placemark(
+            loc.coords,
+            {
+              id: loc.id,
+              title: loc.title,
+              rating: loc.rating,
+              activeClass: loc.activeClass
+            },
+            {
+              iconLayout: PinLayout,
+              iconOffset: [-35, -25]
+            }
+          );
+
+          pm.events.add('click', () => {
+            selectMapPin(loc.id);
+            try {
+              if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+              }
+            } catch(e){}
+            yandexMapInstance.panTo(loc.coords, { flying: true, duration: 500 });
+          });
+
+          mapPlacemarks[loc.id] = { placemark: pm, coords: loc.coords, category: loc.category };
+          yandexMapInstance.geoObjects.add(pm);
+        });
+      });
+    }
+
     // Map pin selection
     function selectMapPin(type) {
       state.activeSalon = type;
+
+      // Update active marker styles on Yandex Map
+      document.querySelectorAll('.ymap-custom-marker').forEach(el => el.classList.remove('active'));
+      const pinEl = document.getElementById(`ymap-pin-${type}`);
+      if (pinEl) pinEl.classList.add('active');
+
       if (type === 'mono') {
         document.getElementById('sheetSalonName').textContent = 'Mono Studio';
         document.getElementById('sheetRating').textContent = '5.0';
@@ -1301,6 +1682,14 @@
         document.getElementById('sheetDistance').textContent = '620 м';
         document.getElementById('sheetHotSlot').textContent = 'Окно сегодня 16:30';
         showToast('Выбран салон Mono Studio');
+      } else if (type === 'alina') {
+        document.getElementById('sheetSalonName').textContent = 'Алина Романова (Топ)';
+        document.getElementById('sheetRating').textContent = '5.0';
+        document.getElementById('sheetReviews').textContent = '(156)';
+        document.getElementById('sheetCategory').textContent = 'Аппаратный маникюр · Дизайн';
+        document.getElementById('sheetDistance').textContent = '350 м';
+        document.getElementById('sheetHotSlot').textContent = 'Окно сегодня 14:00';
+        showToast('Выбран мастер Алина Романова');
       } else {
         document.getElementById('sheetSalonName').textContent = 'Beauty Studio';
         document.getElementById('sheetRating').textContent = '4.9';
@@ -1309,6 +1698,10 @@
         document.getElementById('sheetDistance').textContent = '350 м';
         document.getElementById('sheetHotSlot').textContent = 'Окно сегодня 14:00';
         showToast('Выбран салон Beauty Studio');
+      }
+
+      if (yandexMapInstance && mapPlacemarks[type]) {
+        yandexMapInstance.panTo(mapPlacemarks[type].coords, { flying: true, duration: 500 });
       }
     }
 
@@ -1409,6 +1802,33 @@
       closeBookingModal();
       showToast('🎉 Запись успешно оформлена!');
 
+      // Telegram Haptic feedback
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+      } catch (e) {
+        console.log(e);
+      }
+
+      // Send data to Telegram bot if launched via keyboard button
+      try {
+        if (window.Telegram?.WebApp?.sendData) {
+          const total = state.selectedServices.reduce((sum, s) => sum + s.price, 0);
+          window.Telegram.WebApp.sendData(JSON.stringify({
+            action: 'booking_confirmed',
+            salon: 'Beauty Studio (Садовая, 42)',
+            master: 'Алина Романова',
+            date: state.selectedDate,
+            time: state.selectedTime,
+            services: state.selectedServices.map(s => s.name).join(' + '),
+            total: total
+          }));
+        }
+      } catch (e) {
+        console.log('sendData note:', e);
+      }
+
       // Update active appointment in tab
       document.getElementById('apptDateTimeLabel').textContent = `${state.selectedDate} в ${state.selectedTime}`;
       document.getElementById('apptServiceName').textContent = state.selectedServices.map(s => s.name).join(' + ');
@@ -1427,6 +1847,17 @@
       el.classList.add('bg-primary', 'text-white');
       el.classList.remove('bg-white/90', 'text-on-surface');
       showToast(`Фильтр: ${el.innerText.trim()}`);
+
+      if (yandexMapInstance && mapPlacemarks) {
+        Object.keys(mapPlacemarks).forEach(key => {
+          const item = mapPlacemarks[key];
+          if (cat === 'all' || (item.category && item.category.includes(cat))) {
+            item.placemark.options.set('visible', true);
+          } else {
+            item.placemark.options.set('visible', false);
+          }
+        });
+      }
     }
 
     function handleSearch(val) {
@@ -1440,7 +1871,12 @@
     }
 
     function centerLocation() {
-      showToast('Определено текущее местоположение 📍');
+      if (yandexMapInstance) {
+        yandexMapInstance.panTo(userCoordinates, { flying: true, duration: 600 });
+        showToast('Карта центрирована на вашей локации 📍');
+      } else {
+        showToast('Определено текущее местоположение 📍');
+      }
     }
 
     function showClusterAlert() {
@@ -1503,19 +1939,26 @@
           },
           initDataUnsafe: {
             user: {
-              id: 987654321,
-              first_name: "Алексей",
-              last_name: "Морозов",
-              username: "morozov_alex"
+              id: 8949973080,
+              first_name: "Пользователь",
+              last_name: "Telegram",
+              username: "okoshko_user",
+              is_premium: true
             }
           }
         }
       };
     }
+
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
     }
+
+    // Initialize user profile from Telegram and begin on Verification screen
+    state.user = getTelegramUser();
+    syncUserProfileUI(state.user);
+    router.navigate('verify', false);
   </script>
 </body>
 </html>

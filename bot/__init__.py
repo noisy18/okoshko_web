@@ -1,0 +1,3 @@
+"""
+Okoshko Telegram Bot package.
+"""
