@@ -72,6 +72,60 @@ async def handle_web_app_data(message: Message):
             )
             return
 
+        elif data.get("action") == "review_added":
+            salon_id = data.get("salon_id")
+            salon_name = data.get("salon_name", "Салон")
+            user_name = data.get("user_name", "Клиент")
+            service_name = data.get("service_name", "Услуга")
+            rating = int(data.get("rating", 5))
+            text = data.get("text", "")
+
+            from bot.database import add_salon_review, Salon
+            from bot.database.base import async_session_maker
+            from sqlalchemy import select
+
+            if message.from_user:
+                try:
+                    await get_or_create_user(
+                        telegram_id=message.from_user.id,
+                        username=message.from_user.username,
+                        first_name=message.from_user.first_name,
+                        last_name=message.from_user.last_name,
+                    )
+                    # Находим салон по slug или id
+                    async with async_session_maker() as session:
+                        res = await session.execute(
+                            select(Salon).where((Salon.slug == str(salon_id)) | (Salon.id == int(salon_id) if str(salon_id).isdigit() else False))
+                        )
+                        target_salon = res.scalar_one_or_none()
+                        if target_salon:
+                            await add_salon_review(
+                                user_id=message.from_user.id,
+                                salon_id=target_salon.id,
+                                user_name=user_name,
+                                service_name=service_name,
+                                rating=rating,
+                                text=text,
+                            )
+                except Exception as e:
+                    logger.error(f"Ошибка сохранения отзыва в БД: {e}")
+
+            stars = "⭐" * rating
+            response = (
+                f"🌟 <b>Спасибо за ваш отзыв!</b>\n\n"
+                f"📍 <b>Салон:</b> {salon_name}\n"
+                f"💅 <b>Услуга:</b> {service_name}\n"
+                f"⭐ <b>Оценка:</b> {stars} ({rating}/5)\n"
+                f"💬 <b>Отзыв:</b> «{text}»\n\n"
+                f"Ваша обратная связь помогает мастерам становиться лучше, а другим клиентам — выбирать лучших!"
+            )
+            await message.answer(
+                text=response,
+                reply_markup=get_inline_keyboard(),
+            )
+            return
+
+
     except Exception as e:
         logger.error(f"Ошибка парсинга WebApp данных: {e}")
 

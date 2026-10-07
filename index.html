@@ -749,7 +749,10 @@
         <div class="px-4 mt-5">
           <div class="flex items-center justify-between mb-2.5">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Отзывы клиентов</h2>
-            <span id="salonReviewsLabel" class="text-xs text-primary font-semibold">Все (148)</span>
+            <button id="salonReviewsLabel" onclick="openSalonReviews()" class="text-xs text-primary font-semibold hover:underline active:scale-95 transition-transform flex items-center gap-0.5">
+              <span>Все (148)</span>
+              <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </button>
           </div>
           <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs">
             <div class="flex items-center justify-between mb-2">
@@ -1051,6 +1054,56 @@
       </section>
 
       <!-- ======================================================== -->
+      <!-- SCREEN: REVIEWS (Отзывы о салоне) -->
+      <!-- ======================================================== -->
+      <section id="screen-reviews" class="screen pb-44">
+        <div class="px-4 pt-3 flex flex-col gap-4">
+          <!-- Reviews Top Summary Card -->
+          <div class="p-4 rounded-3xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <div class="flex flex-col">
+                <span id="reviewsSalonName" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Beauty Studio</span>
+                <h1 class="text-lg font-bold text-on-surface">Отзывы клиентов</h1>
+              </div>
+              <div class="flex items-center gap-1.5 bg-amber-50 px-3 py-1 rounded-2xl border border-amber-200/50">
+                <span class="material-symbols-outlined text-amber-500 text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                <span id="reviewsAverageRating" class="text-base font-extrabold text-amber-900">4.9</span>
+                <span id="reviewsCountBadge" class="text-xs text-amber-700/80 font-medium">(148)</span>
+              </div>
+            </div>
+
+            <!-- Dynamic Rating Breakdown & Notice -->
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span id="reviewsAverageNotice">Точный рейтинг на основе всех проверенных отзывов</span>
+              <button onclick="openAddReviewModal()" id="openAddReviewTopBtn" class="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center gap-1 shrink-0">
+                <span class="material-symbols-outlined text-[15px]">rate_review</span>
+                <span>Написать</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Reviews List Container -->
+          <div id="salonReviewsFullList" class="flex flex-col gap-3">
+            <!-- Dynamically populated by renderSalonReviewsScreen() -->
+          </div>
+
+          <!-- Floating button to add review at bottom if not yet reviewed -->
+          <div id="addReviewBottomBanner" class="rounded-2xl p-4 bg-primary-fixed/30 border border-primary/20 flex items-center justify-between">
+            <div class="flex flex-col pr-2">
+              <span class="text-xs font-bold text-on-surface">Были в этом салоне?</span>
+              <span class="text-[11px] text-slate-500 mt-0.5">Поделитесь впечатлениями и оценкой мастера</span>
+            </div>
+            <button onclick="openAddReviewModal()" class="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold shadow-xs active:scale-95 transition-all shrink-0">
+              Оставить отзыв
+            </button>
+          </div>
+
+          <!-- Spacer for bottom dock -->
+          <div class="w-full h-24 pointer-events-none" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
       <!-- SCREEN 5: USER PROFILE (based on _2/code.html) -->
       <!-- ======================================================== -->
       <section id="screen-profile" class="screen pb-44">
@@ -1073,7 +1126,7 @@
               <span class="material-symbols-outlined text-primary text-[15px]" style="font-variation-settings: 'FILL' 1;">verified</span>
               <span id="profilePremiumStar" class="hidden px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">★ Premium</span>
             </div>
-            <span id="profileClientSince" class="text-[11px] text-slate-400 mt-0.5">Верифицированный профиль Telegram</span>
+            <span id="profileClientSince" class="text-[11px] text-slate-400 mt-0.5">В Окошке с 12 октября 2024</span>
 
             <!-- Stats Capsule -->
             <div class="w-full mt-3 p-3 rounded-2xl bg-white shadow-xs border border-slate-200/60 flex items-center justify-around">
@@ -1121,6 +1174,19 @@
                   </div>
                 </div>
                 <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">Подтвержден</span>
+              </div>
+
+              <!-- Registration Date in Profile -->
+              <div class="h-px bg-slate-100 mx-3"></div>
+              <div class="p-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-primary text-[18px]">calendar_month</span>
+                  <div class="flex flex-col">
+                    <span class="font-semibold text-on-surface">Дата регистрации</span>
+                    <span id="profileRegDateSub" class="text-[10px] text-slate-400">Стаж на платформе</span>
+                  </div>
+                </div>
+                <span id="profileRegDateBadge" class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">12 октября 2024</span>
               </div>
 
               <!-- Phone Number Row (Clickable, opens modal like City) -->
@@ -1467,6 +1533,80 @@
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- MODAL: ADD REVIEW BOTTOM SHEET -->
+  <!-- ======================================================== -->
+  <div id="addReviewModal" onclick="if(event.target === this) closeAddReviewModal()" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div onclick="event.stopPropagation()" class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-5 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto sm:hidden"></div>
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-500">
+            <span class="material-symbols-outlined text-[22px]">star</span>
+          </div>
+          <div class="flex flex-col">
+            <h3 class="font-bold text-base text-on-surface">Новый отзыв</h3>
+            <span id="addReviewSalonSubtitle" class="text-[11px] text-slate-400">Beauty Studio</span>
+          </div>
+        </div>
+        <button onclick="closeAddReviewModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
+      </div>
+
+      <!-- Author & Registration Info Badge -->
+      <div class="p-3 rounded-2xl bg-surface-container-low border border-slate-200/60 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2.5">
+          <div id="addReviewUserAvatar" class="w-8 h-8 rounded-full bg-primary-fixed text-primary font-bold flex items-center justify-center text-xs">ТГ</div>
+          <div class="flex flex-col">
+            <span id="addReviewUserName" class="font-bold text-on-surface">Пользователь</span>
+            <span id="addReviewUserRegisteredAt" class="text-[10px] text-slate-400">На платформе: с 12 октября 2024</span>
+          </div>
+        </div>
+        <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">Клиент</span>
+      </div>
+
+      <!-- Star Rating Picker -->
+      <div class="flex flex-col items-center gap-1.5 py-1">
+        <span class="text-xs font-semibold text-slate-500">Ваша общая оценка</span>
+        <div class="flex items-center gap-2" id="starPickerContainer">
+          <button type="button" onclick="setReviewRating(1)" class="star-btn text-amber-400 text-3xl focus:outline-none transition-transform active:scale-125" data-star="1">★</button>
+          <button type="button" onclick="setReviewRating(2)" class="star-btn text-amber-400 text-3xl focus:outline-none transition-transform active:scale-125" data-star="2">★</button>
+          <button type="button" onclick="setReviewRating(3)" class="star-btn text-amber-400 text-3xl focus:outline-none transition-transform active:scale-125" data-star="3">★</button>
+          <button type="button" onclick="setReviewRating(4)" class="star-btn text-amber-400 text-3xl focus:outline-none transition-transform active:scale-125" data-star="4">★</button>
+          <button type="button" onclick="setReviewRating(5)" class="star-btn text-amber-400 text-3xl focus:outline-none transition-transform active:scale-125" data-star="5">★</button>
+        </div>
+        <span id="starRatingLabel" class="text-xs font-bold text-amber-600">5 из 5 (Отлично)</span>
+      </div>
+
+      <!-- Service Selection -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Оказанная услуга</label>
+        <div class="relative">
+          <select id="addReviewServiceSelect" class="w-full px-3.5 py-3 rounded-2xl bg-surface-container-low border border-slate-200 text-xs font-semibold text-on-surface outline-none focus:border-primary appearance-none cursor-pointer">
+            <!-- Populated dynamically with salon services -->
+          </select>
+          <span class="material-symbols-outlined text-slate-400 text-[18px] absolute right-3 top-3 pointer-events-none">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Review Textarea -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ваш отзыв</label>
+        <textarea id="addReviewText" rows="4" maxlength="600" placeholder="Расскажите, как прошла процедура, понравилось ли качество работы мастера и атмосфера салона..." class="w-full p-3.5 rounded-2xl bg-surface-container-low border border-slate-200 text-xs text-on-surface outline-none focus:border-primary focus:bg-white resize-none transition-all placeholder:text-slate-400"></textarea>
+        <div class="flex justify-between items-center text-[10px] text-slate-400 px-1">
+          <span>Правило: 1 отзыв на 1 салон</span>
+          <span id="reviewCharCount">0 / 600</span>
+        </div>
+      </div>
+
+      <!-- Submit button -->
+      <button type="button" onclick="submitSalonReview()" class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-sm shadow-[0_8px_20px_rgba(95,58,221,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-1">
+        <span class="material-symbols-outlined text-[18px]">send</span>
+        <span>Опубликовать отзыв</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="fixed top-12 z-50 bg-slate-900/90 text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl backdrop-blur-md transform -translate-y-20 opacity-0 transition-all pointer-events-none flex items-center gap-2">
     <span class="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span>
@@ -1579,9 +1719,10 @@
         if (hPhoto) hPhoto.classList.add('hidden');
       }
 
-      // Restore saved phone & notification preferences
+      // Restore saved phone & notification preferences & registration date
       try {
         updateProfilePhoneUI();
+        updateProfileRegistrationDateUI();
 
         const savedNotif = localStorage.getItem('okoshko_tg_notifications');
         const notifToggle = document.getElementById('tgNotificationsToggle');
@@ -1798,6 +1939,101 @@
       } catch (e) {}
     }
 
+    // User Registration Date Management
+    function getUserRegistrationDate() {
+      let regTimestamp = null;
+      try {
+        const stored = localStorage.getItem('okoshko_user_registered_at');
+        if (stored) regTimestamp = parseInt(stored, 10);
+      } catch (e) {}
+
+      if (!regTimestamp || isNaN(regTimestamp)) {
+        // Set fixed default registration date (e.g. 12 October 2024) or current date
+        regTimestamp = new Date('2024-10-12T10:00:00Z').getTime();
+        try {
+          localStorage.setItem('okoshko_user_registered_at', regTimestamp.toString());
+        } catch (e) {}
+      }
+      return new Date(regTimestamp);
+    }
+
+    function formatRegistrationDate(date) {
+      const months = [
+        'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+      ];
+      return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+    }
+
+    function formatUserDuration(date) {
+      const now = new Date();
+      const diffMs = Math.max(0, now - date);
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const months = Math.floor(days / 30);
+      const years = Math.floor(days / 365);
+
+      if (years >= 1) {
+        const remMonths = months % 12;
+        if (remMonths > 0) return `${years} г. ${remMonths} мес. на платформе`;
+        return `${years} ${pluralizeYears(years)} на платформе`;
+      }
+      if (months >= 1) {
+        return `${months} ${pluralizeMonths(months)} на платформе`;
+      }
+      if (days >= 1) {
+        return `${days} ${pluralizeDays(days)} на платформе`;
+      }
+      return 'Новый пользователь';
+    }
+
+    function pluralizeYears(n) {
+      const mod10 = n % 10;
+      const mod100 = n % 100;
+      if (mod100 >= 11 && mod100 <= 19) return 'лет';
+      if (mod10 === 1) return 'год';
+      if (mod10 >= 2 && mod10 <= 4) return 'года';
+      return 'лет';
+    }
+
+    function pluralizeMonths(n) {
+      const mod10 = n % 10;
+      const mod100 = n % 100;
+      if (mod100 >= 11 && mod100 <= 19) return 'месяцев';
+      if (mod10 === 1) return 'месяц';
+      if (mod10 >= 2 && mod10 <= 4) return 'месяца';
+      return 'месяцев';
+    }
+
+    function pluralizeDays(n) {
+      const mod10 = n % 10;
+      const mod100 = n % 100;
+      if (mod100 >= 11 && mod100 <= 19) return 'дней';
+      if (mod10 === 1) return 'день';
+      if (mod10 >= 2 && mod10 <= 4) return 'дня';
+      return 'дней';
+    }
+
+    function updateProfileRegistrationDateUI() {
+      const regDate = getUserRegistrationDate();
+      const dateFormatted = formatRegistrationDate(regDate);
+      const durationText = formatUserDuration(regDate);
+
+      const clientSinceEl = document.getElementById('profileClientSince');
+      if (clientSinceEl) {
+        clientSinceEl.textContent = `В Окошке с ${dateFormatted}`;
+      }
+
+      const regBadgeEl = document.getElementById('profileRegDateBadge');
+      if (regBadgeEl) {
+        regBadgeEl.textContent = dateFormatted;
+      }
+
+      const regSubEl = document.getElementById('profileRegDateSub');
+      if (regSubEl) {
+        regSubEl.textContent = durationText;
+      }
+    }
+
     // Toggle Telegram notifications
     function toggleTgNotifications(checked) {
       try {
@@ -1933,6 +2169,13 @@
           headerSubtitle.textContent = 'Любимые места';
           globalNav.classList.remove('hidden');
           renderFavorites();
+        } else if (screen === 'reviews') {
+          backIcon.textContent = 'arrow_back_ios_new';
+          const currentVenue = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) : null;
+          headerTitle.textContent = 'Отзывы клиентов';
+          headerSubtitle.textContent = currentVenue ? currentVenue.name : 'Салон красоты';
+          globalNav.classList.add('hidden');
+          renderSalonReviewsScreen(state.activeSalon);
         } else if (screen === 'profile') {
           backIcon.textContent = 'close';
           headerTitle.textContent = 'Профиль';
@@ -3215,19 +3458,21 @@
       }
 
       // 8. Reviews
-      const rev = salon.review || { author: 'Клиент', meta: 'Посетил салон на этой неделе', text: '«Замечательный сервис, все стерильно, вернусь снова!»' };
+      const salonReviews = getSalonReviewsList(salon.id);
+      const revCount = salonReviews.length;
+      const latestRev = salonReviews[0] || salon.review || { author: 'Клиент', meta: 'Посетил салон недавно', text: '«Замечательный сервис, все стерильно, вернусь снова!»', rating: 5 };
       const revAvatar = document.getElementById('salonReviewAvatar');
       const revAuthor = document.getElementById('salonReviewAuthor');
       const revMeta = document.getElementById('salonReviewMeta');
       const revText = document.getElementById('salonReviewText');
       const revLabel = document.getElementById('salonReviewsLabel');
 
-      if (revLabel) revLabel.textContent = `Все (${salon.reviewsCount || 100})`;
-      if (revAuthor) revAuthor.textContent = rev.author;
-      if (revMeta) revMeta.textContent = rev.meta;
-      if (revText) revText.textContent = rev.text;
+      if (revLabel) revLabel.innerHTML = `<span>Все (${revCount})</span><span class="material-symbols-outlined text-[14px]">arrow_forward</span>`;
+      if (revAuthor) revAuthor.textContent = latestRev.author;
+      if (revMeta) revMeta.textContent = latestRev.meta || (latestRev.service ? `Услуга: ${latestRev.service}` : 'Проверенный отзыв');
+      if (revText) revText.textContent = latestRev.text;
       if (revAvatar) {
-        const initials = rev.author.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'КЛ';
+        const initials = latestRev.author.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'КЛ';
         revAvatar.textContent = initials;
       }
     }
@@ -3352,6 +3597,495 @@
     function openActiveMasterSalon() {
       const sId = state.activeMasterSalonId || state.activeSalon || 'beauty';
       openVenueDetails(sId);
+    }
+
+    // ==========================================
+    // REVIEWS STORE & DYNAMIC SCREEN LOGIC
+    // ==========================================
+    const REVIEWS_STORAGE_KEY = 'okoshko_salon_reviews_v1';
+    let currentReviewRating = 5;
+
+    // Initial seed reviews for salons
+    const INITIAL_SALON_REVIEWS = {
+      beauty: [
+        {
+          id: 'rev_b1',
+          author: 'Елена Васильева',
+          rating: 5,
+          service: 'Маникюр с покрытием гель-лак Luxio',
+          userDuration: '1 год 2 мес. на платформе',
+          date: 'Вчера, 14:30',
+          text: 'Невероятная атмосфера в салоне, очень светло и стильно! Инструмент при мне достали из крафт-пакета. Маникюр сделали идеально за 1:15 с покрытием. Однозначно вернусь к Алине снова!'
+        },
+        {
+          id: 'rev_b2',
+          author: 'Мария Селезнева',
+          rating: 5,
+          service: 'Архитектура и окрашивание бровей',
+          userDuration: '9 месяцев на платформе',
+          date: '3 дня назад',
+          text: 'Дарья сделала брови мечты! Очень натурально, краска легла ровно, без эффекта маркера. В салоне подают вкусный капучино с сиропом.'
+        },
+        {
+          id: 'rev_b3',
+          author: 'Анастасия К.',
+          rating: 5,
+          service: 'Smart-педикюр эстетический',
+          userDuration: '5 месяцев на платформе',
+          date: '1 неделя назад',
+          text: 'Педикюр просто супер, пяточки как у младенца. Очень удобные кресла реклайнеры, можно даже вздремнуть во время процедуры.'
+        }
+      ],
+      mono: [
+        {
+          id: 'rev_m1',
+          author: 'Ирина Полякова',
+          rating: 5,
+          service: 'Японский эко-глянец P.Shine',
+          userDuration: '8 месяцев на платформе',
+          date: '2 дня назад',
+          text: 'Студия минимализма, идеальная эстетика! Ногти после японского маникюра блестят и здоровые. София — лучший мастер.'
+        },
+        {
+          id: 'rev_m2',
+          author: 'Ольга Смирнова',
+          rating: 5,
+          service: 'Пилочный маникюр без режущих',
+          userDuration: '1 год на платформе',
+          date: '5 дней назад',
+          text: 'Для чувствительной кутикулы пилочный маникюр — спасение. Ни единого пореза, все мягко и чисто.'
+        }
+      ],
+      alina: [
+        {
+          id: 'rev_a1',
+          author: 'Валерия Д.',
+          rating: 5,
+          service: 'Сложное окрашивание Airtouch / Шатуш',
+          userDuration: '1 год на платформе',
+          date: 'Вчера',
+          text: 'Алина — богиня блонда! Плавнейший переход, волосы шелковые, цвет играет на солнце. Стоит каждого рубля.'
+        }
+      ],
+      kristina: [
+        {
+          id: 'rev_k1',
+          author: 'Светлана М.',
+          rating: 5,
+          service: 'Ламинирование бровей + уход кератин',
+          userDuration: '6 месяцев на платформе',
+          date: '3 дня назад',
+          text: 'Кристина — топ мастер взгляда! Брови держат форму идеально, волоски мягкие и послушные.'
+        }
+      ],
+      glam: [
+        {
+          id: 'rev_g1',
+          author: 'Екатерина Н.',
+          rating: 5,
+          service: 'SPA ритуал "Свежесть мяты"',
+          userDuration: '10 месяцев на платформе',
+          date: 'Вчера',
+          text: 'Полное расслабление после рабочей недели. Приятный травяной чай, массаж ног просто восхитительный.'
+        }
+      ],
+      rnd_don_beauty: [
+        {
+          id: 'rev_rnd1',
+          author: 'Дарья Шевченко',
+          rating: 5,
+          service: 'Маникюр с укреплением гелем',
+          userDuration: '1 год 4 мес. на платформе',
+          date: 'Вчера',
+          text: 'Любимый салон на Большой Садовой! Быстро, качественно, ношу покрытие по 4 недели без сколов.'
+        }
+      ],
+      spb_nevsky_glam: [
+        {
+          id: 'rev_spb1',
+          author: 'Виктория Федорова',
+          rating: 5,
+          service: 'Сложное окрашивание Airtouch',
+          userDuration: '1 год на платформе',
+          date: '2 дня назад',
+          text: 'Мария — волшебница колористики! Сложный переход, волосы светятся, цвет превзошел все ожидания.'
+        }
+      ]
+    };
+
+    function getAllStoredReviews() {
+      try {
+        const raw = localStorage.getItem(REVIEWS_STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      try {
+        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(INITIAL_SALON_REVIEWS));
+      } catch (e) {}
+      return { ...INITIAL_SALON_REVIEWS };
+    }
+
+    function saveAllStoredReviews(data) {
+      try {
+        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    function getSalonReviewsList(salonId) {
+      const all = getAllStoredReviews();
+      let list = all[salonId] || [];
+      if (list.length === 0) {
+        // Fallback default review for salon
+        const venue = venues.find(v => v.id === salonId);
+        if (venue && venue.review) {
+          list = [
+            {
+              id: `rev_def_${salonId}`,
+              author: venue.review.author || 'Клиент',
+              rating: 5,
+              service: venue.services && venue.services[0] ? venue.services[0].name : (venue.categoryText || 'Услуга'),
+              userDuration: '9 месяцев на платформе',
+              date: 'Недавно',
+              text: venue.review.text || 'Отличный салон, профессиональные мастера и приятный сервис!'
+            }
+          ];
+        }
+      }
+      return list;
+    }
+
+    // Check if current user already left a review for this salon
+    function hasUserReviewedSalon(salonId) {
+      const all = getAllStoredReviews();
+      const list = all[salonId] || [];
+      const currentUserId = state.user?.id || 8949973080;
+      return list.some(r => r.userId === currentUserId);
+    }
+
+    // Calculate arithmetic mean rating for salon
+    function calculateSalonAverageRating(salonId) {
+      const reviews = getSalonReviewsList(salonId);
+      if (!reviews || reviews.length === 0) {
+        const venue = venues.find(v => v.id === salonId);
+        return {
+          avg: parseFloat(venue?.rating || '5.0'),
+          count: venue?.reviewsCount || 0
+        };
+      }
+      const sum = reviews.reduce((acc, r) => acc + (parseFloat(r.rating) || 5), 0);
+      const avg = (sum / reviews.length).toFixed(1);
+      return {
+        avg: parseFloat(avg),
+        count: reviews.length
+      };
+    }
+
+    // Open Screen: Reviews
+    function openSalonReviews(salonId) {
+      const targetId = salonId || state.activeSalon || 'beauty';
+      state.activeSalon = targetId;
+      router.navigate('reviews');
+    }
+
+    // Render Screen: Reviews
+    function renderSalonReviewsScreen(salonId) {
+      const targetId = salonId || state.activeSalon || 'beauty';
+      const venue = venues.find(v => v.id === targetId) || venues[0];
+      const reviews = getSalonReviewsList(targetId);
+      const { avg, count } = calculateSalonAverageRating(targetId);
+
+      // Update venue data in memory
+      venue.rating = avg.toFixed(1);
+      venue.reviewsCount = count;
+
+      const sName = document.getElementById('reviewsSalonName');
+      const sAvg = document.getElementById('reviewsAverageRating');
+      const sBadge = document.getElementById('reviewsCountBadge');
+      const sNotice = document.getElementById('reviewsAverageNotice');
+
+      if (sName) sName.textContent = venue.name;
+      if (sAvg) sAvg.textContent = avg.toFixed(1);
+      if (sBadge) sBadge.textContent = `(${count})`;
+      if (sNotice) sNotice.textContent = `Средний балл ${avg.toFixed(1)} на основе ${count} отзывов`;
+
+      // Check if user already reviewed
+      const userAlreadyReviewed = hasUserReviewedSalon(targetId);
+      const topBtn = document.getElementById('openAddReviewTopBtn');
+      const bottomBanner = document.getElementById('addReviewBottomBanner');
+
+      if (topBtn) {
+        if (userAlreadyReviewed) {
+          topBtn.disabled = true;
+          topBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          topBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">check</span><span>Отзыв оставлен</span>';
+        } else {
+          topBtn.disabled = false;
+          topBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          topBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">rate_review</span><span>Написать</span>';
+        }
+      }
+
+      if (bottomBanner) {
+        if (userAlreadyReviewed) {
+          bottomBanner.innerHTML = `
+            <div class="flex items-center gap-2 text-emerald-800">
+              <span class="material-symbols-outlined text-emerald-600">verified</span>
+              <span class="text-xs font-semibold">Вы уже оставили отзыв об этом салоне. Спасибо за вашу оценку!</span>
+            </div>
+          `;
+          bottomBanner.className = 'rounded-2xl p-3.5 bg-emerald-50 border border-emerald-200/60 flex items-center justify-between';
+        } else {
+          bottomBanner.innerHTML = `
+            <div class="flex flex-col pr-2">
+              <span class="text-xs font-bold text-on-surface">Были в салоне «${venue.name}»?</span>
+              <span class="text-[11px] text-slate-500 mt-0.5">Поделитесь впечатлениями и оценкой мастера</span>
+            </div>
+            <button onclick="openAddReviewModal()" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-bold shadow-xs active:scale-95 transition-all shrink-0">
+              Оставить отзыв
+            </button>
+          `;
+          bottomBanner.className = 'rounded-2xl p-4 bg-primary-fixed/30 border border-primary/20 flex items-center justify-between';
+        }
+      }
+
+      // Render reviews list
+      const listContainer = document.getElementById('salonReviewsFullList');
+      if (!listContainer) return;
+
+      if (reviews.length === 0) {
+        listContainer.innerHTML = `
+          <div class="rounded-3xl bg-white p-6 shadow-xs border border-slate-200/70 text-center flex flex-col items-center gap-3">
+            <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center">
+              <span class="material-symbols-outlined text-[28px]">rate_review</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-sm text-on-surface">Пока нет отзывов</h3>
+              <p class="text-xs text-slate-400 mt-1 max-w-[240px]">Станьте первым, кто поделится впечатлением о салоне «${venue.name}»</p>
+            </div>
+            <button onclick="openAddReviewModal()" class="mt-1 px-5 py-2.5 rounded-full bg-primary text-white text-xs font-semibold shadow-xs active:scale-95 transition-transform flex items-center gap-1.5">
+              <span>Оставить первый отзыв</span>
+              <span class="material-symbols-outlined text-[16px]">add</span>
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      listContainer.innerHTML = reviews.map(r => {
+        const initials = r.author.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'КЛ';
+        const starsStr = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
+        const isMine = (r.userId && r.userId === (state.user?.id || 8949973080));
+
+        return `
+          <div class="p-4 rounded-3xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-2.5 transition-all">
+            <!-- Review Header: Avatar, Name, User Duration, Stars -->
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-primary-fixed/60 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                  ${initials}
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-on-surface">${r.author}</span>
+                    ${isMine ? '<span class="text-[9px] bg-primary-fixed text-primary px-1.5 py-0.2 rounded-full font-bold">Вы</span>' : ''}
+                  </div>
+                  <div class="flex items-center gap-1 text-[10px] text-slate-400">
+                    <span class="material-symbols-outlined text-[12px]">schedule</span>
+                    <span>${r.userDuration || 'Клиент сервиса'}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex flex-col items-end">
+                <span class="text-amber-400 text-sm tracking-widest">${starsStr}</span>
+                <span class="text-[10px] text-slate-400 mt-0.5">${r.date || 'Недавно'}</span>
+              </div>
+            </div>
+
+            <!-- Service Tag -->
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface-container-low text-slate-600 text-[11px] font-semibold w-fit">
+              <span class="material-symbols-outlined text-[13px] text-primary">spa</span>
+              <span>${r.service || 'Услуга салона'}</span>
+            </div>
+
+            <!-- Review Text -->
+            <p class="text-xs text-slate-700 leading-relaxed break-words">
+              ${r.text}
+            </p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Modal: Open Add Review
+    function openAddReviewModal() {
+      const salonId = state.activeSalon || 'beauty';
+      if (hasUserReviewedSalon(salonId)) {
+        showToast('Вы уже оставили отзыв об этом салоне ⚠️ (лимит: 1 отзыв)');
+        return;
+      }
+
+      const venue = venues.find(v => v.id === salonId) || venues[0];
+      const modal = document.getElementById('addReviewModal');
+      if (!modal) return;
+
+      // Populate Salon Name
+      const sSub = document.getElementById('addReviewSalonSubtitle');
+      if (sSub) sSub.textContent = venue.name;
+
+      // Populate User Info & Platform Duration
+      const regDate = getUserRegistrationDate();
+      const userDur = formatUserDuration(regDate);
+      const uName = [state.user?.first_name, state.user?.last_name].filter(Boolean).join(' ') || 'Пользователь';
+      const initials = ((state.user?.first_name ? state.user.first_name[0] : 'Т') + (state.user?.last_name ? state.user.last_name[0] : 'Г')).toUpperCase();
+
+      const nameEl = document.getElementById('addReviewUserName');
+      const regEl = document.getElementById('addReviewUserRegisteredAt');
+      const avEl = document.getElementById('addReviewUserAvatar');
+
+      if (nameEl) nameEl.textContent = uName;
+      if (regEl) regEl.textContent = `На платформе: ${userDur}`;
+      if (avEl) avEl.textContent = initials;
+
+      // Populate Services Dropdown
+      const svcSelect = document.getElementById('addReviewServiceSelect');
+      if (svcSelect) {
+        const salonServices = venue.services || [];
+        if (salonServices.length > 0) {
+          svcSelect.innerHTML = salonServices.map(s => `
+            <option value="${s.name}">${s.name} (${s.price.toLocaleString('ru-RU')} ₽)</option>
+          `).join('');
+        } else {
+          svcSelect.innerHTML = `<option value="${venue.categoryText || 'Услуга'}">${venue.categoryText || 'Услуга салона'}</option>`;
+        }
+      }
+
+      // Reset fields
+      setReviewRating(5);
+      const textarea = document.getElementById('addReviewText');
+      if (textarea) textarea.value = '';
+      const charCount = document.getElementById('reviewCharCount');
+      if (charCount) charCount.textContent = '0 / 600';
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeAddReviewModal() {
+      const modal = document.getElementById('addReviewModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function setReviewRating(r) {
+      currentReviewRating = r;
+      const labels = {
+        1: '1 из 5 (Ужасно)',
+        2: '2 из 5 (Плохо)',
+        3: '3 из 5 (Нормально)',
+        4: '4 из 5 (Хорошо)',
+        5: '5 из 5 (Отлично)'
+      };
+      const labelEl = document.getElementById('starRatingLabel');
+      if (labelEl) labelEl.textContent = labels[r] || `${r} из 5`;
+
+      document.querySelectorAll('#starPickerContainer .star-btn').forEach(btn => {
+        const starNum = parseInt(btn.getAttribute('data-star'), 10);
+        if (starNum <= r) {
+          btn.textContent = '★';
+          btn.classList.add('text-amber-400');
+          btn.classList.remove('text-slate-300');
+        } else {
+          btn.textContent = '☆';
+          btn.classList.remove('text-amber-400');
+          btn.classList.add('text-slate-300');
+        }
+      });
+
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+      } catch (e) {}
+    }
+
+    // Submit review with 1-review restriction & average rating update
+    function submitSalonReview() {
+      const salonId = state.activeSalon || 'beauty';
+      const venue = venues.find(v => v.id === salonId) || venues[0];
+
+      // Check restriction: only 1 review per salon per user
+      if (hasUserReviewedSalon(salonId)) {
+        showToast('Вы уже оставили отзыв об этом салоне ⚠️');
+        closeAddReviewModal();
+        return;
+      }
+
+      const textInput = document.getElementById('addReviewText');
+      const textVal = (textInput?.value || '').trim();
+      if (!textVal || textVal.length < 5) {
+        showToast('Пожалуйста, напишите отзыв подробнее (от 5 символов)');
+        textInput?.focus();
+        return;
+      }
+
+      const svcSelect = document.getElementById('addReviewServiceSelect');
+      const chosenService = svcSelect?.value || (venue.services && venue.services[0] ? venue.services[0].name : 'Услуга салона');
+
+      const regDate = getUserRegistrationDate();
+      const userDur = formatUserDuration(regDate);
+      const uName = [state.user?.first_name, state.user?.last_name].filter(Boolean).join(' ') || 'Пользователь';
+      const currentUserId = state.user?.id || 8949973080;
+
+      const newReview = {
+        id: 'rev_' + Date.now(),
+        userId: currentUserId,
+        author: uName,
+        rating: currentReviewRating,
+        service: chosenService,
+        userDuration: userDur,
+        date: 'Только что',
+        text: textVal
+      };
+
+      const all = getAllStoredReviews();
+      if (!all[salonId]) all[salonId] = [];
+      all[salonId].unshift(newReview);
+      saveAllStoredReviews(all);
+
+      // Recalculate average rating
+      const { avg, count } = calculateSalonAverageRating(salonId);
+      venue.rating = avg.toFixed(1);
+      venue.reviewsCount = count;
+
+      // Update salon screen if currently rendered
+      renderSalonDetails(salonId);
+      renderSalonReviewsScreen(salonId);
+
+      closeAddReviewModal();
+      showToast('🎉 Спасибо! Ваш отзыв опубликован');
+
+      // Send review to backend bot handler
+      try {
+        if (window.Telegram?.WebApp?.sendData) {
+          window.Telegram.WebApp.sendData(JSON.stringify({
+            action: 'review_added',
+            salon_id: salonId,
+            salon_name: venue.name,
+            user_name: uName,
+            service_name: chosenService,
+            rating: currentReviewRating,
+            text: textVal
+          }));
+        }
+      } catch (e) {
+        console.log('sendData review note:', e);
+      }
+
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+      } catch (e) {}
     }
 
     // Update active counter and venue badge
