@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, MenuButtonWebApp, Message, WebAppInfo
