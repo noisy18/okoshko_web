@@ -379,7 +379,7 @@
         <!-- Right Action: City Selector Dropdown & Profile Avatar -->
         <div class="flex items-center gap-1.5">
           <!-- City Selector Dropdown Pill Button -->
-          <button id="headerCityBtn" onclick="openCityModal()" aria-label="Выбрать город" class="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-surface-container-high/90 hover:bg-surface-container-highest border border-black/[0.04] text-on-surface text-xs font-semibold active:scale-95 transition-all shadow-2xs">
+          <button id="headerCityBtn" onclick="event.stopPropagation(); openCityModal()" aria-label="Выбрать город" class="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-surface-container-high/90 hover:bg-surface-container-highest border border-black/[0.04] text-on-surface text-xs font-semibold active:scale-95 transition-all shadow-2xs">
             <span class="text-[13px] leading-none" id="headerCityIcon">🏙</span>
             <span id="headerCityName" class="max-w-[76px] truncate text-[11px] font-bold">Москва</span>
             <span class="material-symbols-outlined text-[15px] text-slate-500">expand_more</span>
@@ -471,10 +471,10 @@
                 </div>
                 <div class="relative">
                   <select id="verifyCitySelect" onchange="setDefaultCity(this.value)" class="w-full pl-9 pr-8 py-2 rounded-xl bg-surface-container-low border border-slate-200 text-xs font-semibold text-on-surface outline-none appearance-none cursor-pointer focus:border-primary transition-all">
-                    <option value="all">🗺 Все регионы (15 салонов)</option>
-                    <option value="moscow" selected>🏙 Москва (5 салонов)</option>
-                    <option value="rostov">🌾 Ростовская область (7 салонов)</option>
-                    <option value="spb">🏛 Санкт-Петербург (3 салона)</option>
+                    <option value="all">🗺 Все регионы</option>
+                    <option value="moscow" selected>🏙 Москва</option>
+                    <option value="rostov">🌾 Ростовская область</option>
+                    <option value="spb">🏛 Санкт-Петербург</option>
                   </select>
                   <span class="material-symbols-outlined text-[17px] text-primary absolute left-2.5 top-2 pointer-events-none">location_on</span>
                   <span class="material-symbols-outlined text-[17px] text-slate-400 absolute right-2.5 top-2 pointer-events-none">expand_more</span>
@@ -1401,8 +1401,10 @@
         <span>Отправить заявку на подключение</span>
       </button>
     </div>
+  </div>
+
   <!-- City Selection Modal Bottom Sheet -->
-  <div id="citySelectModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+  <div id="citySelectModal" onclick="if(event.target === this) closeCityModal()" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
     <div onclick="event.stopPropagation()" class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2.5">
@@ -1425,7 +1427,7 @@
             <span class="text-2xl">🗺️</span>
             <div class="flex flex-col">
               <span class="font-bold text-xs text-on-surface">Все регионы России</span>
-              <span class="text-[10px] text-slate-400">15 салонов и мастеров по РФ</span>
+              <span class="text-[10px] text-slate-400">Вся география сервиса</span>
             </div>
           </div>
           <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
@@ -1437,7 +1439,7 @@
             <span class="text-2xl">🏙️</span>
             <div class="flex flex-col">
               <span class="font-bold text-xs text-on-surface">Москва</span>
-              <span class="text-[10px] text-slate-400">5 салонов (Тверской, Пресня, Арбат)</span>
+              <span class="text-[10px] text-slate-400">Москва и Московская область</span>
             </div>
           </div>
           <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
@@ -1449,7 +1451,7 @@
             <span class="text-2xl">🌾</span>
             <div class="flex flex-col">
               <span class="font-bold text-xs text-on-surface">Ростовская область</span>
-              <span class="text-[10px] text-slate-400">7 салонов (Ростов-на-Дону, Таганрог, Батайск)</span>
+              <span class="text-[10px] text-slate-400">Ростов-на-Дону, Таганрог, Батайск</span>
             </div>
           </div>
           <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
@@ -1461,7 +1463,7 @@
             <span class="text-2xl">🏛️</span>
             <div class="flex flex-col">
               <span class="font-bold text-xs text-on-surface">Санкт-Петербург</span>
-              <span class="text-[10px] text-slate-400">3 салона (Центральный, Петроградка, ВО)</span>
+              <span class="text-[10px] text-slate-400">Санкт-Петербург и Ленинградская область</span>
             </div>
           </div>
           <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
@@ -3029,10 +3031,10 @@
     // CITY & REGION SELECTION MANAGEMENT
     // ==========================================
     const CITY_CONFIG = {
-      all: { name: 'Все регионы', short: 'Все', icon: '🗺️', count: 15, sub: '15 салонов и мастеров по РФ' },
-      moscow: { name: 'Москва', short: 'Москва', icon: '🏙️', count: 5, sub: '5 салонов (Тверской, Пресня, Арбат)' },
-      rostov: { name: 'Ростовская обл.', short: 'Ростов', icon: '🌾', count: 7, sub: '7 салонов (Ростов, Таганрог, Батайск)' },
-      spb: { name: 'Санкт-Петербург', short: 'СПб', icon: '🏛️', count: 3, sub: '3 салона (Центральный, Петроградка)' }
+      all: { name: 'Все регионы', short: 'Все', icon: '🗺️', sub: 'Вся география' },
+      moscow: { name: 'Москва', short: 'Москва', icon: '🏙️', sub: 'Москва и МО' },
+      rostov: { name: 'Ростовская обл.', short: 'Ростов', icon: '🌾', sub: 'Ростов-на-Дону' },
+      spb: { name: 'Санкт-Петербург', short: 'СПб', icon: '🏛️', sub: 'Санкт-Петербург' }
     };
 
     function openCityModal() {
@@ -3083,7 +3085,7 @@
       const pBadge = document.getElementById('profileCityBadge');
       const pSub = document.getElementById('profileCitySub');
       if (pBadge) pBadge.textContent = info.name;
-      if (pSub) pSub.textContent = `${info.name} (${info.count} салонов)`;
+      if (pSub) pSub.textContent = info.name;
 
       // Update Welcome screen select if present
       const vSelect = document.getElementById('verifyCitySelect');
