@@ -352,6 +352,47 @@
       0% { transform: scale(0.5); opacity: 0.9; }
       100% { transform: scale(1.6); opacity: 0; }
     }
+
+    /* iOS Native Style Toggle Switch */
+    .ios-switch {
+      position: relative;
+      display: inline-block;
+      width: 51px;
+      height: 31px;
+      flex-shrink: 0;
+    }
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .ios-switch .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #e2e8f0;
+      transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 31px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+    .ios-switch .slider:before {
+      position: absolute;
+      content: "";
+      height: 27px;
+      width: 27px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #ffffff;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+    .ios-switch input:checked + .slider {
+      background-color: #34c759;
+    }
+    .ios-switch input:checked + .slider:before {
+      transform: translateX(20px);
+    }
   </style>
 </head>
 <body class="bg-[#faf9fd] text-on-surface antialiased flex flex-col items-center justify-start min-h-screen">
@@ -1144,17 +1185,9 @@
                 <span class="text-[10px] text-slate-400 mt-0.5">записей</span>
               </div>
               <div class="w-px h-6 bg-slate-200"></div>
-              <div class="flex flex-col items-center flex-1 cursor-pointer active:scale-95 transition-transform">
+              <div onclick="router.navigate('salon')" class="flex flex-col items-center flex-1 cursor-pointer active:scale-95 transition-transform">
                 <span class="font-bold text-sm text-on-surface">4</span>
                 <span class="text-[10px] text-slate-400 mt-0.5">любимых</span>
-              </div>
-              <div class="w-px h-6 bg-slate-200"></div>
-              <div class="flex flex-col items-center flex-1 cursor-pointer active:scale-95 transition-transform">
-                <div class="flex items-center gap-0.5">
-                  <span class="font-bold text-sm text-tertiary">350</span>
-                  <span class="material-symbols-outlined text-[14px] text-tertiary" style="font-variation-settings: 'FILL' 1;">stars</span>
-                </div>
-                <span class="text-[10px] text-slate-400 mt-0.5">бонусов</span>
               </div>
             </div>
           </div>
@@ -1192,6 +1225,25 @@
                 </div>
                 <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">Подтвержден</span>
               </div>
+
+              <!-- Optional Phone Number Field -->
+              <div class="h-px bg-slate-100 mx-3"></div>
+              <div class="p-3 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="material-symbols-outlined text-primary text-[18px]">call</span>
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-semibold text-on-surface">Номер телефона</span>
+                      <span class="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded font-medium">опционально</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400">Для SMS и связи с салоном</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 max-w-[170px]">
+                  <input id="profilePhoneInput" type="tel" onchange="saveProfilePhone(this.value)" placeholder="+7 (___) ___-__-__" class="w-full text-right px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-on-surface font-medium outline-none focus:border-primary focus:bg-white transition-all placeholder:text-slate-300"/>
+                </div>
+              </div>
+
               <div class="h-px bg-slate-100 mx-3"></div>
               <div class="p-3 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="router.navigate('salon')">
                 <div class="flex items-center gap-3">
@@ -1199,14 +1251,6 @@
                   <span class="font-semibold text-on-surface">Избранные мастера и салоны</span>
                 </div>
                 <span class="text-slate-400 text-xs">4 места ›</span>
-              </div>
-              <div class="h-px bg-slate-100 mx-3"></div>
-              <div class="p-3 flex items-center justify-between active:bg-slate-50 cursor-pointer">
-                <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-slate-600 text-[18px]">receipt_long</span>
-                  <span class="font-semibold text-on-surface">История платежей и чеки</span>
-                </div>
-                <span class="text-slate-400 text-xs">›</span>
               </div>
             </div>
           </div>
@@ -1229,14 +1273,23 @@
                   <span class="material-symbols-outlined text-[16px]">chevron_right</span>
                 </div>
               </div>
+
+              <!-- Telegram Notifications with iOS-style Switch -->
               <div class="h-px bg-slate-100 mx-3"></div>
               <div class="p-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                   <span class="material-symbols-outlined text-primary text-[18px]">notifications</span>
-                  <span class="font-semibold text-on-surface">Уведомления в Telegram</span>
+                  <div class="flex flex-col">
+                    <span class="font-semibold text-on-surface">Уведомления в Telegram</span>
+                    <span class="text-[10px] text-slate-400">Напоминания о предстоящих записях</span>
+                  </div>
                 </div>
-                <input type="checkbox" checked class="w-4 h-4 accent-primary rounded cursor-pointer"/>
+                <label class="ios-switch">
+                  <input type="checkbox" id="tgNotificationsToggle" checked onchange="toggleTgNotifications(this.checked)"/>
+                  <span class="slider"></span>
+                </label>
               </div>
+
               <div class="h-px bg-slate-100 mx-3"></div>
               <div class="p-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -1589,6 +1642,38 @@
         if (hInit) { hInit.textContent = initials; hInit.classList.remove('hidden'); }
         if (hPhoto) hPhoto.classList.add('hidden');
       }
+
+      // Restore saved phone & notification preferences
+      try {
+        const savedPhone = localStorage.getItem('okoshko_user_phone');
+        const phoneInput = document.getElementById('profilePhoneInput');
+        if (phoneInput && savedPhone) phoneInput.value = savedPhone;
+
+        const savedNotif = localStorage.getItem('okoshko_tg_notifications');
+        const notifToggle = document.getElementById('tgNotificationsToggle');
+        if (notifToggle && savedNotif !== null) {
+          notifToggle.checked = (savedNotif === 'true');
+        }
+      } catch (e) {}
+    }
+
+    // Save profile phone number
+    function saveProfilePhone(val) {
+      try {
+        localStorage.setItem('okoshko_user_phone', (val || '').trim());
+        showToast('Номер сохранен 📱');
+      } catch (e) {}
+    }
+
+    // Toggle Telegram notifications
+    function toggleTgNotifications(checked) {
+      try {
+        localStorage.setItem('okoshko_tg_notifications', checked ? 'true' : 'false');
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+        showToast(checked ? 'Уведомления включены 🔔' : 'Уведомления отключены 🔕');
+      } catch (e) {}
     }
 
     // Complete initial Telegram verification
