@@ -3,6 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import Message
 
+from bot.database import create_booking, get_or_create_user
 from bot.keyboards import get_inline_keyboard
 
 logger = logging.getLogger(__name__)
@@ -29,8 +30,33 @@ async def handle_web_app_data(message: Message):
             services = data.get("services", "Маникюр")
             total = data.get("total", 0)
 
+            booking_id = None
+            if message.from_user:
+                try:
+                    await get_or_create_user(
+                        telegram_id=message.from_user.id,
+                        username=message.from_user.username,
+                        first_name=message.from_user.first_name,
+                        last_name=message.from_user.last_name,
+                    )
+                    booking = await create_booking(
+                        user_id=message.from_user.id,
+                        salon=salon,
+                        master=master,
+                        booking_date=date,
+                        booking_time=time,
+                        services=services,
+                        total_price=float(total) if total else 0.0,
+                    )
+                    booking_id = booking.id
+                except Exception as e:
+                    logger.error(f"Ошибка сохранения записи в БД: {e}")
+
+            order_number_str = f"🔖 <b>Номер брони:</b> #{booking_id}\n" if booking_id else ""
+
             response = (
                 "🎉 <b>Запись успешно подтверждена!</b>\n\n"
+                f"{order_number_str}"
                 f"📍 <b>Салон:</b> {salon}\n"
                 f"👩‍🎨 <b>Мастер:</b> {master}\n"
                 f"🗓 <b>Дата и время:</b> {date} в {time}\n"

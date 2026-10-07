@@ -8,6 +8,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import MenuButtonWebApp, WebAppInfo
 
 from bot.config import BOT_TOKEN, MINI_APP_URL
+from bot.database import init_db
 from bot.handlers import main_router
 
 logging.basicConfig(
@@ -38,6 +39,10 @@ async def main():
     )
     dp = Dispatcher()
     dp.include_router(main_router)
+
+    # Инициализация таблиц базы данных PostgreSQL
+    logger.info("Подключение к PostgreSQL...")
+    await init_db()
 
     # Настраиваем глобальную кнопку Mini App по умолчанию
     try:

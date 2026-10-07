@@ -4,6 +4,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, MenuButtonWebApp, Message, WebAppInfo
 
 from bot.config import MINI_APP_URL
+from bot.database import get_or_create_user
 from bot.keyboards import get_inline_keyboard, get_reply_keyboard
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,18 @@ user_router = Router(name="user_router")
 async def handle_start(message: Message, bot: Bot):
     """Обработчик команды /start."""
     user_name = message.from_user.first_name if message.from_user else "друг"
+
+    # Регистрация / обновление пользователя в БД
+    if message.from_user:
+        try:
+            await get_or_create_user(
+                telegram_id=message.from_user.id,
+                username=message.from_user.username,
+                first_name=message.from_user.first_name,
+                last_name=message.from_user.last_name,
+            )
+        except Exception as e:
+            logger.error(f"Ошибка сохранения пользователя {message.from_user.id} в БД: {e}")
 
     # Устанавливаем кнопку меню в левом нижнем углу чата (Menu Button)
     try:

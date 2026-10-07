@@ -338,14 +338,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Role Toggle Pills (Клиент / Мастер) -->
-      <div id="roleToggleBar" class="flex justify-center w-full pb-2.5 px-4">
-        <div class="flex items-center bg-black/[0.04] p-1 rounded-full text-xs font-semibold backdrop-blur-md">
-          <button id="roleClientBtn" onclick="setRole('client')" class="px-5 py-1 rounded-full bg-white text-primary shadow-xs transition-all">Клиент</button>
-          <button id="roleMasterBtn" onclick="setRole('master')" class="px-5 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-all">Мастер</button>
-        </div>
-      </div>
     </header>
 
       <!-- ======================================================== -->
@@ -438,7 +430,7 @@
       <!-- ======================================================== -->
       <!-- SCREEN 1: MAP / EXPLORE VIEW (based on _1/code.html) -->
       <!-- ======================================================== -->
-      <section id="screen-map" class="screen relative pb-28">
+      <section id="screen-map" class="screen relative pb-36">
         <!-- Floating Search & Category Pills -->
         <div class="sticky top-0 z-20 flex flex-col gap-2 px-4 pt-2 pb-2 bg-surface/90 backdrop-blur-md">
           <!-- Search Bar -->
@@ -516,7 +508,7 @@
       <!-- ======================================================== -->
       <!-- SCREEN 2: SALON DETAILS (based on beauty_studio_mobile) -->
       <!-- ======================================================== -->
-      <section id="screen-salon" class="screen pb-32">
+      <section id="screen-salon" class="screen pb-36">
         <!-- Hero Section -->
         <div class="relative px-3.5 pt-2">
           <div class="relative w-full h-[220px] rounded-3xl overflow-hidden shadow-sm">
@@ -595,13 +587,13 @@
                 <div class="text-xs font-bold text-on-surface">Ближайшее окно: Сегодня в 14:00</div>
               </div>
             </div>
-            <button onclick="router.navigate('master')" class="px-3.5 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold shadow-xs active:scale-95 transition-transform">
+            <button onclick="openDirectBooking({ salon: 'Beauty Studio', master: 'Алина Романова', service: 'Маникюр с покрытием гель-лак Luxio', price: 2500, date: 'Сегодня', time: '14:00' })" class="px-3.5 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold shadow-xs active:scale-95 transition-transform">
               Занять
             </button>
           </div>
         </div>
 
-        <!-- Masters Rail (Clicking Alina opens Master Profile!) -->
+        <!-- Masters Rail -->
         <div class="mt-4">
           <div class="px-4 flex items-center justify-between mb-2.5">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Мастера студии</h2>
@@ -610,7 +602,7 @@
 
           <div class="flex space-x-3 overflow-x-auto no-scrollbar px-4 pb-1">
             <!-- Alina Romanova (Top Master) -->
-            <div onclick="router.navigate('master')" class="min-w-[130px] p-3 rounded-2xl bg-white border-2 border-primary/30 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform relative">
+            <div onclick="selectSalonMaster('Алина Романова (Топ)')" class="min-w-[130px] p-3 rounded-2xl bg-white border-2 border-primary/40 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform relative">
               <div class="w-12 h-12 rounded-full overflow-hidden bg-primary-fixed mb-2 shadow-xs">
                 <img class="w-full h-full object-cover" alt="Alina" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDk4gw1UO5MRK6ZgCmtBhgbzfykfvdMi22HxmB42TFZv43Ycfx-fGIgpdWlkDauw_wwkEdituuObvw2bYr3OWyoV7Rqd3KFJr3g1SQM8vQ9ejRqbfexejYKE6z1IcUAVFuonjPm6mZI6Wyfi3KUqpeR2pHxtJfueeBJ_aDmYd4TtueiDxgWXzAv7kB7okWv6LGjfOYzg5WbMcK7hUcST54m7JMjCxVmk0kjDtDoRw"/>
               </div>
@@ -626,7 +618,7 @@
             </div>
 
             <!-- Express Any Master -->
-            <div onclick="router.navigate('master')" class="min-w-[130px] p-3 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform">
+            <div onclick="selectSalonMaster('Любой свободный мастер')" class="min-w-[130px] p-3 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform">
               <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-primary-container text-white flex items-center justify-center font-bold text-base shadow-xs mb-2">
                 ✨
               </div>
@@ -638,7 +630,7 @@
             </div>
 
             <!-- Daria S. -->
-            <div onclick="router.navigate('master')" class="min-w-[130px] p-3 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform">
+            <div onclick="selectSalonMaster('Дарья С. (Брови)')" class="min-w-[130px] p-3 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform">
               <div class="w-12 h-12 rounded-full bg-purple-100 text-primary flex items-center justify-center font-bold text-sm mb-2">
                 ДС
               </div>
@@ -654,7 +646,7 @@
             </div>
 
             <!-- Kristina Li -->
-            <div onclick="router.navigate('master')" class="min-w-[130px] p-3 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform">
+            <div onclick="selectSalonMaster('Кристина Ли (Педикюр)')" class="min-w-[130px] p-3 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform">
               <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm mb-2">
                 КЛ
               </div>
@@ -686,7 +678,7 @@
                 <span class="text-[11px] text-slate-400 mt-0.5">Снятие, выравнивание, дизайн • 90 мин</span>
                 <span class="text-xs font-bold text-primary mt-1">2 500 ₽</span>
               </div>
-              <button onclick="router.navigate('master')" class="shrink-0 px-3 py-1.5 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all">
+              <button onclick="openDirectBooking({ salon: 'Beauty Studio', master: 'Алина Романова', service: 'Маникюр с покрытием гель-лак Luxio', price: 2500, date: 'Сегодня', time: '14:00' })" class="shrink-0 px-3 py-1.5 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all">
                 + Окно
               </button>
             </div>
@@ -698,7 +690,7 @@
                 <span class="text-[11px] text-slate-400 mt-0.5">Хна или премиум-краситель Levissime • 60 мин</span>
                 <span class="text-xs font-bold text-primary mt-1">1 800 ₽</span>
               </div>
-              <button onclick="router.navigate('master')" class="shrink-0 px-3 py-1.5 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all">
+              <button onclick="openDirectBooking({ salon: 'Beauty Studio', master: 'Дарья С.', service: 'Архитектура и окрашивание бровей', price: 1800, date: 'Сегодня', time: '16:30' })" class="shrink-0 px-3 py-1.5 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all">
                 + Окно
               </button>
             </div>
@@ -710,7 +702,7 @@
                 <span class="text-[11px] text-slate-400 mt-0.5">Аппаратная обработка стопы + пальчики • 75 мин</span>
                 <span class="text-xs font-bold text-primary mt-1">2 800 ₽</span>
               </div>
-              <button onclick="router.navigate('master')" class="shrink-0 px-3 py-1.5 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all">
+              <button onclick="openDirectBooking({ salon: 'Beauty Studio', master: 'Кристина Ли', service: 'Smart-педикюр эстетический', price: 2800, date: 'Завтра', time: '12:00' })" class="shrink-0 px-3 py-1.5 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all">
                 + Окно
               </button>
             </div>
@@ -749,7 +741,7 @@
               <span class="text-xs font-bold text-on-surface">Сегодня, 14:00</span>
             </div>
           </div>
-          <button onclick="router.navigate('master')" class="bg-primary hover:bg-primary-container active:scale-95 text-white font-semibold text-xs px-6 py-3 rounded-2xl shadow-floating flex items-center space-x-1.5 transition-all">
+          <button onclick="openDirectBooking({ salon: 'Beauty Studio', master: 'Алина Романова', service: 'Маникюр с покрытием гель-лак Luxio', price: 2500, date: 'Сегодня', time: '14:00' })" class="bg-primary hover:bg-primary-container active:scale-95 text-white font-semibold text-xs px-6 py-3 rounded-2xl shadow-floating flex items-center space-x-1.5 transition-all">
             <span>Выбрать запись</span>
             <span class="text-sm leading-none">→</span>
           </button>
@@ -1005,74 +997,27 @@
       <!-- ======================================================== -->
       <!-- SCREEN 4: MY APPOINTMENTS (Записи) -->
       <!-- ======================================================== -->
-      <section id="screen-appointments" class="screen pb-28">
+      <section id="screen-appointments" class="screen pb-36">
         <div class="px-4 pt-3 flex flex-col gap-4">
           <!-- Page Header -->
           <div class="flex items-center justify-between">
             <h1 class="text-xl font-bold text-on-surface">Мои записи</h1>
-            <span class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-primary text-xs font-semibold">1 активная</span>
+            <span id="activeApptCountBadge" class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-primary text-xs font-semibold">0 активных</span>
           </div>
 
-          <!-- Active Appointment Card -->
-          <div id="activeAppointmentCard" class="rounded-3xl bg-white p-4 shadow-xs border border-primary/20 flex flex-col gap-3 relative overflow-hidden">
-            <div class="flex items-center justify-between">
-              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-fixed text-primary font-semibold text-xs">
-                <span class="material-symbols-outlined text-[14px]">schedule</span>
-                <span id="apptDateTimeLabel">Сегодня в 14:00</span>
-              </div>
-              <button onclick="router.navigate('map')" aria-label="Маршрут на карте" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary active:scale-90 transition-transform">
-                <span class="material-symbols-outlined text-[18px]">near_me</span>
-              </button>
-            </div>
-
-            <!-- Studio & Master Info -->
-            <div class="flex gap-3 items-center">
-              <div class="w-14 h-14 rounded-2xl overflow-hidden bg-surface-container shrink-0">
-                <img class="w-full h-full object-cover" alt="Beauty Studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw"/>
-              </div>
-              <div class="flex flex-col min-w-0 flex-1">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-sm text-on-surface truncate">Beauty Studio</span>
-                  <span class="text-xs text-amber-500 font-bold">★ 4.9</span>
-                </div>
-                <span id="apptServiceName" class="text-xs text-on-surface-variant truncate">Маникюр + Luxio</span>
-                <div class="flex items-center gap-1 mt-0.5 text-xs text-slate-500">
-                  <span class="material-symbols-outlined text-[14px] text-primary">person</span>
-                  <span id="apptMasterName">Мастер Алина Романова</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Action buttons -->
-            <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
-              <button onclick="showRescheduleAlert()" class="flex-1 py-2 px-3 rounded-full bg-surface-container text-on-surface font-semibold text-xs active:scale-95 transition-all">
-                Перенести
-              </button>
-              <button onclick="showCancelAlert()" class="py-2 px-3 rounded-full bg-rose-50 text-rose-600 font-semibold text-xs active:scale-95 transition-all">
-                Отменить
-              </button>
-              <button onclick="showTelegramChatAlert()" aria-label="Чат в Telegram" class="w-9 h-9 rounded-full bg-primary-fixed text-primary flex items-center justify-center active:scale-95 transition-all">
-                <span class="material-symbols-outlined text-[17px]">chat_bubble_outline</span>
-              </button>
-            </div>
+          <!-- Active Appointments Container (rendered dynamically) -->
+          <div id="activeAppointmentsList" class="flex flex-col gap-3">
+            <!-- Dynamically populated or Empty State -->
           </div>
 
-          <!-- Visit History -->
-          <div class="flex flex-col gap-2 mt-2">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">История визитов</span>
-            <div class="bg-white rounded-3xl p-3.5 shadow-xs border border-slate-200/60 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                  ✓
-                </div>
-                <div class="flex flex-col">
-                  <span class="text-xs font-bold text-on-surface">Smart-педикюр эстетический</span>
-                  <span class="text-[11px] text-slate-400">24 октября • Beauty Studio • 2 800 ₽</span>
-                </div>
-              </div>
-              <button onclick="router.navigate('master')" class="px-2.5 py-1 rounded-full bg-primary-fixed text-primary text-[11px] font-semibold">
-                Повторить
-              </button>
+          <!-- Visit History Container (rendered dynamically) -->
+          <div id="historyAppointmentsSection" class="flex flex-col gap-2 mt-2">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">История визитов</span>
+              <button onclick="clearCompletedHistory()" class="text-[11px] text-slate-400 hover:text-rose-500 transition-colors">Очистить</button>
+            </div>
+            <div id="historyAppointmentsList" class="flex flex-col gap-2.5">
+              <!-- Dynamically populated -->
             </div>
           </div>
         </div>
@@ -1081,7 +1026,7 @@
       <!-- ======================================================== -->
       <!-- SCREEN 5: USER PROFILE (based on _2/code.html) -->
       <!-- ======================================================== -->
-      <section id="screen-profile" class="screen pb-28">
+      <section id="screen-profile" class="screen pb-36">
         <div class="px-4 pt-3 flex flex-col gap-4">
           <!-- Profile Card -->
           <div class="flex flex-col items-center text-center">
@@ -1106,7 +1051,7 @@
             <!-- Stats Capsule -->
             <div class="w-full mt-3 p-3 rounded-2xl bg-white shadow-xs border border-slate-200/60 flex items-center justify-around">
               <div onclick="router.navigate('appointments')" class="flex flex-col items-center flex-1 cursor-pointer active:scale-95 transition-transform">
-                <span class="font-bold text-sm text-primary">12</span>
+                <span id="profileApptsCount" class="font-bold text-sm text-primary">0</span>
                 <span class="text-[10px] text-slate-400 mt-0.5">записей</span>
               </div>
               <div class="w-px h-6 bg-slate-200"></div>
@@ -1125,21 +1070,23 @@
             </div>
           </div>
 
-          <!-- Quick Banner: Switch to Master Mode PRO -->
-          <div onclick="setRole('master')" class="p-3.5 rounded-2xl bg-gradient-to-r from-primary-fixed/40 to-primary-fixed/20 border border-primary/20 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-xs">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-2xl bg-white shadow-xs flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined text-[20px]">storefront</span>
+          <!-- Create Business Account Card -->
+          <div id="bizAccountCard" onclick="openBusinessModal()" class="p-4 rounded-3xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-primary text-white shadow-md flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+
+            <div class="flex items-center gap-3.5 z-10">
+              <div class="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-xs">
+                <span class="material-symbols-outlined text-[22px]">storefront</span>
               </div>
-              <div class="flex flex-col">
+              <div class="flex flex-col text-left">
                 <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-xs text-on-surface">Режим мастера</span>
-                  <span class="px-1.5 py-0.2 rounded-full bg-primary text-white text-[9px] font-bold">PRO</span>
+                  <span id="bizCardTitle" class="font-bold text-xs tracking-tight">Создать Бизнес-аккаунт</span>
+                  <span id="bizCardBadge" class="px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-extrabold uppercase">PRO</span>
                 </div>
-                <span class="text-[11px] text-slate-500">Принимайте записи и ведите график</span>
+                <span id="bizCardSub" class="text-[11px] text-slate-300 mt-0.5">Подключите салон или кабинет мастера</span>
               </div>
             </div>
-            <span class="material-symbols-outlined text-primary text-[18px]">arrow_forward</span>
+            <span class="material-symbols-outlined text-white/80 text-[20px] z-10">arrow_forward</span>
           </div>
 
           <!-- My Data Group -->
@@ -1251,19 +1198,19 @@
       <div class="bg-surface-container-low rounded-2xl p-3.5 flex flex-col gap-2 text-xs">
         <div class="flex justify-between items-center pb-2 border-b border-slate-200">
           <span class="text-slate-500">Салон:</span>
-          <span class="font-bold text-on-surface">Beauty Studio (Садовая, 42)</span>
+          <span id="modalSalon" class="font-bold text-on-surface">Beauty Studio</span>
         </div>
         <div class="flex justify-between items-center pb-2 border-b border-slate-200">
           <span class="text-slate-500">Мастер:</span>
-          <span class="font-bold text-primary">Алина Романова (Топ)</span>
+          <span id="modalMaster" class="font-bold text-primary">Алина Романова</span>
         </div>
         <div class="flex justify-between items-center pb-2 border-b border-slate-200">
           <span class="text-slate-500">Дата и время:</span>
-          <span id="modalDateTime" class="font-bold text-on-surface">Ср, 8 ноября в 14:00</span>
+          <span id="modalDateTime" class="font-bold text-on-surface">Сегодня в 14:00</span>
         </div>
         <div class="flex justify-between items-center pb-2 border-b border-slate-200">
           <span class="text-slate-500">Услуги:</span>
-          <span id="modalServices" class="font-semibold text-right max-w-[200px] text-on-surface">Маникюр + Luxio</span>
+          <span id="modalServices" class="font-semibold text-right max-w-[200px] text-on-surface">Маникюр с покрытием гель-лак Luxio</span>
         </div>
         <div class="flex justify-between items-center pt-1 text-sm">
           <span class="font-bold text-on-surface">Итого к оплате:</span>
@@ -1278,6 +1225,74 @@
       <button onclick="confirmBooking()" class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-sm shadow-[0_8px_20px_rgba(95,58,221,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
         <span class="material-symbols-outlined text-[18px]">verified</span>
         <span>Подтвердить запись</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: BUSINESS ACCOUNT REGISTRATION BOTTOM SHEET -->
+  <!-- ======================================================== -->
+  <div id="businessModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-end justify-center transition-all">
+    <div class="w-full max-w-[420px] bg-white rounded-t-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom duration-200 max-h-[90vh] overflow-y-auto pb-safe">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto"></div>
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-primary-fixed text-primary flex items-center justify-center shadow-xs">
+            <span class="material-symbols-outlined text-[22px]">storefront</span>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-on-surface">Бизнес в «Окошке»</h3>
+            <p class="text-xs text-slate-400">Онлайн-запись и управление клиентами</p>
+          </div>
+        </div>
+        <button onclick="closeBusinessModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
+      </div>
+
+      <!-- Type Switcher (Салон / Мастер) -->
+      <div class="flex items-center bg-slate-100 p-1 rounded-2xl text-xs font-semibold">
+        <button type="button" id="bizTypeSalonBtn" onclick="setBizType('salon')" class="flex-1 py-2 rounded-xl bg-white text-primary shadow-xs transition-all">Салон красоты</button>
+        <button type="button" id="bizTypeMasterBtn" onclick="setBizType('master')" class="flex-1 py-2 rounded-xl text-slate-500 hover:text-on-surface transition-all">Частный мастер</button>
+      </div>
+
+      <!-- Fields -->
+      <div class="flex flex-col gap-3 text-xs">
+        <div>
+          <label class="block text-slate-500 font-medium mb-1">Название предприятия или имя мастера *</label>
+          <input id="bizNameInput" type="text" placeholder="Например: Студия эстетики Luna" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-on-surface outline-none focus:border-primary transition-colors text-xs"/>
+        </div>
+
+        <div>
+          <label class="block text-slate-500 font-medium mb-1">Основная категория услуг</label>
+          <select id="bizCategorySelect" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-on-surface outline-none focus:border-primary transition-colors text-xs">
+            <option value="Маникюр и педикюр">💅 Маникюр и педикюр</option>
+            <option value="Парикмахерские услуги">✂️ Парикмахерские услуги / Стрижки</option>
+            <option value="Брови и ресницы">👁 Брови и ресницы</option>
+            <option value="Косметология и уход">✨ Косметология и эстетика</option>
+            <option value="Массаж и SPA">💆 Массаж и SPA</option>
+            <option value="Салон полного цикла">🏢 Салон полного цикла</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-500 font-medium mb-1">Город и адрес</label>
+          <input id="bizAddressInput" type="text" placeholder="Например: Москва, ул. Большая Садовая, 10" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-on-surface outline-none focus:border-primary transition-colors text-xs"/>
+        </div>
+
+        <div>
+          <label class="block text-slate-500 font-medium mb-1">Контактный телефон или Telegram для связи *</label>
+          <input id="bizContactInput" type="text" placeholder="+7 (999) 000-00-00 или @username" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-on-surface outline-none focus:border-primary transition-colors text-xs"/>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-primary-fixed/30 border border-primary/20 text-[11px] text-slate-600 flex items-start gap-2">
+        <span class="material-symbols-outlined text-primary text-[17px] shrink-0">verified_user</span>
+        <span>Бесплатное подключение: наш менеджер свяжется с вами в Telegram, подтвердит данные и настроит витрину для ваших клиентов.</span>
+      </div>
+
+      <button onclick="submitBusinessApplication()" class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-sm shadow-[0_8px_20px_rgba(95,58,221,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">send</span>
+        <span>Отправить заявку на подключение</span>
       </button>
     </div>
   </div>
@@ -1465,7 +1480,6 @@
         const headerSubtitle = document.getElementById('headerSubtitle');
         const globalHeader = document.getElementById('globalHeader');
         const globalNav = document.getElementById('globalNav');
-        const roleToggleBar = document.getElementById('roleToggleBar');
 
         // On verification screen, hide header and bottom navigation
         if (screen === 'verify') {
@@ -1493,7 +1507,6 @@
           headerTitle.textContent = 'Окошко';
           headerSubtitle.textContent = 'мини-приложение';
           globalNav.classList.remove('hidden');
-          roleToggleBar.classList.remove('hidden');
           if (yandexMapInstance && yandexMapInstance.container) {
             setTimeout(() => yandexMapInstance.container.fitToViewport(), 150);
           }
@@ -1502,51 +1515,21 @@
           headerTitle.textContent = 'Beauty Studio';
           headerSubtitle.textContent = 'Салон красоты';
           globalNav.classList.add('hidden');
-          roleToggleBar.classList.add('hidden');
-        } else if (screen === 'master') {
-          backIcon.textContent = 'arrow_back_ios_new';
-          headerTitle.textContent = 'Алина Романова';
-          headerSubtitle.textContent = 'Топ-мастер';
-          globalNav.classList.add('hidden');
-          roleToggleBar.classList.add('hidden');
         } else if (screen === 'appointments') {
           backIcon.textContent = 'close';
           headerTitle.textContent = 'Записи';
           headerSubtitle.textContent = 'Мои визиты';
           globalNav.classList.remove('hidden');
-          roleToggleBar.classList.add('hidden');
+          renderAppointments();
         } else if (screen === 'profile') {
           backIcon.textContent = 'close';
           headerTitle.textContent = 'Профиль';
           const u = state.user || {};
           headerSubtitle.textContent = u.username ? `@${u.username}` : (u.first_name || 'клиент');
           globalNav.classList.remove('hidden');
-          roleToggleBar.classList.remove('hidden');
         }
       }
     };
-
-    // Client / Master role toggle
-    function setRole(role) {
-      state.userRole = role;
-      const clientBtn = document.getElementById('roleClientBtn');
-      const masterBtn = document.getElementById('roleMasterBtn');
-
-      if (role === 'client') {
-        clientBtn.classList.add('bg-white', 'text-primary', 'shadow-xs');
-        clientBtn.classList.remove('text-on-surface-variant');
-        masterBtn.classList.remove('bg-white', 'text-primary', 'shadow-xs');
-        masterBtn.classList.add('text-on-surface-variant');
-        showToast('Режим клиента активирован');
-      } else {
-        masterBtn.classList.add('bg-white', 'text-primary', 'shadow-xs');
-        masterBtn.classList.remove('text-on-surface-variant');
-        clientBtn.classList.remove('bg-white', 'text-primary', 'shadow-xs');
-        clientBtn.classList.add('text-on-surface-variant');
-        showToast('Вход в Режим мастера PRO');
-        setTimeout(() => router.navigate('master'), 400);
-      }
-    }
 
     // ==========================================
     // VENUES & ENTERPRISES DATA
@@ -1592,8 +1575,8 @@
       },
       {
         id: 'alina',
-        name: 'Алина Романова',
-        type: 'Топ-мастер (Частная студия)',
+        name: 'Студия Алины Романовой',
+        type: 'Студия маникюра',
         categoryTags: ['nails'],
         categoryText: 'Аппаратный маникюр · Дизайн Luxio',
         rating: '5.0',
@@ -1603,7 +1586,7 @@
         hotSlot: 'Окно сегодня 14:00',
         slots: ['14:00', '16:00', '18:30'],
         priceFrom: 'от 2 500 ₽',
-        target: 'master',
+        target: 'salon',
         photoCount: 8,
         img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgp3bE_r8kPZ5o34gXyIuQy_jS2M2nIeD2Y_E29-JkW_w3b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
         coords: [55.762100, 37.611000],
@@ -1611,8 +1594,8 @@
       },
       {
         id: 'kristina',
-        name: 'Кристина Ли',
-        type: 'Подолог & Мастер педикюра',
+        name: 'Студия Кристины Ли',
+        type: 'Подология & Мастер педикюра',
         categoryTags: ['pedicure'],
         categoryText: 'Smart-педикюр · Эстетика стоп',
         rating: '4.9',
@@ -1622,7 +1605,7 @@
         hotSlot: 'Окно сегодня 17:30',
         slots: ['13:00', '17:30', '19:00'],
         priceFrom: 'от 2 400 ₽',
-        target: 'master',
+        target: 'salon',
         photoCount: 5,
         img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5bztruJ0qRQX2i_00XhPKFkueLK-zwXZZBiYgP4MxYHYz12xShkiIvWZITD3u2myphWGAI6e7PMgYZlMdM11v60dFyDkdX4_MGeHSeaKLfPmL2SNmIqdx9zmI2io0fLxvN3S2B_tBcraBnGUp9B6IJqWQscQlg5nzaKlIJ6mPlc2wihbgdI0iVhgZCoglo1gtjAIruesjytBMU9euIN5yyJZRa0C9hGV9XuEWQ',
         coords: [55.760000, 37.603000],
@@ -1866,14 +1849,7 @@
     // Open venue details page
     function openVenueDetails(id) {
       state.activeSalon = id;
-      const v = venues.find(item => item.id === id);
-      if (!v) return;
-
-      if (v.target === 'master') {
-        router.navigate('master');
-      } else {
-        router.navigate('salon');
-      }
+      router.navigate('salon');
     }
 
     // Update active counter and venue badge
@@ -2066,50 +2042,440 @@
       modal.classList.add('flex');
     }
 
+    // ==========================================
+    // APPOINTMENTS STORE & DYNAMIC RENDERING
+    // ==========================================
+    const APPOINTMENTS_STORAGE_KEY = 'okoshko_appointments_v1';
+
+    function getStoredAppointments() {
+      try {
+        const raw = localStorage.getItem(APPOINTMENTS_STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {
+        console.error('Error reading appointments:', e);
+      }
+      const initial = [
+        {
+          id: 'bk_1',
+          salon: 'Beauty Studio',
+          address: 'ул. Большая Садовая, 42',
+          master: 'Алина Романова (Топ)',
+          service: 'Маникюр с покрытием гель-лак Luxio',
+          date: 'Сегодня',
+          time: '14:00',
+          total: 2500,
+          status: 'active',
+          img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
+          rating: '4.9'
+        },
+        {
+          id: 'bk_0',
+          salon: 'Beauty Studio',
+          address: 'ул. Большая Садовая, 42',
+          master: 'Кристина Ли',
+          service: 'Smart-педикюр эстетический',
+          date: '24 октября',
+          time: '15:30',
+          total: 2800,
+          status: 'completed',
+          img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
+          rating: '4.9'
+        }
+      ];
+      try {
+        localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(initial));
+      } catch (e) {}
+      return initial;
+    }
+
+    function saveStoredAppointments(list) {
+      try {
+        localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(list));
+      } catch (e) {
+        console.error('Error saving appointments:', e);
+      }
+    }
+
+    function renderAppointments() {
+      const allAppts = getStoredAppointments();
+      const activeList = allAppts.filter(a => a.status === 'active');
+      const historyList = allAppts.filter(a => a.status !== 'active');
+
+      const badge = document.getElementById('activeApptCountBadge');
+      if (badge) {
+        badge.textContent = `${activeList.length} ${pluralizeVisits(activeList.length)}`;
+      }
+      const profileApptsCount = document.getElementById('profileApptsCount');
+      if (profileApptsCount) {
+        profileApptsCount.textContent = allAppts.length;
+      }
+
+      // Render Active Appointments
+      const activeContainer = document.getElementById('activeAppointmentsList');
+      if (activeContainer) {
+        if (activeList.length === 0) {
+          activeContainer.innerHTML = `
+            <div class="rounded-3xl bg-white p-6 shadow-xs border border-slate-200/70 text-center flex flex-col items-center gap-3">
+              <div class="w-14 h-14 rounded-2xl bg-primary-fixed/40 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[28px]">calendar_today</span>
+              </div>
+              <div>
+                <h3 class="font-bold text-sm text-on-surface">Нет активных записей</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-[240px]">Выберите салон или услугу на карте и забронируйте удобное окошко</p>
+              </div>
+              <button onclick="router.navigate('map')" class="mt-1 px-5 py-2.5 rounded-full bg-primary text-white text-xs font-semibold shadow-xs active:scale-95 transition-transform flex items-center gap-1.5">
+                <span>Найти салон на карте</span>
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            </div>
+          `;
+        } else {
+          activeContainer.innerHTML = activeList.map(a => `
+            <div id="appt-card-${a.id}" class="rounded-3xl bg-white p-4 shadow-xs border border-primary/20 flex flex-col gap-3 relative overflow-hidden animate-in fade-in duration-200">
+              <div class="flex items-center justify-between">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-fixed text-primary font-semibold text-xs">
+                  <span class="material-symbols-outlined text-[14px]">schedule</span>
+                  <span>${a.date} в ${a.time}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">Подтверждено</span>
+                  <button onclick="router.navigate('map')" aria-label="Маршрут на карте" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary active:scale-90 transition-transform">
+                    <span class="material-symbols-outlined text-[17px]">near_me</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Studio & Master Info -->
+              <div class="flex gap-3 items-center">
+                <div class="w-14 h-14 rounded-2xl overflow-hidden bg-surface-container shrink-0">
+                  <img class="w-full h-full object-cover" alt="${a.salon}" src="${a.img || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw'}"/>
+                </div>
+                <div class="flex flex-col min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-sm text-on-surface truncate">${a.salon}</span>
+                    <span class="text-xs text-amber-500 font-bold">★ ${a.rating || '4.9'}</span>
+                  </div>
+                  <span class="text-xs text-on-surface-variant font-medium truncate mt-0.5">${a.service}</span>
+                  <div class="flex items-center justify-between mt-0.5">
+                    <span class="text-xs text-slate-500 truncate">${a.master}</span>
+                    <span class="text-xs font-bold text-primary">${a.total ? a.total.toLocaleString('ru-RU') + ' ₽' : ''}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
+                <button onclick="rescheduleAppointment('${a.id}')" class="flex-1 py-2 px-3 rounded-full bg-surface-container text-on-surface font-semibold text-xs active:scale-95 transition-all text-center">
+                  Перенести
+                </button>
+                <button onclick="cancelAppointment('${a.id}')" class="py-2 px-4 rounded-full bg-rose-50 text-rose-600 font-semibold text-xs active:scale-95 transition-all text-center">
+                  Отменить
+                </button>
+                <button onclick="showTelegramChatAlert()" aria-label="Чат в Telegram" class="w-9 h-9 rounded-full bg-primary-fixed text-primary flex items-center justify-center active:scale-95 transition-all shrink-0">
+                  <span class="material-symbols-outlined text-[17px]">chat_bubble_outline</span>
+                </button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      // Render History
+      const historyContainer = document.getElementById('historyAppointmentsList');
+      const historySection = document.getElementById('historyAppointmentsSection');
+      if (historyContainer && historySection) {
+        if (historyList.length === 0) {
+          historySection.classList.add('hidden');
+        } else {
+          historySection.classList.remove('hidden');
+          historyContainer.innerHTML = historyList.map(h => {
+            const isCancelled = (h.status === 'cancelled');
+            const iconBg = isCancelled ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-600';
+            const iconText = isCancelled ? '✕' : '✓';
+            const statusLabel = isCancelled ? 'Отменена' : 'Завершена';
+
+            return `
+              <div class="bg-white rounded-3xl p-3.5 shadow-xs border border-slate-200/60 flex items-center justify-between">
+                <div class="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                  <div class="w-10 h-10 rounded-2xl ${iconBg} flex items-center justify-center font-bold text-sm shrink-0">
+                    ${iconText}
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-xs font-bold text-on-surface truncate">${h.service}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 truncate">${h.date} • ${h.salon} • ${statusLabel}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button onclick="repeatAppointment('${h.id}')" class="px-2.5 py-1 rounded-full bg-primary-fixed text-primary text-[11px] font-semibold active:scale-95 transition-all">
+                    Повторить
+                  </button>
+                  <button onclick="deleteAppointment('${h.id}')" aria-label="Удалить" class="w-7 h-7 rounded-full text-slate-400 hover:text-rose-500 flex items-center justify-center active:scale-90 transition-all">
+                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function pluralizeVisits(n) {
+      if (n % 10 === 1 && n % 100 !== 11) return 'активная';
+      if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'активные';
+      return 'активных';
+    }
+
+    function cancelAppointment(id) {
+      if (!confirm('Вы уверены, что хотите отменить эту запись?')) return;
+      const allAppts = getStoredAppointments();
+      const appt = allAppts.find(a => a.id === id);
+      if (appt) {
+        appt.status = 'cancelled';
+        saveStoredAppointments(allAppts);
+        renderAppointments();
+        showToast('Запись отменена и перемещена в историю');
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+          }
+        } catch(e) {}
+      }
+    }
+
+    function deleteAppointment(id) {
+      const allAppts = getStoredAppointments();
+      const filtered = allAppts.filter(a => a.id !== id);
+      saveStoredAppointments(filtered);
+      renderAppointments();
+      showToast('Запись удалена');
+    }
+
+    function clearCompletedHistory() {
+      if (!confirm('Очистить всю историю завершенных и отмененных записей?')) return;
+      const allAppts = getStoredAppointments();
+      const activeOnly = allAppts.filter(a => a.status === 'active');
+      saveStoredAppointments(activeOnly);
+      renderAppointments();
+      showToast('История визитов очищена');
+    }
+
+    function rescheduleAppointment(id) {
+      showToast('Выберите новое время в салоне');
+      setTimeout(() => router.navigate('salon'), 300);
+    }
+
+    function repeatAppointment(id) {
+      const allAppts = getStoredAppointments();
+      const appt = allAppts.find(a => a.id === id);
+      if (appt) {
+        openDirectBooking({
+          salon: appt.salon,
+          master: appt.master,
+          service: appt.service,
+          price: appt.total,
+          date: 'Сегодня',
+          time: '14:00'
+        });
+      } else {
+        router.navigate('salon');
+      }
+    }
+
+    // Direct booking helper
+    function selectSalonMaster(masterName) {
+      state.currentBooking = state.currentBooking || {};
+      state.currentBooking.master = masterName;
+      showToast(`Выбран мастер: ${masterName} ✨`);
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+      } catch(e) {}
+    }
+
+    function openDirectBooking(opts) {
+      state.currentBooking = {
+        salon: opts.salon || 'Beauty Studio',
+        address: opts.address || 'ул. Большая Садовая, 42',
+        master: opts.master || (state.currentBooking?.master || 'Алина Романова'),
+        service: opts.service || 'Маникюр с покрытием гель-лак Luxio',
+        price: opts.price || 2500,
+        date: opts.date || state.selectedDate || 'Сегодня',
+        time: opts.time || state.selectedTime || '14:00'
+      };
+
+      const mSalon = document.getElementById('modalSalon');
+      const mMaster = document.getElementById('modalMaster');
+      const mDate = document.getElementById('modalDateTime');
+      const mService = document.getElementById('modalServices');
+      const mPrice = document.getElementById('modalTotalPrice');
+
+      if (mSalon) mSalon.textContent = state.currentBooking.salon;
+      if (mMaster) mMaster.textContent = state.currentBooking.master;
+      if (mDate) mDate.textContent = `${state.currentBooking.date} в ${state.currentBooking.time}`;
+      if (mService) mService.textContent = state.currentBooking.service;
+      if (mPrice) mPrice.textContent = `${state.currentBooking.price.toLocaleString('ru-RU')} ₽`;
+
+      const modal = document.getElementById('bookingModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function openBookingConfirmationModal() {
+      openDirectBooking({
+        salon: 'Beauty Studio',
+        master: 'Алина Романова',
+        service: state.selectedServices.map(s => s.name).join(' + '),
+        price: state.selectedServices.reduce((sum, s) => sum + s.price, 0),
+        date: state.selectedDate,
+        time: state.selectedTime
+      });
+    }
+
     function closeBookingModal() {
       const modal = document.getElementById('bookingModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
     }
 
     function confirmBooking() {
       closeBookingModal();
-      showToast('🎉 Запись успешно оформлена!');
 
-      // Telegram Haptic feedback
+      const bookingData = state.currentBooking || {
+        salon: 'Beauty Studio',
+        address: 'ул. Большая Садовая, 42',
+        master: 'Алина Романова',
+        service: 'Маникюр с покрытием гель-лак Luxio',
+        price: 2500,
+        date: 'Сегодня',
+        time: '14:00'
+      };
+
+      const newAppt = {
+        id: 'bk_' + Date.now(),
+        salon: bookingData.salon,
+        address: bookingData.address || 'ул. Большая Садовая, 42',
+        master: bookingData.master,
+        service: bookingData.service,
+        date: bookingData.date,
+        time: bookingData.time,
+        total: bookingData.price,
+        status: 'active',
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
+        rating: '4.9'
+      };
+
+      const all = getStoredAppointments();
+      all.unshift(newAppt);
+      saveStoredAppointments(all);
+      renderAppointments();
+
+      showToast('🎉 Запись успешно подтверждена!');
+
       try {
         if (window.Telegram?.WebApp?.HapticFeedback) {
           window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
-      } catch (e) {
-        console.log(e);
-      }
+      } catch (e) {}
 
-      // Send data to Telegram bot if launched via keyboard button
+      // Send to bot backend via Telegram WebApp sendData
       try {
         if (window.Telegram?.WebApp?.sendData) {
-          const total = state.selectedServices.reduce((sum, s) => sum + s.price, 0);
           window.Telegram.WebApp.sendData(JSON.stringify({
             action: 'booking_confirmed',
-            salon: 'Beauty Studio (Садовая, 42)',
-            master: 'Алина Романова',
-            date: state.selectedDate,
-            time: state.selectedTime,
-            services: state.selectedServices.map(s => s.name).join(' + '),
-            total: total
+            salon: newAppt.salon,
+            master: newAppt.master,
+            date: newAppt.date,
+            time: newAppt.time,
+            services: newAppt.service,
+            total: newAppt.total
           }));
         }
       } catch (e) {
         console.log('sendData note:', e);
       }
 
-      // Update active appointment in tab
-      document.getElementById('apptDateTimeLabel').textContent = `${state.selectedDate} в ${state.selectedTime}`;
-      document.getElementById('apptServiceName').textContent = state.selectedServices.map(s => s.name).join(' + ');
-
       setTimeout(() => {
         router.navigate('appointments');
-      }, 700);
+      }, 500);
+    }
+
+    // ==========================================
+    // BUSINESS ACCOUNT MODAL
+    // ==========================================
+    let currentBizType = 'salon';
+
+    function openBusinessModal() {
+      const modal = document.getElementById('businessModal');
+      if (modal) {
+        const contactInput = document.getElementById('bizContactInput');
+        if (contactInput && state.user?.username && !contactInput.value) {
+          contactInput.value = `@${state.user.username}`;
+        }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeBusinessModal() {
+      const modal = document.getElementById('businessModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function setBizType(type) {
+      currentBizType = type;
+      const salonBtn = document.getElementById('bizTypeSalonBtn');
+      const masterBtn = document.getElementById('bizTypeMasterBtn');
+      if (type === 'salon') {
+        salonBtn.className = 'flex-1 py-2 rounded-xl bg-white text-primary shadow-xs transition-all';
+        masterBtn.className = 'flex-1 py-2 rounded-xl text-slate-500 hover:text-on-surface transition-all';
+      } else {
+        masterBtn.className = 'flex-1 py-2 rounded-xl bg-white text-primary shadow-xs transition-all';
+        salonBtn.className = 'flex-1 py-2 rounded-xl text-slate-500 hover:text-on-surface transition-all';
+      }
+    }
+
+    function submitBusinessApplication() {
+      const name = (document.getElementById('bizNameInput')?.value || '').trim();
+      const contact = (document.getElementById('bizContactInput')?.value || '').trim();
+      const category = document.getElementById('bizCategorySelect')?.value || 'Салон красоты';
+
+      if (!name) {
+        showToast('Пожалуйста, укажите название предприятия или ваше имя');
+        return;
+      }
+      if (!contact) {
+        showToast('Пожалуйста, укажите контакт для связи');
+        return;
+      }
+
+      closeBusinessModal();
+
+      const cardTitle = document.getElementById('bizCardTitle');
+      const cardBadge = document.getElementById('bizCardBadge');
+      const cardSub = document.getElementById('bizCardSub');
+      if (cardTitle) cardTitle.textContent = 'Заявка на Бизнес-аккаунт';
+      if (cardBadge) {
+        cardBadge.textContent = 'На рассмотрении';
+        cardBadge.className = 'px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[9px] font-extrabold uppercase';
+      }
+      if (cardSub) cardSub.textContent = `${name} (${category}) • Менеджер скоро свяжется`;
+
+      showToast('🎉 Заявка принята! Мы свяжемся с вами в Telegram');
+
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+      } catch (e) {}
     }
 
     // Category filter in map
@@ -2228,24 +2594,12 @@
       showToast('Опции: Поделиться mini app, перезагрузить, помощь');
     }
 
-    function showRescheduleAlert() {
-      showToast('Выберите новую дату и время для переноса');
-      setTimeout(() => router.navigate('master'), 400);
-    }
-
-    function showCancelAlert() {
-      if (confirm('Отменить запись на сегодня 14:00?')) {
-        document.getElementById('activeAppointmentCard').style.opacity = '0.5';
-        showToast('Запись отменена');
-      }
-    }
-
     function showTelegramChatAlert() {
-      showToast('Открываем диалог с мастером в Telegram...');
+      showToast('Открываем диалог с администратором в Telegram...');
     }
 
     function openPhotoModal(el) {
-      showToast('Просмотр работы мастера (HD)');
+      showToast('Просмотр фото салона (HD)');
     }
 
     // Toast helper
@@ -2296,6 +2650,7 @@
     state.user = getTelegramUser();
     syncUserProfileUI(state.user);
     renderVenuesCarousel();
+    renderAppointments();
 
     let isAlreadyVerified = false;
     try {
