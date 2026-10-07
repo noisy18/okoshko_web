@@ -1992,21 +1992,54 @@
       } catch (e) {}
     }
 
-    // User Registration Date Management
+    // User Registration Date Management (Real dynamic tracking from DB / Telegram)
     function getUserRegistrationDate() {
       let regTimestamp = null;
+
+      // 1. Check if passed from Telegram Bot / URL query params (e.g. ?registered_at=1728518400000)
       try {
-        const stored = localStorage.getItem('okoshko_user_registered_at');
-        if (stored) regTimestamp = parseInt(stored, 10);
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlReg = urlParams.get('registered_at');
+        if (urlReg) {
+          const parsed = parseInt(urlReg, 10);
+          if (!isNaN(parsed) && parsed > 0) {
+            regTimestamp = parsed;
+            // Persist the real DB created_at timestamp
+            localStorage.setItem('okoshko_user_registered_at', regTimestamp.toString());
+          }
+        }
       } catch (e) {}
 
-      if (!regTimestamp || isNaN(regTimestamp)) {
-        // Set fixed default registration date (e.g. 12 October 2024) or current date
-        regTimestamp = new Date('2024-10-12T10:00:00Z').getTime();
+      // 2. Check if already stored in localStorage
+      if (!regTimestamp) {
+        try {
+          const stored = localStorage.getItem('okoshko_user_registered_at');
+          if (stored) {
+            const parsed = parseInt(stored, 10);
+            if (!isNaN(parsed) && parsed > 0) {
+              regTimestamp = parsed;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 3. Check Telegram WebApp user object if available
+      if (!regTimestamp && window.Telegram?.WebApp?.initDataUnsafe?.auth_date) {
+        // auth_date is in seconds
+        regTimestamp = window.Telegram.WebApp.initDataUnsafe.auth_date * 1000;
         try {
           localStorage.setItem('okoshko_user_registered_at', regTimestamp.toString());
         } catch (e) {}
       }
+
+      // 4. If new user without recorded date, assign now (actual first visit timestamp)
+      if (!regTimestamp || isNaN(regTimestamp)) {
+        regTimestamp = Date.now();
+        try {
+          localStorage.setItem('okoshko_user_registered_at', regTimestamp.toString());
+        } catch (e) {}
+      }
+
       return new Date(regTimestamp);
     }
 
@@ -2177,7 +2210,12 @@
       state.verified = true;
       try {
         localStorage.setItem('okoshko_verified', 'true');
+        // Ensure real registration timestamp is stored upon first verification if missing
+        if (!localStorage.getItem('okoshko_user_registered_at')) {
+          localStorage.setItem('okoshko_user_registered_at', Date.now().toString());
+        }
       } catch (e) {}
+      updateProfileRegistrationDateUI();
       try {
         if (window.Telegram?.WebApp?.HapticFeedback) {
           window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -5551,6 +5589,7 @@
     // Initialize user profile from Telegram
     state.user = getTelegramUser();
     syncUserProfileUI(state.user);
+    updateProfileRegistrationDateUI();
     renderVenuesCarousel();
     renderAppointments();
     updateFavoritesUI();

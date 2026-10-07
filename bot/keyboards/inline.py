@@ -8,14 +8,14 @@ from aiogram.types import (
 from bot.config import MINI_APP_URL
 
 
-def get_inline_keyboard() -> InlineKeyboardMarkup:
+def get_inline_keyboard(app_url: str = MINI_APP_URL) -> InlineKeyboardMarkup:
     """Инлайн-клавиатура с кнопкой запуска Mini App."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
                     text="💅 Открыть «Окошко»",
-                    web_app=WebAppInfo(url=MINI_APP_URL),
+                    web_app=WebAppInfo(url=app_url),
                 )
             ],
             [
@@ -32,14 +32,14 @@ def get_inline_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def get_reply_keyboard() -> ReplyKeyboardMarkup:
+def get_reply_keyboard(app_url: str = MINI_APP_URL) -> ReplyKeyboardMarkup:
     """Постоянная нижняя клавиатура с кнопкой быстрого вызова Mini App."""
     return ReplyKeyboardMarkup(
         keyboard=[
             [
                 KeyboardButton(
                     text="✨ Записаться онлайн",
-                    web_app=WebAppInfo(url=MINI_APP_URL),
+                    web_app=WebAppInfo(url=app_url),
                 )
             ],
             [
