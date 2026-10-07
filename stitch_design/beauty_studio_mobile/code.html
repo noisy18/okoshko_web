@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Салон красоты Beauty Studio — Окошко</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#F5F3FF',
+              100: '#EDE9FE',
+              200: '#DDD6FE',
+              300: '#C4B5FD',
+              400: '#A78BFA',
+              500: '#7C5CFC',
+              600: '#6D28D9',
+              700: '#5B21B6'
+            },
+            iosBg: '#F8F9FD'
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Geologica', 'Segoe UI', 'Roboto', 'sans-serif']
+          },
+          boxShadow: {
+            glass: '0 8px 32px 0 rgba(124, 92, 252, 0.08)',
+            floating: '0 12px 28px -6px rgba(124, 92, 252, 0.35)'
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Glass & iOS Layout Styles -->
+<style data-purpose="ios-liquid-glass">
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      background-color: #F8F9FD;
+    }
+    /* Liquid Glassmorphism backdrop effect */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.76);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+    }
+    .glass-chip {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+    .glass-floating-bar {
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      border-top: 1px solid rgba(255, 255, 255, 0.9);
+    }
+    /* Hide scrollbars for clean native feel */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<!-- END: Custom Glass & iOS Layout Styles -->
+</head>
+<body class="font-sans antialiased text-slate-800 bg-iosBg flex justify-center min-h-screen">
+<!-- Mobile Screen Container (iPhone standard width simulation) -->
+<div class="w-full max-w-[410px] min-h-screen relative pb-32 flex flex-col bg-[#F8F9FD] shadow-2xl">
+<!-- BEGIN: TelegramTopBar -->
+<header class="sticky top-0 z-50 glass-floating-bar px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-slate-100/60" data-purpose="telegram-top-navigation">
+<!-- Back Arrow & Channel Info -->
+<div class="flex items-center space-x-2">
+<button aria-label="Назад" class="w-8 h-8 rounded-full flex items-center justify-center active:bg-slate-200/60 text-slate-700 transition-colors" type="button">
+<svg class="w-5 h-5 stroke-[2.2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<div class="flex flex-col">
+<div class="flex items-center space-x-1">
+<span class="font-semibold text-[15px] leading-tight text-slate-900 tracking-tight">Beauty Studio</span>
+<svg class="w-3.5 h-3.5 text-brand-500 fill-current inline-block" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" fill-rule="evenodd"></path>
+</svg>
+</div>
+<span class="text-[11px] text-slate-400 font-medium leading-none">мини-приложение</span>
+</div>
+</div>
+<!-- Telegram Action Buttons (Share & More) -->
+<div class="flex items-center space-x-1">
+<button aria-label="Поделиться" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 active:bg-slate-200/50 transition-colors" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button aria-label="Меню" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 active:bg-slate-200/50 transition-colors" type="button">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+<path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path>
+</svg>
+</button>
+</div>
+</header>
+<!-- END: TelegramTopBar -->
+<!-- BEGIN: HeroSection -->
+<section class="relative px-3 pt-2" data-purpose="salon-hero-cover">
+<div class="relative w-full h-[225px] rounded-3xl overflow-hidden shadow-sm">
+<img alt="Modern chic Scandinavian beauty salon interior with warm natural sunlight, travertine stone surfaces, beige minimal furniture, cream velvet manicure chairs, delicate plant decor, clean aesthetic in cozy ambient lighting" class="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5bztruJ0qRQX2i_00XhPKFkueLK-zwXZZBiYgP4MxYHYz12xShkiIvWZITD3u2myphWGAI6e7PMgYZlMdM11v60dFyDkdX4_MGeHSeaKLfPmL2SNmIqdx9zmI2io0fLxvN3S2B_tBcraBnGUp9B6IJqWQscQlg5nzaKlIJ6mPlc2wihjbgdI0iVhgZCoglo1gtjAIruesjytBMU9euIN5yyJZRa0C9hGV9XuEWQ"/>
+<!-- Inner subtle gradient for readability of overlays -->
+<div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/20"></div>
+<!-- Top Badges Overlay -->
+<div class="absolute top-3 left-3 right-3 flex items-center justify-between">
+<div class="flex items-center space-x-1.5">
+<span class="glass-chip px-2.5 py-1 rounded-full text-[11px] font-semibold text-emerald-700 bg-white/90 flex items-center gap-1 shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Открыто до 21:00
+            </span>
+<span class="glass-chip px-2.5 py-1 rounded-full text-[11px] font-bold text-brand-600 bg-brand-50/90 tracking-wide uppercase shadow-sm">
+              ТОП САЛОН
+            </span>
+</div>
+<!-- Favorite Button -->
+<button aria-label="Добавить в избранное" class="w-8 h-8 rounded-full glass-chip flex items-center justify-center text-rose-500 bg-white/90 active:scale-90 transition-transform shadow-sm" type="button">
+<svg class="w-4 h-4 fill-current" viewbox="0 0 24 24">
+<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+</svg>
+</button>
+</div>
+<!-- Bottom Hero Badge: Distance -->
+<div class="absolute bottom-3 left-3">
+<span class="glass-chip text-white px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-black/40 border-white/20">
+<svg class="w-3.5 h-3.5 text-white/90" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+            350 м от вас
+          </span>
+</div>
+</div>
+</section>
+<!-- END: HeroSection -->
+<!-- BEGIN: SalonInfoBlock -->
+<section class="px-4 pt-3.5 pb-2" data-purpose="salon-meta-header">
+<div class="flex items-start justify-between">
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-slate-900">Beauty Studio</h1>
+<p class="text-xs text-slate-500 mt-0.5">Премиум маникюр, брови и эстетический уход</p>
+</div>
+<!-- Rating Box -->
+<div class="flex items-center space-x-1 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-2xl shadow-sm">
+<svg class="w-3.5 h-3.5 text-amber-500 fill-current" viewbox="0 0 20 20">
+<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+</svg>
+<span class="text-xs font-bold text-amber-900">4.9</span>
+<span class="text-[11px] text-amber-600/80">(148)</span>
+</div>
+</div>
+<!-- Category Pills -->
+<div class="flex items-center space-x-1.5 mt-3 overflow-x-auto no-scrollbar py-0.5">
+<span class="px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 text-slate-700 text-xs font-medium whitespace-nowrap shadow-xs">💅 Маникюр</span>
+<span class="px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 text-slate-700 text-xs font-medium whitespace-nowrap shadow-xs">🦶 Педикюр</span>
+<span class="px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 text-slate-700 text-xs font-medium whitespace-nowrap shadow-xs">✨ Брови</span>
+<span class="px-2.5 py-1 rounded-xl bg-white border border-slate-200/80 text-slate-700 text-xs font-medium whitespace-nowrap shadow-xs">👁 Ресницы</span>
+</div>
+<!-- Address & Map Link -->
+<div class="mt-3 flex items-center justify-between p-2.5 rounded-2xl bg-white/70 border border-slate-200/60 text-xs text-slate-600">
+<div class="flex items-center space-x-2 truncate pr-2">
+<svg class="w-4 h-4 text-brand-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 11c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 10c3.5-3.5 6-7.5 6-11a6 6 0 10-12 0c0 3.5 2.5 7.5 6 11z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="truncate">ул. Большая Садовая, 42 <span class="text-slate-400">• м. Маяковская</span></span>
+</div>
+<button class="text-brand-600 font-semibold px-2 py-0.5 rounded-lg bg-brand-50 active:bg-brand-100 transition-colors shrink-0" type="button">
+          Карта
+        </button>
+</div>
+</section>
+<!-- END: SalonInfoBlock -->
+<!-- BEGIN: HotSlotBanner -->
+<section class="px-4 my-2" data-purpose="hot-slot-alert">
+<div class="glass-panel bg-brand-50/70 border border-brand-200/80 p-3 rounded-2xl flex items-center justify-between shadow-glass">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-brand-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-brand-500/30">
+            ⚡
+          </div>
+<div>
+<div class="text-[11px] font-medium text-brand-600 uppercase tracking-wider">Быстрая запись</div>
+<div class="text-xs font-bold text-slate-900">Ближайшее окно: Сегодня в 14:00</div>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-xl bg-brand-500 text-white text-xs font-semibold shadow-sm active:scale-95 transition-transform" type="button">
+          Занять
+        </button>
+</div>
+</section>
+<!-- END: HotSlotBanner -->
+<!-- BEGIN: MastersRail -->
+<section class="mt-4" data-purpose="masters-carousel">
+<div class="px-4 flex items-center justify-between mb-2.5">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-500">Мастера студии</h2>
+<a class="text-xs text-brand-500 font-semibold" href="#">Все (8)</a>
+</div>
+<!-- Horizontal Scrollable Container -->
+<div class="flex space-x-3 overflow-x-auto no-scrollbar px-4 pb-1">
+<!-- Master Card: Any Master (Express) -->
+<div class="min-w-[130px] p-2.5 rounded-2xl bg-white border border-brand-200 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+<div class="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-500 to-indigo-400 text-white flex items-center justify-center font-bold text-base shadow-sm mb-2">
+            ✨
+          </div>
+<span class="text-xs font-bold text-slate-900">Любой мастер</span>
+<span class="text-[10px] text-brand-600 font-medium">Экспресс-запись</span>
+<div class="mt-2 text-[10px] bg-brand-50 text-brand-600 font-semibold px-2 py-0.5 rounded-full">
+            сегодня 14:00
+          </div>
+</div>
+<!-- Master Card: Alina R. -->
+<div class="min-w-[130px] p-2.5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col items-center text-center">
+<div class="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-slate-700 text-sm mb-2">
+            АР
+          </div>
+<span class="text-xs font-bold text-slate-900">Алина Р.</span>
+<div class="flex items-center space-x-0.5 text-[10px] text-amber-500 font-bold">
+<span>⭐</span>
+<span>5.0</span>
+<span class="text-slate-400 font-normal">• Топ</span>
+</div>
+<div class="mt-2 text-[10px] bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded-full">
+            14:00, 16:30
+          </div>
+</div>
+<!-- Master Card: Daria S. -->
+<div class="min-w-[130px] p-2.5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col items-center text-center">
+<div class="w-12 h-12 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center font-semibold text-brand-600 text-sm mb-2">
+            ДС
+          </div>
+<span class="text-xs font-bold text-slate-900">Дарья С.</span>
+<div class="flex items-center space-x-0.5 text-[10px] text-amber-500 font-bold">
+<span>⭐</span>
+<span>4.9</span>
+<span class="text-slate-400 font-normal">• Брови</span>
+</div>
+<div class="mt-2 text-[10px] bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded-full">
+            завтра 11:00
+          </div>
+</div>
+<!-- Master Card: Kristina Li -->
+<div class="min-w-[130px] p-2.5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col items-center text-center">
+<div class="w-12 h-12 rounded-full bg-rose-100 border border-rose-200 flex items-center justify-center font-semibold text-rose-600 text-sm mb-2">
+            КЛ
+          </div>
+<span class="text-xs font-bold text-slate-900">Кристина Ли</span>
+<div class="flex items-center space-x-0.5 text-[10px] text-amber-500 font-bold">
+<span>⭐</span>
+<span>4.9</span>
+<span class="text-slate-400 font-normal">• Педикюр</span>
+</div>
+<div class="mt-2 text-[10px] bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded-full">
+            сегодня 17:00
+          </div>
+</div>
+</div>
+</section>
+<!-- END: MastersRail -->
+<!-- BEGIN: PopularServices -->
+<section class="px-4 mt-5" data-purpose="services-catalog">
+<div class="flex items-center justify-between mb-3">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-500">Популярные услуги</h2>
+<span class="text-xs text-slate-400">Прайс-лист</span>
+</div>
+<!-- Service Filter Tabs -->
+<div class="flex space-x-1.5 mb-3 overflow-x-auto no-scrollbar">
+<button class="px-3 py-1 rounded-xl text-xs font-semibold bg-brand-500 text-white shadow-sm" type="button">Все</button>
+<button class="px-3 py-1 rounded-xl text-xs font-medium bg-white text-slate-600 border border-slate-200" type="button">Маникюр</button>
+<button class="px-3 py-1 rounded-xl text-xs font-medium bg-white text-slate-600 border border-slate-200" type="button">Брови</button>
+<button class="px-3 py-1 rounded-xl text-xs font-medium bg-white text-slate-600 border border-slate-200" type="button">Педикюр</button>
+</div>
+<!-- Service Items Stack -->
+<div class="space-y-2.5">
+<!-- Service Item 1 -->
+<article class="p-3 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex items-center justify-between">
+<div class="flex flex-col pr-2">
+<h3 class="text-[13px] font-bold text-slate-900 leading-snug">Маникюр с покрытием гель-лак</h3>
+<span class="text-[11px] text-slate-400 mt-0.5">Снятие, выравнивание, дизайн 1 тона • 90 мин</span>
+<span class="text-xs font-bold text-brand-600 mt-1">2 200 ₽</span>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-xl border border-brand-200 bg-brand-50 text-brand-600 text-xs font-semibold active:bg-brand-500 active:text-white transition-colors" type="button">
+            + Окно
+          </button>
+</article>
+<!-- Service Item 2 -->
+<article class="p-3 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex items-center justify-between">
+<div class="flex flex-col pr-2">
+<h3 class="text-[13px] font-bold text-slate-900 leading-snug">Архитектура и окрашивание бровей</h3>
+<span class="text-[11px] text-slate-400 mt-0.5">Хна или премиум-краситель Levissime • 60 мин</span>
+<span class="text-xs font-bold text-brand-600 mt-1">1 800 ₽</span>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-xl border border-brand-200 bg-brand-50 text-brand-600 text-xs font-semibold active:bg-brand-500 active:text-white transition-colors" type="button">
+            + Окно
+          </button>
+</article>
+<!-- Service Item 3 -->
+<article class="p-3 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex items-center justify-between">
+<div class="flex flex-col pr-2">
+<h3 class="text-[13px] font-bold text-slate-900 leading-snug">Smart-педикюр эстетический</h3>
+<span class="text-[11px] text-slate-400 mt-0.5">Аппаратная обработка стопы + пальчики • 75 мин</span>
+<span class="text-xs font-bold text-brand-600 mt-1">2 600 ₽</span>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-xl border border-brand-200 bg-brand-50 text-brand-600 text-xs font-semibold active:bg-brand-500 active:text-white transition-colors" type="button">
+            + Окно
+          </button>
+</article>
+</div>
+</section>
+<!-- END: PopularServices -->
+<!-- BEGIN: ClientReviewsSection -->
+<section class="px-4 mt-5" data-purpose="verified-client-reviews">
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center space-x-1.5">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-500">Отзывы клиентов</h2>
+<span class="text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md">Проверено</span>
+</div>
+<span class="text-xs text-brand-500 font-semibold">Все (148)</span>
+</div>
+<div class="p-3 rounded-2xl bg-white border border-slate-200/70 shadow-xs">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
+              ЕВ
+            </div>
+<div>
+<div class="text-xs font-bold text-slate-900">Елена В.</div>
+<div class="text-[10px] text-slate-400">Была вчера у мастера Алины Р.</div>
+</div>
+</div>
+<div class="flex text-amber-400 text-xs">★★★★★</div>
+</div>
+<p class="text-xs text-slate-600 leading-relaxed">
+          «Невероятная атмосфера в салоне, очень светло и стильно. Маникюр сделали идеально за 1:15 с покрытием. Очень вкусный капучино! Однозначно вернусь.»
+        </p>
+</div>
+</section>
+<!-- END: ClientReviewsSection -->
+<!-- BEGIN: StickyBottomBar -->
+<div class="fixed bottom-0 left-0 right-0 max-w-[410px] mx-auto z-50 glass-floating-bar px-4 pt-3 pb-6 flex items-center justify-between shadow-2xl" data-purpose="sticky-booking-footer">
+<!-- Quick Info / Time Slot Badge -->
+<div class="flex flex-col">
+<span class="text-[11px] text-slate-500 font-medium">Ближайшее окно:</span>
+<div class="flex items-center space-x-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-xs font-bold text-slate-900">Сегодня, 14:00</span>
+</div>
+</div>
+<!-- Main Action CTA Button -->
+<button class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-semibold text-sm px-6 py-3 rounded-2xl shadow-floating flex items-center space-x-1.5 transition-all" data-purpose="cta-booking-button" type="button">
+<span>Выбрать запись</span>
+<span class="text-base leading-none">→</span>
+</button>
+</div>
+<!-- END: StickyBottomBar -->
+</div>
+</body></html>

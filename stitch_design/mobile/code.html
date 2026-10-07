@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "error-container": "#ffdad6", "surface-dim": "#dbd9dd", "tertiary-fixed": "#6ffbbe", "surface-container-highest": "#e3e2e6", "inverse-surface": "#2f3034", "on-error": "#ffffff", "secondary-container": "#e1deed", "background": "#faf9fd", "inverse-primary": "#cabeff", "surface": "#faf9fd", "on-tertiary": "#ffffff", "on-background": "#1b1b1f", "outline": "#797587", "on-primary-container": "#fffbff", "primary": "#5f3add", "surface-container-low": "#f5f3f7", "secondary-fixed-dim": "#c7c5d3", "surface-variant": "#e3e2e6", "tertiary-fixed-dim": "#4edea3", "on-tertiary-container": "#f5fff6", "secondary-fixed": "#e3e1ef", "on-primary": "#ffffff", "secondary": "#5e5d69", "on-secondary-fixed-variant": "#464651", "on-primary-fixed-variant": "#4918c8", "tertiary-container": "#00855b", "on-secondary": "#ffffff", "surface-container": "#efedf1", "surface-container-lowest": "#ffffff", "on-surface": "#1b1b1f", "on-error-container": "#93000a", "on-primary-fixed": "#1c0062", "tertiary": "#006947", "surface-bright": "#faf9fd", "on-tertiary-fixed-variant": "#005236", "primary-fixed": "#e6deff", "on-secondary-container": "#62616e", "outline-variant": "#c9c4d8", "on-surface-variant": "#484555", "primary-container": "#7857f8", "on-tertiary-fixed": "#002113", "inverse-on-surface": "#f2f0f4", "surface-tint": "#613de0", "surface-container-high": "#e9e7ec", "error": "#ba1a1a", "primary-fixed-dim": "#cabeff", "on-secondary-fixed": "#1b1b25" }, borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" }, spacing: { "space-sm": "0.5rem", "space-xl": "1.75rem", "space-lg": "1.25rem", "space-xs": "0.25rem", "space-md": "0.75rem", "margin": "1rem", "gutter": "1rem" }, fontFamily: { "headline-sm": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "headline-xl": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-lg": ["Plus Jakarta Sans"] }, fontSize: { "headline-sm": ["17px", { lineHeight: "22px", letterSpacing: "-0.015em", fontWeight: "600" }], "headline-md": ["20px", { lineHeight: "26px", letterSpacing: "-0.02em", fontWeight: "600" }], "headline-xl": ["32px", { lineHeight: "40px", letterSpacing: "-0.03em", fontWeight: "700" }], "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "400" }], "body-sm": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }], "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.02em", fontWeight: "600" }], "body-md": ["14px", { lineHeight: "20px", letterSpacing: "-0.005em", fontWeight: "400" }], "label-md": ["13px", { lineHeight: "16px", letterSpacing: "0em", fontWeight: "600" }], "headline-lg": ["26px", { lineHeight: "32px", letterSpacing: "-0.025em", fontWeight: "700" }], "label-lg": ["15px", { lineHeight: "20px", letterSpacing: "-0.01em", fontWeight: "600" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-screen selection:bg-primary-fixed"><header class="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Назад" class="w-11 h-11 flex items-center justify-center text-on-surface hover:text-primary transition-colors active:scale-95" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button><h1 class="font-headline-sm text-headline-sm text-on-surface truncate max-w-[200px]">Master Profile Details</h1></div><div class="flex items-center gap-space-xs"><button aria-label="Опции" class="w-11 h-11 flex items-center justify-center text-on-surface hover:text-primary transition-colors active:scale-95"><span class="material-symbols-outlined text-[22px]">more_horiz</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-[0_2px_8px_rgba(95,58,221,0.24)]"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-14 pb-safe px-margin bg-surface flex-grow"><div class="flex flex-col w-full pb-24">
+<!-- Master Profile Header Card -->
+<section class="bg-surface-container-lowest rounded-3xl p-5 shadow-[0_4px_24px_-2px_rgba(18,19,22,0.04)] mb-4">
+<div class="flex items-start gap-4 mb-4">
+<div class="relative shrink-0">
+<div class="w-20 h-20 rounded-full overflow-hidden shadow-[0_4px_16px_rgba(95,58,221,0.15)] bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Editorial close-up portrait of master cosmetologist Alina Romanova with stylish hair and natural gentle makeup, wearing elegant cream linen uniform, warm natural soft morning light, ultra high definition aesthetic beauty studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDk4gw1UO5MRK6ZgCmtBhgbzfykfvdMi22HxmB42TFZv43Ycfx-fGIgpdWlkDauw_wwkEdituuObvw2bYr3OWyoV7Rqd3KFJr3g1SQM8vQ9ejRqbfexejYKE6z1IcUAVFuonjPm6mZI6Wyfi3KUqpeR2pHxtJfueeBJ_aDmYd4TtueiDxgWXzAv7kB7okWv6LGjfOYzg5WbMcK7hUcST54m7JMjCxVmk0kjDtDoRw"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full p-1 shadow-md flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center gap-1.5 mb-0.5">
+<span class="bg-primary-fixed text-on-primary-fixed-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full uppercase tracking-wider">
+            PRO TOP
+          </span>
+<span class="flex items-center text-primary">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md text-on-surface ml-0.5">5.0</span>
+</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface truncate">
+          Алина Романова
+        </h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">
+          Топ-мастер аппаратного маникюра
+        </p>
+<div class="flex items-center gap-1 mt-1 text-secondary">
+<span class="material-symbols-outlined text-[15px]">storefront</span>
+<span class="font-body-sm text-body-sm text-secondary truncate">Beauty Studio • Садовая, 42</span>
+</div>
+</div>
+</div>
+<!-- Telegram Quick Badge -->
+<div class="bg-secondary-container/60 rounded-2xl px-3.5 py-2 flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary text-[18px]">bolt</span>
+<span class="font-label-sm text-label-sm text-on-secondary-container font-medium">
+        ⚡ Быстрый ответ в Telegram (~5 мин)
+      </span>
+</div>
+<!-- Bio Statement -->
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+      Создаю эстетику на ваших руках. Стерильный инструмент по СанПиН в крафт-пакетах (вскрываю при вас), премиальные гели Luxio.
+    </p>
+</section>
+<!-- Key Metrics Stats Grid (4 columns) -->
+<section class="grid grid-cols-4 gap-2 mb-4">
+<div class="bg-surface-container-lowest rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+<div class="flex items-center text-amber-500 mb-0.5">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md text-on-surface font-bold ml-0.5">5.0</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Рейтинг</span>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+<span class="font-label-md text-label-md text-on-surface font-bold mb-0.5">450+</span>
+<span class="font-label-sm text-label-sm text-secondary">Записей</span>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+<span class="font-label-md text-label-md text-on-surface font-bold mb-0.5">5 лет</span>
+<span class="font-label-sm text-label-sm text-secondary">Опыт</span>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+<span class="font-label-md text-label-md text-primary font-bold mb-0.5">98%</span>
+<span class="font-label-sm text-label-sm text-secondary">Возврат</span>
+</div>
+</section>
+<!-- Free Slots Calendar Section -->
+<section class="bg-surface-container-lowest rounded-3xl p-4 shadow-[0_4px_24px_-2px_rgba(18,19,22,0.04)] mb-4">
+<div class="flex items-center justify-between mb-3 px-1">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">calendar_today</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Свободные окошки</h3>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant font-medium">Ноябрь 2024</span>
+</div>
+<!-- Calendar horizontal strip -->
+<div class="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+<!-- Active Day -->
+<button class="shrink-0 w-20 py-2.5 px-1 rounded-2xl bg-primary text-on-primary flex flex-col items-center justify-center shadow-[0_8px_16px_-2px_rgba(95,58,221,0.35)] transition-transform active:scale-95">
+<span class="font-label-sm text-label-sm text-primary-fixed opacity-90">Ср 8</span>
+<span class="font-headline-sm text-headline-sm my-0.5">Сегодня</span>
+<span class="font-label-sm text-label-sm bg-on-primary/20 px-1.5 py-0.5 rounded-full mt-0.5">3 окна</span>
+</button>
+<!-- Day 2 -->
+<button class="shrink-0 w-16 py-2.5 px-1 rounded-2xl bg-surface-container-low text-on-surface flex flex-col items-center justify-center transition-transform active:scale-95">
+<span class="font-label-sm text-label-sm text-secondary">Чт</span>
+<span class="font-headline-sm text-headline-sm my-0.5">9</span>
+<span class="font-label-sm text-label-sm text-primary font-medium mt-0.5">3 окна</span>
+</button>
+<!-- Day 3 -->
+<button class="shrink-0 w-16 py-2.5 px-1 rounded-2xl bg-surface-container-low text-on-surface flex flex-col items-center justify-center transition-transform active:scale-95">
+<span class="font-label-sm text-label-sm text-secondary">Пт</span>
+<span class="font-headline-sm text-headline-sm my-0.5">10</span>
+<span class="font-label-sm text-label-sm text-primary font-medium mt-0.5">2 окна</span>
+</button>
+<!-- Day 4 - Disabled -->
+<div class="shrink-0 w-16 py-2.5 px-1 rounded-2xl bg-surface-container text-outline flex flex-col items-center justify-center opacity-60 cursor-not-allowed">
+<span class="font-label-sm text-label-sm">Сб</span>
+<span class="font-headline-sm text-headline-sm my-0.5">11</span>
+<span class="font-label-sm text-label-sm mt-0.5">Занято</span>
+</div>
+<!-- Day 5 -->
+<button class="shrink-0 w-16 py-2.5 px-1 rounded-2xl bg-surface-container-low text-on-surface flex flex-col items-center justify-center transition-transform active:scale-95">
+<span class="font-label-sm text-label-sm text-secondary">Вс</span>
+<span class="font-headline-sm text-headline-sm my-0.5">12</span>
+<span class="font-label-sm text-label-sm text-primary font-medium mt-0.5">1 окно</span>
+</button>
+</div>
+<!-- Time slots for selected date -->
+<div class="mt-3 pt-3 border-t-0 bg-surface-container-low/50 rounded-2xl p-3">
+<div class="flex items-center justify-between mb-2.5">
+<span class="font-label-md text-label-md text-on-surface-variant">Время на Ср, 8 ноября:</span>
+<span class="font-label-sm text-label-sm text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+          ~90 мин
+        </span>
+</div>
+<div class="flex gap-2">
+<!-- Selected slot -->
+<button class="px-4 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-[0_4px_12px_rgba(95,58,221,0.25)] flex items-center gap-1.5 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[16px]">check</span>
+          14:00
+        </button>
+<!-- Available slots -->
+<button class="px-4 py-2 rounded-full bg-primary-fixed/50 text-on-primary-fixed-variant font-label-md text-label-md hover:bg-primary-fixed active:scale-95 transition-transform">
+          16:30
+        </button>
+<button class="px-4 py-2 rounded-full bg-primary-fixed/50 text-on-primary-fixed-variant font-label-md text-label-md hover:bg-primary-fixed active:scale-95 transition-transform">
+          18:30
+        </button>
+</div>
+</div>
+</section>
+<!-- Master Services Section -->
+<section class="bg-surface-container-lowest rounded-3xl p-4 shadow-[0_4px_24px_-2px_rgba(18,19,22,0.04)] mb-4">
+<div class="flex items-center justify-between mb-3 px-1">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">spa</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Услуги мастера</h3>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">3 услуги</span>
+</div>
+<div class="flex flex-col gap-2.5">
+<!-- Service 1 (Selected) -->
+<div class="p-3.5 rounded-2xl bg-primary-fixed/20 flex items-center justify-between cursor-pointer transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold truncate">Аппаратный маникюр + Luxio</span>
+<span class="font-body-sm text-body-sm text-secondary">Снятие, выравнивание, покрытие • 90 мин</span>
+</div>
+</div>
+<div class="text-right shrink-0 ml-2">
+<span class="font-headline-sm text-headline-sm text-primary font-bold">2 500 ₽</span>
+</div>
+</div>
+<!-- Service 2 -->
+<div class="p-3.5 rounded-2xl bg-surface-container-low flex items-center justify-between cursor-pointer hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-6 h-6 rounded-full bg-surface-container-highest text-outline flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface font-medium truncate">Smart-педикюр полный</span>
+<span class="font-body-sm text-body-sm text-secondary">Обработка стоп, пальцев + гель • 75 мин</span>
+</div>
+</div>
+<div class="text-right shrink-0 ml-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">2 800 ₽</span>
+</div>
+</div>
+<!-- Service 3 -->
+<div class="p-3.5 rounded-2xl bg-surface-container-low flex items-center justify-between cursor-pointer hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-6 h-6 rounded-full bg-surface-container-highest text-outline flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface font-medium truncate">Ремонт / Дизайн френч</span>
+<span class="font-body-sm text-body-sm text-secondary">Укрепление акрилом или пудрой • 20 мин</span>
+</div>
+</div>
+<div class="text-right shrink-0 ml-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">400 ₽</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Portfolio Section (84 photos) -->
+<section class="bg-surface-container-lowest rounded-3xl p-4 shadow-[0_4px_24px_-2px_rgba(18,19,22,0.04)] mb-4">
+<div class="flex items-center justify-between mb-3 px-1">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">photo_camera</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Работы мастера</h3>
+</div>
+<span class="font-label-md text-label-md text-primary font-semibold">84 фото</span>
+</div>
+<!-- Category Filter Chips -->
+<div class="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
+<span class="px-3 py-1 rounded-full bg-inverse-surface text-inverse-on-surface font-label-sm text-label-sm whitespace-nowrap">Все</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap">Нюд Luxio</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap">Микро-френч</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap">Минимализм</span>
+</div>
+<!-- Portfolio Photo Grid -->
+<div class="grid grid-cols-3 gap-2">
+<div class="relative rounded-2xl overflow-hidden aspect-square bg-surface-container-high group">
+<img class="w-full h-full object-cover" data-alt="Macro aesthetic close-up shot of elegant nude Luxio gel manicure on perfectly sculpted natural almond-shaped nails, glossy studio reflection, warm soft luxury salon lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBplLv0TqJikayJ0mf3YrY286_0dtalf7xsFwZE_PzGiUpg-t2BeTECcMJB-sdp7zHfkEFhuOe9Od401I0zTYIOr3LYT8SUKKWO23G-6M0BLckz0DVK82UdeyHqKW5WK0vCuRq6WPj31IGwWRQU8bBHgfGB4B98uRi1RQfnI625zRBUaqmgiEa9OkoViQtaHFqP8sN2iduHorNKN1kfsT3823JOA7WFNwYk-3wrQ"/>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
+<span class="text-[10px] text-white font-medium block truncate">Нюд Luxio</span>
+</div>
+</div>
+<div class="relative rounded-2xl overflow-hidden aspect-square bg-surface-container-high group">
+<img class="w-full h-full object-cover" data-alt="Detailed close-up photograph of ultra-fine micro french manicure with delicate milky base and subtle silver line accents, soft high-key aesthetic studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0xe85azjsjc-sDC92CfjzrUhTLHFXlDPAdeB9RLSF-LJjDkzKBCUOFZAjO7RiZ-nZ50S4Ke2boizizvEN3l3T5RMzsVwIH-4kFo16LGJysgxXGas6Q8A1F0U_WL0Rbh6bbRV49qiHHQjBWdlh0HnSKNTSTcuQ_NruMv-PtJQZo5-J-nbjAbnz9cxjxxt6I3YenMZ1GlOChN-RhHCMdX3jQLl_XSu0s0OmfM1_WQ"/>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
+<span class="text-[10px] text-white font-medium block truncate">Микро-френч</span>
+</div>
+</div>
+<div class="relative rounded-2xl overflow-hidden aspect-square bg-surface-container-high group">
+<img class="w-full h-full object-cover" data-alt="Close up photography of minimalist monochrome nail art design with tiny clean dots on soft sheer pink base, clean modern manicure aesthetic, luxury daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-0aVVx8k9kW8mrY94JTKERKjdtMxJdmeA2SrtOsldjcCZKn5UAnStu-bIm7piu2DZjUdZ8qD2U_HkYJHlflczr66tBy8FqnUZZScOGouNJa8nlOuL855E86_lvOUiv-gBlQXuNUUGKsWrwN9OFSzc9qPQhyxXobi0lla11zgr0RmnxfMo6OEqjuGHGcWFSbN1wuJ3oXjGpX2vv8BYiYn00cDPz4HMbAwMMBFjOQ"/>
+<div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
+<span class="text-[10px] text-white font-medium block truncate">Минимализм</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Master Reviews -->
+<section class="bg-surface-container-lowest rounded-3xl p-4 shadow-[0_4px_24px_-2px_rgba(18,19,22,0.04)] mb-4">
+<div class="flex items-center justify-between mb-3 px-1">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">rate_review</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Отзывы об Алине</h3>
+</div>
+<div class="flex items-center text-amber-500">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md text-on-surface font-bold ml-0.5">5.0</span>
+<span class="font-label-sm text-label-sm text-secondary ml-1">(128)</span>
+</div>
+</div>
+<!-- Review Card -->
+<div class="p-3.5 rounded-2xl bg-surface-container-low/70 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-md text-label-md font-bold">
+            АВ
+          </div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface font-semibold leading-tight">Анна В.</h4>
+<span class="font-label-sm text-label-sm text-secondary">3 дня назад</span>
+</div>
+</div>
+<div class="flex text-amber-500">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+        «Алина — волшебница! Никаких заусенцев, идеальный блик, ношу 4 недели спокойно. Очень комфортная студия и вкусный кофе.»
+      </p>
+</div>
+</section>
+<!-- Sticky Bottom Liquid Glass Booking Dock -->
+<div class="fixed bottom-4 inset-x-4 z-40 max-w-[390px] mx-auto pointer-events-auto">
+<div class="bg-surface-container-lowest/85 backdrop-blur-xl rounded-full p-2 pl-4 shadow-[0_16px_36px_rgba(95,58,221,0.22)] flex items-center justify-between">
+<div class="flex flex-col min-w-0 pr-2">
+<span class="font-label-sm text-label-sm text-secondary truncate">
+          Маникюр + Luxio • Сегодня, 14:00
+        </span>
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">2 500 ₽</span>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold flex items-center">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary inline-block mr-1"></span>
+            Окно свободно
+          </span>
+</div>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary px-5 py-3 rounded-full font-label-lg text-label-lg flex items-center gap-1 shadow-[0_4px_16px_rgba(95,58,221,0.3)] active:scale-95 transition-all shrink-0">
+<span>Записаться</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div></main></body></html>
