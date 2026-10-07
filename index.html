@@ -153,8 +153,6 @@
       height: 0 !important;
       min-height: 0 !important;
       max-height: 0 !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
       margin: 0 !important;
       overflow: hidden !important;
       opacity: 0 !important;
@@ -169,6 +167,7 @@
       overflow: visible !important;
       opacity: 1 !important;
       pointer-events: auto !important;
+      padding-bottom: 140px !important;
     }
 
     /* Cards horizontal carousel */
@@ -517,11 +516,14 @@
         </div>
 
         <!-- Interactive Horizontal Cards Carousel -->
-        <div class="relative z-20 mt-2 pb-2">
+        <div class="relative z-20 mt-2 pb-4">
           <div id="venuesCarousel" class="venues-carousel no-scrollbar">
             <!-- Dynamically populated cards -->
           </div>
         </div>
+
+        <!-- Safe bottom spacer for navigation dock -->
+        <div class="w-full h-28 pointer-events-none" aria-hidden="true"></div>
       </section>
 
       <!-- ======================================================== -->
@@ -750,6 +752,9 @@
             </p>
           </div>
         </div>
+
+        <!-- Space buffer before fixed dock -->
+        <div class="w-full h-28 pointer-events-none" aria-hidden="true"></div>
 
         <!-- Sticky Floating Action Bar with iOS Frosted Glass -->
         <div class="fixed bottom-0 inset-x-0 max-w-[440px] mx-auto z-30 ios-frosted-dock px-4 pt-3 pb-6 flex items-center justify-between border-t border-white/80">
@@ -1039,6 +1044,9 @@
               <!-- Dynamically populated -->
             </div>
           </div>
+
+          <!-- Spacer for bottom navigation dock -->
+          <div class="w-full h-24 pointer-events-none" aria-hidden="true"></div>
         </div>
       </section>
 
@@ -1163,6 +1171,8 @@
             </div>
           </div>
 
+          <!-- Spacer for bottom navigation dock -->
+          <div class="w-full h-24 pointer-events-none" aria-hidden="true"></div>
         </div>
       </section>
 
