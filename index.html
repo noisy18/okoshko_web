@@ -282,6 +282,43 @@
       font-size: 10px;
     }
 
+    /* Custom Cluster Marker with count badge and regional label */
+    .ymap-custom-cluster {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px 12px;
+      min-width: 44px;
+      height: 38px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #5f3add 0%, #7857f8 100%);
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', 'Geologica', sans-serif;
+      box-shadow: 0 10px 24px -4px rgba(95, 58, 221, 0.45), 0 2px 6px rgba(0, 0, 0, 0.08);
+      border: 2px solid #ffffff;
+      cursor: pointer;
+      user-select: none;
+      transform: translate(-50%, -50%);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 15;
+    }
+    .ymap-custom-cluster:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+      box-shadow: 0 14px 30px -4px rgba(95, 58, 221, 0.6);
+    }
+    .ymap-cluster-count {
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .ymap-cluster-text {
+      font-size: 10px;
+      font-weight: 600;
+      opacity: 0.9;
+      white-space: nowrap;
+    }
+
     /* User Pulse Location Marker on Yandex Maps */
     .ymap-user-marker {
       position: relative;
@@ -476,6 +513,23 @@
             </button>
             <button onclick="filterCategory('pedicure', this)" class="cat-pill flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-white/90 text-on-surface text-xs font-medium shadow-xs border border-black/[0.04] whitespace-nowrap active:scale-95 transition-all shrink-0">
               <span>🦶</span><span>Педикюр</span>
+            </button>
+          </div>
+
+          <!-- Region & City Switcher Chips -->
+          <div class="-mx-4 px-4 overflow-x-auto flex items-center gap-1.5 no-scrollbar pb-1">
+            <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider pl-1 pr-1 shrink-0">Регион:</span>
+            <button onclick="filterRegion('all', this)" class="region-pill active px-3 py-1 rounded-xl bg-slate-900 text-white text-[11px] font-semibold whitespace-nowrap shadow-xs active:scale-95 transition-all shrink-0">
+              Все регионы (15)
+            </button>
+            <button onclick="filterRegion('moscow', this)" class="region-pill px-3 py-1 rounded-xl bg-white/90 text-slate-700 text-[11px] font-medium border border-black/[0.05] whitespace-nowrap active:scale-95 transition-all shrink-0">
+              🏙 Москва (5)
+            </button>
+            <button onclick="filterRegion('rostov', this)" class="region-pill px-3 py-1 rounded-xl bg-white/90 text-slate-700 text-[11px] font-medium border border-black/[0.05] whitespace-nowrap active:scale-95 transition-all shrink-0">
+              🌾 Ростовская обл. (7)
+            </button>
+            <button onclick="filterRegion('spb', this)" class="region-pill px-3 py-1 rounded-xl bg-white/90 text-slate-700 text-[11px] font-medium border border-black/[0.05] whitespace-nowrap active:scale-95 transition-all shrink-0">
+              🏛 Санкт-Петербург (3)
             </button>
           </div>
         </div>
@@ -1563,16 +1617,31 @@
     // ==========================================
     // VENUES & ENTERPRISES DATA
     // ==========================================
+    // Region coordinates mapping for quick zoom and bounds
+    const REGION_CENTERS = {
+      all: { center: [55.766324, 37.604245], zoom: 6 },
+      moscow: { center: [55.765000, 37.605000], zoom: 13 },
+      rostov: { center: [47.228000, 39.715000], zoom: 12 },
+      spb: { center: [59.934000, 30.335000], zoom: 13 }
+    };
+
+    let currentFilterRegion = 'all';
+
     const venues = [
+      // ==========================================
+      // МОСКВА (5 салонов)
+      // ==========================================
       {
         id: 'beauty',
         name: 'Beauty Studio',
         type: 'Салон красоты',
+        region: 'moscow',
+        regionName: 'Москва · Тверской',
         categoryTags: ['nails', 'hair', 'brows', 'pedicure'],
         categoryText: 'Маникюр · Брови · Педикюр',
         rating: '4.9',
         reviewsCount: 128,
-        address: 'ул. Садовая, 42',
+        address: 'ул. Большая Садовая, 42',
         distance: '350 м',
         hotSlot: 'Окно сегодня 14:00',
         slots: ['14:00', '15:30', '17:00'],
@@ -1581,12 +1650,14 @@
         photoCount: 4,
         img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD68Q2lB-8_fzvF7A5OEHVHVhzif4gV6RJO3v1Pki6C3MDKAe0aVRpFaq2OhI2tIrB-199wxEmoCupVLmA6hNZB-2aghZ_lOnO1YyyoChZAtTcfdODO9ojl_oO6S_ZYBAgjLIx2n_S6TS09jqNtPujm77WTaf7Wy_NwiyDpJ5Qm3T1inuQxRLzxzvPJa64DlATLBAqU-N_vG49gtkadYgOYO1BBb74Voj3HfrL87g',
         coords: [55.767500, 37.607800],
-        services: ['маникюр', 'аппаратный маникюр', 'luxio', 'брови', 'педикюр', 'ламинирование', 'уход', 'салон', 'beauty']
+        services: ['маникюр', 'аппаратный маникюр', 'luxio', 'брови', 'педикюр', 'ламинирование', 'уход', 'салон', 'beauty', 'москва']
       },
       {
         id: 'mono',
         name: 'Mono Studio',
         type: 'Студия взгляда & бровей',
+        region: 'moscow',
+        regionName: 'Москва · Пресненский',
         categoryTags: ['brows'],
         categoryText: 'Архитектура бровей · Ресницы · Ламинирование',
         rating: '5.0',
@@ -1600,12 +1671,14 @@
         photoCount: 6,
         img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
         coords: [55.769800, 37.596500],
-        services: ['брови', 'ресницы', 'архитектура бровей', 'окрашивание', 'ботокс', 'перманент', 'mono', 'моно']
+        services: ['брови', 'ресницы', 'архитектура бровей', 'окрашивание', 'ботокс', 'перманент', 'mono', 'моно', 'москва']
       },
       {
         id: 'alina',
         name: 'Студия Алины Романовой',
         type: 'Студия маникюра',
+        region: 'moscow',
+        regionName: 'Москва · Патриаршие',
         categoryTags: ['nails'],
         categoryText: 'Аппаратный маникюр · Дизайн Luxio',
         rating: '5.0',
@@ -1619,12 +1692,14 @@
         photoCount: 8,
         img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgp3bE_r8kPZ5o34gXyIuQy_jS2M2nIeD2Y_E29-JkW_w3b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
         coords: [55.762100, 37.611000],
-        services: ['маникюр', 'гель лак', 'френч', 'дизайн ногтей', 'мастер', 'алина', 'романова']
+        services: ['маникюр', 'гель лак', 'френч', 'дизайн ногтей', 'мастер', 'алина', 'романова', 'москва']
       },
       {
         id: 'kristina',
         name: 'Студия Кристины Ли',
         type: 'Подология & Мастер педикюра',
+        region: 'moscow',
+        regionName: 'Москва · Арбат',
         categoryTags: ['pedicure'],
         categoryText: 'Smart-педикюр · Эстетика стоп',
         rating: '4.9',
@@ -1638,12 +1713,14 @@
         photoCount: 5,
         img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5bztruJ0qRQX2i_00XhPKFkueLK-zwXZZBiYgP4MxYHYz12xShkiIvWZITD3u2myphWGAI6e7PMgYZlMdM11v60dFyDkdX4_MGeHSeaKLfPmL2SNmIqdx9zmI2io0fLxvN3S2B_tBcraBnGUp9B6IJqWQscQlg5nzaKlIJ6mPlc2wihbgdI0iVhgZCoglo1gtjAIruesjytBMU9euIN5yyJZRa0C9hGV9XuEWQ',
         coords: [55.760000, 37.603000],
-        services: ['педикюр', 'smart педикюр', 'стопы', 'подолог', 'массаж ног', 'кристина', 'ли']
+        services: ['педикюр', 'smart педикюр', 'стопы', 'подолог', 'массаж ног', 'кристина', 'ли', 'москва']
       },
       {
         id: 'glam',
         name: 'Glam Hair Bar',
         type: 'Салон стилистов & волос',
+        region: 'moscow',
+        regionName: 'Москва · Тверской',
         categoryTags: ['hair'],
         categoryText: 'Стрижки · Airtouch · Укладки Dyson',
         rating: '4.8',
@@ -1657,7 +1734,225 @@
         photoCount: 7,
         img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCRZg6wE3R84gXyIuQy_jS2M2nIeD2Y_E29-JkW_w3b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
         coords: [55.765100, 37.609200],
-        services: ['стрижка', 'окрашивание', 'волосы', 'airtouch', 'стилист', 'укладка', 'салон', 'glam']
+        services: ['стрижка', 'окрашивание', 'волосы', 'airtouch', 'стилист', 'укладка', 'салон', 'glam', 'москва']
+      },
+
+      // ==========================================
+      // РОСТОВСКАЯ ОБЛАСТЬ (7 салонов)
+      // ==========================================
+      {
+        id: 'rnd_don_beauty',
+        name: 'Донская Эстетика',
+        type: 'Салон красоты & SPA',
+        region: 'rostov',
+        regionName: 'Ростов-на-Дону · Кировский р-н',
+        categoryTags: ['nails', 'hair', 'massage'],
+        categoryText: 'Премиум уход · Массаж · Стрижки',
+        rating: '4.9',
+        reviewsCount: 142,
+        address: 'Ростов-на-Дону, ул. Пушкинская, 115',
+        distance: 'Центр',
+        hotSlot: 'Окно сегодня 15:30',
+        slots: ['15:30', '17:00', '19:30'],
+        priceFrom: 'от 1 900 ₽',
+        target: 'salon',
+        photoCount: 6,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD68Q2lB-8_fzvF7A5OEHVHVhzif4gV6RJO3v1Pki6C3MDKAe0aVRpFaq2OhI2tIrB-199wxEmoCupVLmA6hNZB-2aghZ_lOnO1YyyoChZAtTcfdODO9ojl_oO6S_ZYBAgjLIx2n_S6TS09jqNtPujm77WTaf7Wy_NwiyDpJ5Qm3T1inuQxRLzxzvPJa64DlATLBAqU-N_vG49gtkadYgOYO1BBb74Voj3HfrL87g',
+        coords: [47.227200, 39.721400],
+        services: ['маникюр', 'массаж', 'стрижки', 'спа', 'ростов', 'донская эстетика']
+      },
+      {
+        id: 'rnd_loft_nails',
+        name: 'Loft Nails Rostov',
+        type: 'Студия маникюра & педикюра',
+        region: 'rostov',
+        regionName: 'Ростов-на-Дону · Ленинский р-н',
+        categoryTags: ['nails', 'pedicure'],
+        categoryText: 'Smart-педикюр · Гель-лак Luxio',
+        rating: '5.0',
+        reviewsCount: 98,
+        address: 'Ростов-на-Дону, ул. Большая Садовая, 64',
+        distance: 'Садовая',
+        hotSlot: 'Окно сегодня 14:30',
+        slots: ['14:30', '16:30', '18:00'],
+        priceFrom: 'от 1 600 ₽',
+        target: 'salon',
+        photoCount: 5,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgp3bE_r8kPZ5o34gXyIuQy_jS2M2nIeD2Y_E29-JkW_w3b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
+        coords: [47.221500, 39.713800],
+        services: ['маникюр', 'педикюр', 'smart', 'luxio', 'ростов', 'loft']
+      },
+      {
+        id: 'rnd_brow_bar',
+        name: 'Brow Bar Садовая',
+        type: 'Студия бровей и взгляда',
+        region: 'rostov',
+        regionName: 'Ростов-на-Дону · Кировский р-н',
+        categoryTags: ['brows'],
+        categoryText: 'Ламинирование · Наращивание ресниц',
+        rating: '4.8',
+        reviewsCount: 76,
+        address: 'Ростов-на-Дону, пр. Ворошиловский, 46',
+        distance: 'Ворошиловский',
+        hotSlot: 'Окно сегодня 16:00',
+        slots: ['16:00', '17:30', '19:00'],
+        priceFrom: 'от 1 500 ₽',
+        target: 'salon',
+        photoCount: 4,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
+        coords: [47.225100, 39.718900],
+        services: ['брови', 'ресницы', 'ламинирование', 'ростов', 'brow bar']
+      },
+      {
+        id: 'rnd_west_style',
+        name: 'Style Club Западный',
+        type: 'Семейный салон красоты',
+        region: 'rostov',
+        regionName: 'Ростов-на-Дону · Советский р-н',
+        categoryTags: ['hair', 'nails'],
+        categoryText: 'Стильные стрижки · Окрашивание · Уход',
+        rating: '4.9',
+        reviewsCount: 110,
+        address: 'Ростов-на-Дону, пр. Коммунистический, 32',
+        distance: 'Западный',
+        hotSlot: 'Окно сегодня 13:00',
+        slots: ['13:00', '15:00', '18:30'],
+        priceFrom: 'от 1 700 ₽',
+        target: 'salon',
+        photoCount: 5,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCRZg6wE3R84gXyIuQy_jS2M2nIeD2Y_E29-JkW_w3b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
+        coords: [47.208500, 39.638200],
+        services: ['стрижка', 'окрашивание', 'маникюр', 'волосы', 'ростов', 'западный']
+      },
+      {
+        id: 'rnd_north_podolog',
+        name: 'ПодоЦентр СЕВЕР',
+        type: 'Центр подологии & ухода',
+        region: 'rostov',
+        regionName: 'Ростов-на-Дону · Ворошиловский р-н',
+        categoryTags: ['pedicure', 'massage'],
+        categoryText: 'Медицинский педикюр · Вросшие ногти',
+        rating: '5.0',
+        reviewsCount: 84,
+        address: 'Ростов-на-Дону, пр. Космонавтов, 14/15',
+        distance: 'СЖМ',
+        hotSlot: 'Окно сегодня 17:00',
+        slots: ['17:00', '18:30'],
+        priceFrom: 'от 2 100 ₽',
+        target: 'salon',
+        photoCount: 4,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5bztruJ0qRQX2i_00XhPKFkueLK-zwXZZBiYgP4MxYHYz12xShkiIvWZITD3u2myphWGAI6e7PMgYZlMdM11v60dFyDkdX4_MGeHSeaKLfPmL2SNmIqdx9zmI2io0fLxvN3S2B_tBcraBnGUp9B6IJqWQscQlg5nzaKlIJ6mPlc2wihbgdI0iVhgZCoglo1gtjAIruesjytBMU9euIN5yyJZRa0C9hGV9XuEWQ',
+        coords: [47.283100, 39.712600],
+        services: ['подолог', 'педикюр', 'стопы', 'массаж', 'ростов', 'сжм']
+      },
+      {
+        id: 'taganrog_riviera',
+        name: 'Ривьера Beauty',
+        type: 'Салон красоты у моря',
+        region: 'rostov',
+        regionName: 'Таганрог · Приморский',
+        categoryTags: ['hair', 'nails', 'massage'],
+        categoryText: 'SPA-ритуалы · Сложное окрашивание',
+        rating: '4.8',
+        reviewsCount: 65,
+        address: 'Таганрог, ул. Петровская, 88',
+        distance: 'Таганрог',
+        hotSlot: 'Окно сегодня 16:30',
+        slots: ['16:30', '18:00'],
+        priceFrom: 'от 1 600 ₽',
+        target: 'salon',
+        photoCount: 5,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD68Q2lB-8_fzvF7A5OEHVHVhzif4gV6RJO3v1Pki6C3MDKAe0aVRpFaq2OhI2tIrB-199wxEmoCupVLmA6hNZB-2aghZ_lOnO1YyyoChZAtTcfdODO9ojl_oO6S_ZYBAgjLIx2n_S6TS09jqNtPujm77WTaf7Wy_NwiyDpJ5Qm3T1inuQxRLzxzvPJa64DlATLBAqU-N_vG49gtkadYgOYO1BBb74Voj3HfrL87g',
+        coords: [47.214400, 38.928500],
+        services: ['маникюр', 'стрижка', 'окрашивание', 'таганрог', 'ривьера']
+      },
+      {
+        id: 'bataysk_glam',
+        name: 'Mon Amour Батайск',
+        type: 'Студия красоты и бровей',
+        region: 'rostov',
+        regionName: 'Батайск · Центр',
+        categoryTags: ['brows', 'nails'],
+        categoryText: 'Маникюр гель · Оформление бровей',
+        rating: '4.9',
+        reviewsCount: 52,
+        address: 'Батайск, ул. Кирова, 18',
+        distance: 'Батайск',
+        hotSlot: 'Окно сегодня 14:00',
+        slots: ['14:00', '16:00', '17:30'],
+        priceFrom: 'от 1 400 ₽',
+        target: 'salon',
+        photoCount: 4,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
+        coords: [47.139800, 39.751200],
+        services: ['маникюр', 'брови', 'батайск', 'mon amour']
+      },
+
+      // ==========================================
+      // САНКТ-ПЕТЕРБУРГ (3 салона)
+      // ==========================================
+      {
+        id: 'spb_nevsky_glam',
+        name: 'Невский Этюд',
+        type: 'Премиум салон красоты',
+        region: 'spb',
+        regionName: 'Санкт-Петербург · Центральный р-н',
+        categoryTags: ['nails', 'hair', 'brows'],
+        categoryText: 'Airtouch · Японский маникюр · Брови',
+        rating: '5.0',
+        reviewsCount: 168,
+        address: 'Санкт-Петербург, Невский проспект, 54',
+        distance: 'м. Гостиный двор',
+        hotSlot: 'Окно сегодня 15:00',
+        slots: ['15:00', '17:00', '19:00'],
+        priceFrom: 'от 2 400 ₽',
+        target: 'salon',
+        photoCount: 8,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD68Q2lB-8_fzvF7A5OEHVHVhzif4gV6RJO3v1Pki6C3MDKAe0aVRpFaq2OhI2tIrB-199wxEmoCupVLmA6hNZB-2aghZ_lOnO1YyyoChZAtTcfdODO9ojl_oO6S_ZYBAgjLIx2n_S6TS09jqNtPujm77WTaf7Wy_NwiyDpJ5Qm3T1inuQxRLzxzvPJa64DlATLBAqU-N_vG49gtkadYgOYO1BBb74Voj3HfrL87g',
+        coords: [59.934200, 30.336400],
+        services: ['маникюр', 'стрижка', 'окрашивание', 'брови', 'спб', 'питер', 'невский']
+      },
+      {
+        id: 'spb_petro_nails',
+        name: 'Петроградка Nails & Care',
+        type: 'Студия эстетики ногтей',
+        region: 'spb',
+        regionName: 'Санкт-Петербург · Петроградский р-н',
+        categoryTags: ['nails', 'pedicure'],
+        categoryText: 'Аппаратный маникюр · Дизайн · Педикюр',
+        rating: '4.9',
+        reviewsCount: 124,
+        address: 'Санкт-Петербург, Большой пр. П.С., 38',
+        distance: 'м. Петроградская',
+        hotSlot: 'Окно сегодня 14:00',
+        slots: ['14:00', '16:00', '18:30'],
+        priceFrom: 'от 2 200 ₽',
+        target: 'salon',
+        photoCount: 6,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgp3bE_r8kPZ5o34gXyIuQy_jS2M2nIeD2Y_E29-JkW_w3b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
+        coords: [59.961000, 30.306000],
+        services: ['маникюр', 'педикюр', 'дизайн', 'петроградка', 'спб']
+      },
+      {
+        id: 'spb_vasilievsky_spa',
+        name: 'Василеостровский SPA Lounge',
+        type: 'Массаж & SPA студия',
+        region: 'spb',
+        regionName: 'Санкт-Петербург · Василеостровский р-н',
+        categoryTags: ['massage', 'pedicure'],
+        categoryText: 'Антистресс массаж · Foot SPA · Уход',
+        rating: '4.9',
+        reviewsCount: 89,
+        address: 'Санкт-Петербург, 7-я линия В.О., 26',
+        distance: 'м. Василеостровская',
+        hotSlot: 'Окно сегодня 16:30',
+        slots: ['16:30', '18:00', '19:30'],
+        priceFrom: 'от 2 600 ₽',
+        target: 'salon',
+        photoCount: 5,
+        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCRZg6wE3R84gXyIuQy_jS2M2nIeD2Y_E29-JkW_w3b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
+        coords: [59.942300, 30.278500],
+        services: ['массаж', 'спа', 'foot spa', 'васильевский', 'спб']
       }
     ];
 
@@ -1666,9 +1961,10 @@
     let visibleVenues = [...venues];
 
     // ==========================================
-    // YANDEX MAPS INTEGRATION
+    // YANDEX MAPS & CLUSTERING INTEGRATION
     // ==========================================
     let yandexMapInstance = null;
+    let mapClustererInstance = null;
     let mapPlacemarks = {};
     const userCoordinates = [55.764500, 37.601000];
 
@@ -1724,7 +2020,7 @@
           yandexMapInstance.behaviors.disable('scrollZoom');
         } catch(e) {}
 
-        // Custom template layout for interactive glass pins with direct DOM event handlers
+        // Custom template layout for individual interactive glass pins
         const PinLayout = ymaps.templateLayoutFactory.createClass(
           '<div id="ymap-pin-$[properties.id]" data-venue-id="$[properties.id]" class="ymap-custom-marker $[properties.activeClass]">' +
             '<span class="ymap-pin-star">★</span>' +
@@ -1758,6 +2054,41 @@
           }
         );
 
+        // Custom template layout for cluster icons showing count and region info on zoom out
+        const ClusterLayout = ymaps.templateLayoutFactory.createClass(
+          '<div class="ymap-custom-cluster">' +
+            '<span class="material-symbols-outlined text-[16px] leading-none">location_on</span>' +
+            '<span class="ymap-cluster-count">$[properties.geoObjects.length]</span>' +
+          '</div>'
+        );
+
+        // Clusterer: groups placemarks when zoomed out to prevent crowding
+        mapClustererInstance = new ymaps.Clusterer({
+          clusterIconLayout: ClusterLayout,
+          clusterIconOffset: [0, 0],
+          clusterIconShape: {
+            type: 'Rectangle',
+            coordinates: [[-22, -19], [22, 19]]
+          },
+          groupByCoordinates: false,
+          clusterDisableClickZoom: false,
+          clusterHideIconOnBalloonOpen: false,
+          geoObjectHideIconOnBalloonOpen: false,
+          minClusterSize: 2,
+          gridSize: 64,
+          maxZoom: 13,
+          hasBalloon: false
+        });
+
+        // Click on cluster displays friendly notification and zooms in
+        mapClustererInstance.events.add('click', (e) => {
+          const target = e.get('target');
+          if (target && target.getGeoObjects) {
+            const count = target.getGeoObjects().length;
+            showToast(`В этой области найдено ${count} салонов ✨`);
+          }
+        });
+
         // User Location Pin
         const UserPinLayout = ymaps.templateLayoutFactory.createClass(
           '<div class="ymap-user-marker">' +
@@ -1776,38 +2107,8 @@
         );
         yandexMapInstance.geoObjects.add(userPlacemark);
 
-        // Register all venues on Yandex Map with geometric hit-testing rectangle
-        venues.forEach(loc => {
-          const pm = new ymaps.Placemark(
-            loc.coords,
-            {
-              id: loc.id,
-              title: loc.name,
-              rating: loc.rating,
-              activeClass: (loc.id === state.activeSalon ? 'active' : '')
-            },
-            {
-              iconLayout: PinLayout,
-              iconOffset: [0, 0],
-              iconShape: {
-                type: 'Rectangle',
-                coordinates: [
-                  [-65, -36], [65, 4]
-                ]
-              },
-              hasBalloon: false,
-              cursor: 'pointer'
-            }
-          );
-
-          pm.events.add('click', (e) => {
-            e.stopPropagation();
-            window.handlePinClick(loc.id);
-          });
-
-          mapPlacemarks[loc.id] = { placemark: pm, coords: loc.coords, venue: loc };
-          yandexMapInstance.geoObjects.add(pm);
-        });
+        // Register all venues on Yandex Map inside clusterer
+        rebuildMapPlacemarks(PinLayout);
 
         // Container-level fallback delegation to guarantee clicks never miss
         mapContainer.addEventListener('click', (e) => {
@@ -1826,6 +2127,63 @@
         selectMapPin(state.activeSalon || 'beauty', true);
         initCarouselScrollListener();
       });
+    }
+
+    // Helper: Build or update placemarks inside the Clusterer
+    function rebuildMapPlacemarks(PinLayoutClass) {
+      if (!yandexMapInstance || !mapClustererInstance) return;
+
+      mapClustererInstance.removeAll();
+      mapPlacemarks = {};
+
+      const Layout = PinLayoutClass || ymaps.templateLayoutFactory.createClass(
+        '<div id="ymap-pin-$[properties.id]" data-venue-id="$[properties.id]" class="ymap-custom-marker $[properties.activeClass]">' +
+          '<span class="ymap-pin-star">★</span>' +
+          '<span class="ymap-pin-rating">$[properties.rating]</span>' +
+          '<span class="ymap-pin-sep">·</span>' +
+          '<span class="ymap-pin-name">$[properties.title]</span>' +
+        '</div>'
+      );
+
+      const placemarksList = [];
+
+      visibleVenues.forEach(loc => {
+        const pm = new ymaps.Placemark(
+          loc.coords,
+          {
+            id: loc.id,
+            title: loc.name,
+            rating: loc.rating,
+            activeClass: (loc.id === state.activeSalon ? 'active' : '')
+          },
+          {
+            iconLayout: Layout,
+            iconOffset: [0, 0],
+            iconShape: {
+              type: 'Rectangle',
+              coordinates: [
+                [-65, -36], [65, 4]
+              ]
+            },
+            hasBalloon: false,
+            cursor: 'pointer'
+          }
+        );
+
+        pm.events.add('click', (e) => {
+          e.stopPropagation();
+          window.handlePinClick(loc.id);
+        });
+
+        mapPlacemarks[loc.id] = { placemark: pm, coords: loc.coords, venue: loc };
+        placemarksList.push(pm);
+      });
+
+      mapClustererInstance.add(placemarksList);
+
+      if (!yandexMapInstance.geoObjects.contains(mapClustererInstance)) {
+        yandexMapInstance.geoObjects.add(mapClustererInstance);
+      }
     }
 
     // Render cards in horizontal carousel
@@ -1889,7 +2247,11 @@
                   </div>
                 </div>
                 <p class="text-[11px] text-on-surface-variant mt-0.5 truncate">${v.categoryText}</p>
-                <div class="flex items-center gap-1.5 mt-1.5">
+                <div class="flex items-center gap-1.5 mt-1">
+                  <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium truncate max-w-[170px]">
+                    <span class="material-symbols-outlined text-[11px]">location_on</span>
+                    <span class="truncate">${v.regionName || v.address}</span>
+                  </span>
                   <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200/50">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     ${v.hotSlot}
@@ -2573,14 +2935,49 @@
       } catch (e) {}
     }
 
+    // Region filter switcher
+    function filterRegion(regionId, el) {
+      document.querySelectorAll('.region-pill').forEach(p => {
+        p.classList.remove('active', 'bg-slate-900', 'text-white');
+        p.classList.add('bg-white/90', 'text-slate-700');
+      });
+      if (el) {
+        el.classList.add('active', 'bg-slate-900', 'text-white');
+        el.classList.remove('bg-white/90', 'text-slate-700');
+      }
+
+      currentFilterRegion = regionId;
+
+      applyCombinedFilters();
+
+      // Pan & Zoom map to selected region
+      if (yandexMapInstance && REGION_CENTERS[regionId]) {
+        const rc = REGION_CENTERS[regionId];
+        yandexMapInstance.setCenter(rc.center, rc.zoom, {
+          flying: true,
+          duration: 700
+        });
+      }
+
+      const regionLabels = {
+        all: 'Все регионы',
+        moscow: 'Москва',
+        rostov: 'Ростовская область',
+        spb: 'Санкт-Петербург'
+      };
+      showToast(`Выбран регион: ${regionLabels[regionId] || regionId} 🗺️`);
+    }
+
     // Category filter in map
     function filterCategory(cat, el) {
       document.querySelectorAll('.cat-pill').forEach(p => {
         p.classList.remove('bg-primary', 'text-white', 'shadow-[0_4px_12px_rgba(95,58,221,0.3)]');
         p.classList.add('bg-white/90', 'text-on-surface');
       });
-      el.classList.add('bg-primary', 'text-white', 'shadow-[0_4px_12px_rgba(95,58,221,0.3)]');
-      el.classList.remove('bg-white/90', 'text-on-surface');
+      if (el) {
+        el.classList.add('bg-primary', 'text-white', 'shadow-[0_4px_12px_rgba(95,58,221,0.3)]');
+        el.classList.remove('bg-white/90', 'text-on-surface');
+      }
 
       currentFilterCategory = cat;
 
@@ -2591,25 +2988,10 @@
       if (clearBtn) clearBtn.classList.add('hidden');
       currentSearchQuery = '';
 
-      if (cat === 'all') {
-        visibleVenues = [...venues];
-      } else {
-        visibleVenues = venues.filter(v => v.categoryTags.includes(cat));
-      }
-
-      // Filter placemarks on Yandex Map
-      if (yandexMapInstance && mapPlacemarks) {
-        Object.keys(mapPlacemarks).forEach(key => {
-          const isVisible = visibleVenues.some(v => v.id === key);
-          mapPlacemarks[key].placemark.options.set('visible', isVisible);
-        });
-      }
-
-      renderVenuesCarousel();
+      applyCombinedFilters();
 
       if (visibleVenues.length > 0) {
-        selectMapPin(visibleVenues[0].id, true);
-        showToast(`Категория: ${el.innerText.trim()}`);
+        showToast(`Категория: ${el ? el.innerText.trim() : cat}`);
       } else {
         showToast('В этой категории пока нет мастеров');
       }
@@ -2623,26 +3005,25 @@
         clearBtn.classList.toggle('hidden', !currentSearchQuery);
       }
 
-      if (!currentSearchQuery) {
-        if (currentFilterCategory === 'all') {
-          visibleVenues = [...venues];
-        } else {
-          visibleVenues = venues.filter(v => v.categoryTags.includes(currentFilterCategory));
-        }
-      } else {
-        visibleVenues = venues.filter(v => {
-          const fullText = (v.name + ' ' + v.type + ' ' + v.categoryText + ' ' + v.address + ' ' + v.services.join(' ')).toLowerCase();
-          const matchCat = (currentFilterCategory === 'all' || v.categoryTags.includes(currentFilterCategory));
-          return matchCat && fullText.includes(currentSearchQuery);
-        });
-      }
+      applyCombinedFilters();
+    }
 
-      // Update placemarks visibility on Yandex Map
-      if (yandexMapInstance && mapPlacemarks) {
-        Object.keys(mapPlacemarks).forEach(key => {
-          const isVisible = visibleVenues.some(v => v.id === key);
-          mapPlacemarks[key].placemark.options.set('visible', isVisible);
-        });
+    // Central combined filtering handler
+    function applyCombinedFilters() {
+      visibleVenues = venues.filter(v => {
+        const matchRegion = (currentFilterRegion === 'all' || v.region === currentFilterRegion);
+        const matchCategory = (currentFilterCategory === 'all' || v.categoryTags.includes(currentFilterCategory));
+        let matchSearch = true;
+        if (currentSearchQuery) {
+          const fullText = (v.name + ' ' + v.type + ' ' + v.categoryText + ' ' + v.address + ' ' + (v.regionName || '') + ' ' + v.services.join(' ')).toLowerCase();
+          matchSearch = fullText.includes(currentSearchQuery);
+        }
+        return matchRegion && matchCategory && matchSearch;
+      });
+
+      // Update placemarks inside clusterer
+      if (yandexMapInstance && typeof rebuildMapPlacemarks === 'function') {
+        rebuildMapPlacemarks();
       }
 
       renderVenuesCarousel();
@@ -2660,7 +3041,8 @@
       if (input) input.value = '';
       const clearBtn = document.getElementById('searchClearBtn');
       if (clearBtn) clearBtn.classList.add('hidden');
-      handleSearch('');
+      currentSearchQuery = '';
+      applyCombinedFilters();
       showToast('Поиск сброшен');
     }
 
