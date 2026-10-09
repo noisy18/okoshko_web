@@ -433,6 +433,23 @@
     .ios-switch input:checked + .slider:before {
       transform: translateX(20px);
     }
+
+    /* Fullscreen Map Mode */
+    body.map-fullscreen-mode {
+      overflow: hidden;
+    }
+    #mapContainerCard.is-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      z-index: 25 !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
   </style>
 </head>
 <body class="bg-[#faf9fd] text-on-surface antialiased flex flex-col items-center justify-start min-h-screen">
@@ -738,17 +755,21 @@
           </div>
         </div>
 
-        <!-- Interactive Yandex Map Container (compact & friendly for scrolling) -->
-        <div class="relative mx-3.5 my-2.5 h-[240px] rounded-3xl overflow-hidden shadow-sm border border-black/[0.06] bg-[#EAE7F0]">
+        <!-- Interactive Yandex Map Container (compact & friendly for scrolling, expandable to fullscreen) -->
+        <div id="mapContainerCard" onclick="handleMapCardClick(event)" class="relative mx-3.5 my-2.5 h-[240px] rounded-3xl overflow-hidden shadow-sm border border-black/[0.06] bg-[#EAE7F0] cursor-pointer transition-all">
           <!-- Real Yandex Map element -->
           <div id="yandexMap" class="w-full h-full"></div>
 
-          <!-- Subtle hint badge top left -->
-          <div class="absolute left-3 top-3 z-10 pointer-events-none flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md shadow-xs border border-white/80 text-[10px] font-semibold text-slate-700">
+          <!-- Subtle hint badge top left (only in compact mode) -->
+          <div id="mapHintBadge" class="absolute left-3 top-3 z-10 pointer-events-none flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md shadow-xs border border-white/80 text-[10px] font-semibold text-slate-700">
             <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-            <span>Метки кликабельны</span>
+            <span>Нажмите, чтобы развернуть</span>
           </div>
 
+          <!-- Close / Exit Fullscreen Button (shown in fullscreen mode) -->
+          <button id="closeFullscreenMapBtn" onclick="closeFullscreenMap(event)" aria-label="Закрыть карту" class="hidden absolute top-4 right-4 z-40 w-11 h-11 rounded-full bg-white/95 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.18)] flex items-center justify-center text-on-surface hover:text-primary active:scale-90 transition-all border border-white">
+            <span class="material-symbols-outlined text-[24px] font-bold">close</span>
+          </button>
         </div>
 
         <!-- Cards Navigation & Indicator Header -->
@@ -2360,6 +2381,11 @@
       navigate(screenName, addToHistory = true) {
         if (!screenName) return;
 
+        // If map was in fullscreen mode and we navigate away from map, close fullscreen mode
+        if (typeof isMapFullscreen !== 'undefined' && isMapFullscreen && screenName !== 'map') {
+          closeFullscreenMap();
+        }
+
         // Hide all screens strictly - guarantees 0 height / 0 space
         document.querySelectorAll('.screen').forEach(s => {
           s.classList.remove('active');
@@ -2391,6 +2417,12 @@
       },
 
       goBack() {
+        // If map is currently in fullscreen mode, exit fullscreen first
+        if (typeof isMapFullscreen !== 'undefined' && isMapFullscreen) {
+          closeFullscreenMap();
+          return;
+        }
+
         // If we are currently on the root screen ('map'), pressing the close/back button
         // should close the Telegram MiniApp or keep user on map, NOT kick back to verification!
         if (state.currentScreen === 'map') {
@@ -3318,6 +3350,105 @@
         }
       } catch(e) {}
     };
+
+    // Fullscreen Map State
+    let isMapFullscreen = false;
+
+    function handleMapCardClick(e) {
+      // If click was on a marker or on close button, do nothing
+      if (e.target.closest('.ymap-custom-marker') || e.target.closest('#closeFullscreenMapBtn')) {
+        return;
+      }
+      if (!isMapFullscreen) {
+        openFullscreenMap();
+      }
+    }
+
+    function openFullscreenMap() {
+      if (isMapFullscreen) return;
+      isMapFullscreen = true;
+
+      const mapCard = document.getElementById('mapContainerCard');
+      const closeBtn = document.getElementById('closeFullscreenMapBtn');
+      const hintBadge = document.getElementById('mapHintBadge');
+      const globalHeader = document.getElementById('globalHeader');
+      const globalNav = document.getElementById('globalNav');
+
+      if (mapCard) mapCard.classList.add('is-fullscreen');
+      if (closeBtn) closeBtn.classList.remove('hidden');
+      if (hintBadge) hintBadge.classList.add('hidden');
+      if (globalHeader) globalHeader.classList.add('hidden');
+      if (globalNav) {
+        globalNav.classList.remove('hidden');
+        globalNav.style.zIndex = '35'; // ensure bottom menu stays above fullscreen map
+      }
+
+      document.body.classList.add('map-fullscreen-mode');
+
+      // Enable scrollZoom in full screen mode for friendly zooming
+      try {
+        if (yandexMapInstance && yandexMapInstance.behaviors) {
+          yandexMapInstance.behaviors.enable('scrollZoom');
+        }
+      } catch (err) {}
+
+      // Trigger fitToViewport for Yandex Map
+      if (yandexMapInstance && yandexMapInstance.container) {
+        setTimeout(() => {
+          yandexMapInstance.container.fitToViewport();
+        }, 100);
+      }
+
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        }
+      } catch (err) {}
+      showToast('Карта на весь экран 🗺️');
+    }
+
+    function closeFullscreenMap(e) {
+      if (e) e.stopPropagation();
+      if (!isMapFullscreen) return;
+      isMapFullscreen = false;
+
+      const mapCard = document.getElementById('mapContainerCard');
+      const closeBtn = document.getElementById('closeFullscreenMapBtn');
+      const hintBadge = document.getElementById('mapHintBadge');
+      const globalHeader = document.getElementById('globalHeader');
+      const globalNav = document.getElementById('globalNav');
+
+      if (mapCard) mapCard.classList.remove('is-fullscreen');
+      if (closeBtn) closeBtn.classList.add('hidden');
+      if (hintBadge) hintBadge.classList.remove('hidden');
+      if (globalHeader) globalHeader.classList.remove('hidden');
+      if (globalNav) {
+        globalNav.style.zIndex = '';
+        globalNav.classList.remove('hidden');
+      }
+
+      document.body.classList.remove('map-fullscreen-mode');
+
+      // Disable scrollZoom back to avoid page scroll lock in compact mode
+      try {
+        if (yandexMapInstance && yandexMapInstance.behaviors) {
+          yandexMapInstance.behaviors.disable('scrollZoom');
+        }
+      } catch (err) {}
+
+      // Trigger fitToViewport for compact card
+      if (yandexMapInstance && yandexMapInstance.container) {
+        setTimeout(() => {
+          yandexMapInstance.container.fitToViewport();
+        }, 100);
+      }
+
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+      } catch (err) {}
+    }
 
     function initYandexMap() {
       if (yandexMapInstance) {
