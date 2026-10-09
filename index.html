@@ -426,9 +426,38 @@
             <span class="material-symbols-outlined text-[15px] text-slate-500">expand_more</span>
           </button>
 
-          <button onclick="showQuickOptionsModal()" aria-label="Опции" class="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-all">
-            <span class="material-symbols-outlined text-[19px]">more_horiz</span>
-          </button>
+          <!-- Header More Options Dropdown -->
+          <div class="relative">
+            <button id="headerMoreBtn" onclick="toggleQuickOptionsDropdown(event)" aria-label="Опции" class="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-black/5 active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-[19px]">more_horiz</span>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="headerQuickOptionsMenu" class="hidden absolute right-0 top-10 w-52 bg-white/95 backdrop-blur-xl rounded-2xl p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.18)] border border-slate-200/80 z-50 flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-150">
+              <button onclick="shareMiniApp()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100/80 active:bg-slate-200/60 text-left transition-colors">
+                <div class="w-7 h-7 rounded-lg bg-primary-fixed/60 text-primary flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[17px]">share</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="text-xs font-semibold text-on-surface">Поделиться</span>
+                  <span class="text-[10px] text-slate-400">Отправить друзьям</span>
+                </div>
+              </button>
+
+              <div class="h-px bg-slate-100 my-0.5 mx-2"></div>
+
+              <button onclick="openSupportChat()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100/80 active:bg-slate-200/60 text-left transition-colors">
+                <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[17px]">support_agent</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="text-xs font-semibold text-on-surface">Поддержка</span>
+                  <span class="text-[10px] text-slate-400">Чат в Telegram</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
           <div onclick="router.navigate('profile')" class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center shadow-xs cursor-pointer text-white overflow-hidden shrink-0">
             <span id="headerUserInitials" class="text-xs font-bold">ТГ</span>
             <img id="headerUserPhoto" class="w-full h-full object-cover hidden" alt="User"/>
@@ -1310,6 +1339,21 @@
                   <span class="font-semibold text-on-surface">Темная тема</span>
                 </div>
                 <span class="text-[10px] text-slate-400">Авто (Telegram)</span>
+              </div>
+
+              <!-- Support row in settings -->
+              <div class="h-px bg-slate-100 mx-3"></div>
+              <div class="p-3 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openSupportChat()">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-emerald-600 text-[18px]">support_agent</span>
+                  <div class="flex flex-col">
+                    <span class="font-semibold text-on-surface">Написать в поддержку</span>
+                    <span class="text-[10px] text-slate-400">Ответим на любые вопросы в Telegram</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 text-slate-400 text-xs">
+                  <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                </div>
               </div>
             </div>
           </div>
@@ -5521,12 +5565,91 @@
       `).join('');
     }
 
-    function showQuickOptionsModal() {
-      showToast('Опции: Поделиться mini app, перезагрузить, помощь');
+    // Quick Options Dropdown in Top Header
+    function toggleQuickOptionsDropdown(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('headerQuickOptionsMenu');
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        menu.classList.add('flex');
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+          }
+        } catch (err) {}
+      } else {
+        closeQuickOptionsDropdown();
+      }
+    }
+
+    function closeQuickOptionsDropdown() {
+      const menu = document.getElementById('headerQuickOptionsMenu');
+      if (menu) {
+        menu.classList.add('hidden');
+        menu.classList.remove('flex');
+      }
+    }
+
+    // Close dropdown on outside tap / click
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('headerQuickOptionsMenu');
+      const btn = document.getElementById('headerMoreBtn');
+      if (menu && !menu.classList.contains('hidden')) {
+        if (!menu.contains(e.target) && !btn?.contains(e.target)) {
+          closeQuickOptionsDropdown();
+        }
+      }
+    });
+
+    // Share Mini App action
+    function shareMiniApp() {
+      closeQuickOptionsDropdown();
+      const shareUrl = 'https://t.me/okoshko_beauty_bot/app';
+      const shareText = '💅 Записывайся в лучшие салоны красоты и к мастерам города в сервисе «Окошко» через Telegram!';
+      const tgShareLink = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+
+      try {
+        if (window.Telegram?.WebApp?.openTelegramLink) {
+          window.Telegram.WebApp.openTelegramLink(tgShareLink);
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback for browser or if WebApp method unavailable
+      if (navigator.share) {
+        navigator.share({
+          title: 'Сервис «Окошко»',
+          text: shareText,
+          url: shareUrl
+        }).catch(() => {});
+      } else {
+        window.open(tgShareLink, '_blank');
+        showToast('Ссылка скопирована для отправки 🔗');
+      }
+    }
+
+    // Open Support Chat with prefilled text: "Здравствуйте! У меня есть вопрос"
+    function openSupportChat() {
+      closeQuickOptionsDropdown();
+      const supportUsername = 'okooshko_support';
+      const prefilledText = 'Здравствуйте! У меня есть вопрос';
+      const supportUrl = `https://t.me/${supportUsername}?text=${encodeURIComponent(prefilledText)}`;
+
+      try {
+        if (window.Telegram?.WebApp?.openTelegramLink) {
+          window.Telegram.WebApp.openTelegramLink(supportUrl);
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback: standard open
+      window.open(supportUrl, '_blank');
     }
 
     function showTelegramChatAlert() {
-      showToast('Открываем диалог с администратором в Telegram...');
+      openSupportChat();
     }
 
     function openPhotoModal(el) {
