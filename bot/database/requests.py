@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.base import async_session_maker
-from bot.database.models import Booking, Review, Salon, User
+from bot.database.models import Booking, City, Review, Salon, User
 
 logger = logging.getLogger(__name__)
 
@@ -155,4 +155,14 @@ async def get_salon_reviews(salon_id: int) -> List[Review]:
             select(Review).where(Review.salon_id == salon_id).order_by(Review.id.desc())
         )
         return list(result.scalars().all())
+
+
+async def get_active_cities() -> List[City]:
+    """Возвращает список всех активных городов из БД, отсортированных по порядку"""
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(City).where(City.is_active == True).order_by(City.order_num.asc(), City.id.asc())
+        )
+        return list(result.scalars().all())
+
 

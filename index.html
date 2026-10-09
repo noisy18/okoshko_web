@@ -104,14 +104,54 @@
 
     /* iOS Frosted Glass (Матовое стекло Apple Liquid Glass) */
     .ios-frosted-menu {
-      background: rgba(255, 255, 255, 0.76) !important;
-      backdrop-filter: blur(28px) saturate(200%) !important;
-      -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+      background: rgba(255, 255, 255, 0.72) !important;
+      backdrop-filter: blur(30px) saturate(210%) !important;
+      -webkit-backdrop-filter: blur(30px) saturate(210%) !important;
       border: 1px solid rgba(255, 255, 255, 0.85) !important;
       box-shadow: 0 16px 36px -4px rgba(30, 20, 60, 0.12),
                   0 2px 8px rgba(0, 0, 0, 0.04),
                   inset 0 1px 1.5px rgba(255, 255, 255, 0.95),
                   inset 0 -0.5px 1px rgba(0, 0, 0, 0.02) !important;
+    }
+    .telegram-liquid-nav {
+      position: relative;
+      background: rgba(255, 255, 255, 0.68) !important;
+      backdrop-filter: blur(36px) saturate(220%) contrast(105%) !important;
+      -webkit-backdrop-filter: blur(36px) saturate(220%) contrast(105%) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+      box-shadow: 0 20px 48px -6px rgba(18, 14, 38, 0.16),
+                  0 4px 14px rgba(0, 0, 0, 0.05),
+                  inset 0 1.5px 2px rgba(255, 255, 255, 1),
+                  inset 0 -1px 2px rgba(95, 58, 221, 0.04) !important;
+    }
+    /* Telegram Liquid Lens Bubble Indicator */
+    .telegram-nav-indicator {
+      position: absolute;
+      top: 5px;
+      bottom: 5px;
+      width: calc((100% - 16px) / 3);
+      left: 8px;
+      border-radius: 9999px;
+      background: radial-gradient(120% 120% at 50% 10%, rgba(255, 255, 255, 0.95) 0%, rgba(240, 237, 255, 0.82) 100%);
+      box-shadow: 0 4px 16px -2px rgba(95, 58, 221, 0.28),
+                  0 1px 4px rgba(0, 0, 0, 0.06),
+                  inset 0 1.5px 2px #ffffff,
+                  inset 0 -1.5px 2px rgba(95, 58, 221, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+      z-index: 1;
+    }
+    /* Dynamic chromatic aberration / glass glow effect on indicator */
+    .telegram-nav-indicator::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(95, 58, 221, 0.2) 50%, rgba(244, 63, 94, 0.15) 100%);
+      opacity: 0.55;
+      z-index: -1;
+      filter: blur(1px);
     }
     .ios-frosted-header {
       background: rgba(250, 249, 253, 0.80) !important;
@@ -541,10 +581,20 @@
                 </div>
                 <div class="relative">
                   <select id="verifyCitySelect" onchange="setDefaultCity(this.value)" class="w-full pl-9 pr-8 py-2 rounded-xl bg-surface-container-low border border-slate-200 text-xs font-semibold text-on-surface outline-none appearance-none cursor-pointer focus:border-primary transition-all">
-                    <option value="all">🗺 Все регионы</option>
-                    <option value="moscow" selected>🏙 Москва</option>
-                    <option value="rostov">🌾 Ростовская область</option>
-                    <option value="spb">🏛 Санкт-Петербург</option>
+                    <option value="all">🗺️ Все регионы России</option>
+                    <option value="moscow" selected>🏙️ Москва</option>
+                    <option value="spb">🏛️ Санкт-Петербург</option>
+                    <option value="kazan">🕌 Казань</option>
+                    <option value="samara">⛵ Самара</option>
+                    <option value="rostov">🌾 Ростов-на-Дону</option>
+                    <option value="krasnodar">☀️ Краснодар</option>
+                    <option value="voronezh">🌳 Воронеж</option>
+                    <option value="volgograd">⚓ Волгоград</option>
+                    <option value="sochi">🌴 Сочи</option>
+                    <option value="stavropol">⛰️ Ставрополь</option>
+                    <option value="anapa">🏖️ Анапа</option>
+                    <option value="tuapse">🚢 Туапсе</option>
+                    <option value="novorossiysk">🌊 Новороссийск</option>
                   </select>
                   <span class="material-symbols-outlined text-[17px] text-primary absolute left-2.5 top-2 pointer-events-none">location_on</span>
                   <span class="material-symbols-outlined text-[17px] text-slate-400 absolute right-2.5 top-2 pointer-events-none">expand_more</span>
@@ -1367,27 +1417,30 @@
       <!-- GLOBAL BOTTOM NAVIGATION DOCK (Карта, Записи, Профиль) -->
       <!-- ======================================================== -->
       <nav id="globalNav" class="fixed bottom-0 inset-x-0 z-30 pb-safe max-w-[440px] mx-auto pointer-events-none px-4 pb-3">
-        <div class="pointer-events-auto ios-frosted-menu rounded-full px-2 py-1">
-          <div class="flex justify-around items-center h-14">
+        <div class="pointer-events-auto telegram-liquid-nav rounded-full px-2 py-1">
+          <!-- Floating glass bubble indicator -->
+          <div id="navActiveIndicator" class="telegram-nav-indicator" style="transform: translateX(0%);"></div>
+
+          <div class="relative z-10 flex justify-around items-center h-14">
             <!-- Tab: Map -->
-            <button onclick="router.navigate('map')" id="nav-map" class="nav-btn active flex flex-col items-center justify-center gap-0.5 min-w-[70px] text-primary transition-all active:scale-95">
-              <span class="material-symbols-outlined text-[22px]">explore</span>
-              <span class="text-[11px] font-semibold">Карта</span>
+            <button onclick="router.navigate('map')" id="nav-map" class="nav-btn active flex-1 flex flex-col items-center justify-center gap-0.5 text-primary transition-all active:scale-95">
+              <span class="material-symbols-outlined text-[23px] transition-transform">explore</span>
+              <span class="text-[11px] font-bold tracking-tight">Карта</span>
             </button>
 
             <!-- Tab: Appointments -->
-            <button onclick="router.navigate('appointments')" id="nav-appointments" class="nav-btn flex flex-col items-center justify-center gap-0.5 min-w-[70px] text-on-surface-variant transition-all active:scale-95">
+            <button onclick="router.navigate('appointments')" id="nav-appointments" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
               <div class="relative">
-                <span class="material-symbols-outlined text-[22px]">calendar_today</span>
+                <span class="material-symbols-outlined text-[23px] transition-transform">calendar_today</span>
                 <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-white"></span>
               </div>
-              <span class="text-[11px] font-semibold">Записи</span>
+              <span class="text-[11px] font-semibold tracking-tight">Записи</span>
             </button>
 
             <!-- Tab: Profile -->
-            <button onclick="router.navigate('profile')" id="nav-profile" class="nav-btn flex flex-col items-center justify-center gap-0.5 min-w-[70px] text-on-surface-variant transition-all active:scale-95">
-              <span class="material-symbols-outlined text-[22px]">person</span>
-              <span class="text-[11px] font-semibold">Профиль</span>
+            <button onclick="router.navigate('profile')" id="nav-profile" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
+              <span class="material-symbols-outlined text-[23px] transition-transform">person</span>
+              <span class="text-[11px] font-semibold tracking-tight">Профиль</span>
             </button>
           </div>
         </div>
@@ -1529,55 +1582,16 @@
         <button onclick="closeCityModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
       </div>
 
-      <!-- City Options List -->
-      <div class="flex flex-col gap-2 pt-1" id="cityOptionsList">
-        <!-- All Regions -->
-        <div onclick="selectCityOption('all')" data-city="all" class="city-option-item p-3.5 rounded-2xl border border-slate-200/80 hover:border-primary/40 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">🗺️</span>
-            <div class="flex flex-col">
-              <span class="font-bold text-xs text-on-surface">Все регионы России</span>
-              <span class="text-[10px] text-slate-400">Вся география сервиса</span>
-            </div>
-          </div>
-          <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
-        </div>
+      <!-- City Search Bar with dynamic letter matching -->
+      <div class="relative flex items-center bg-slate-100 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 focus-within:border-primary focus-within:bg-white transition-all">
+        <span class="material-symbols-outlined text-slate-400 text-[20px] mr-2">search</span>
+        <input id="citySearchInput" type="text" oninput="handleCitySearchInput(this.value)" placeholder="Поиск города по первым буквам..." class="w-full bg-transparent border-none outline-none text-xs font-semibold text-on-surface placeholder:text-slate-400 p-0" autocomplete="off"/>
+        <button id="citySearchClearBtn" onclick="clearCitySearch()" aria-label="Очистить" class="hidden w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] active:scale-90 ml-1">✕</button>
+      </div>
 
-        <!-- Moscow -->
-        <div onclick="selectCityOption('moscow')" data-city="moscow" class="city-option-item p-3.5 rounded-2xl border border-slate-200/80 hover:border-primary/40 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">🏙️</span>
-            <div class="flex flex-col">
-              <span class="font-bold text-xs text-on-surface">Москва</span>
-              <span class="text-[10px] text-slate-400">Москва и Московская область</span>
-            </div>
-          </div>
-          <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
-        </div>
-
-        <!-- Rostov Region -->
-        <div onclick="selectCityOption('rostov')" data-city="rostov" class="city-option-item p-3.5 rounded-2xl border border-slate-200/80 hover:border-primary/40 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">🌾</span>
-            <div class="flex flex-col">
-              <span class="font-bold text-xs text-on-surface">Ростовская область</span>
-              <span class="text-[10px] text-slate-400">Ростов-на-Дону, Таганрог, Батайск</span>
-            </div>
-          </div>
-          <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
-        </div>
-
-        <!-- Saint Petersburg -->
-        <div onclick="selectCityOption('spb')" data-city="spb" class="city-option-item p-3.5 rounded-2xl border border-slate-200/80 hover:border-primary/40 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">🏛️</span>
-            <div class="flex flex-col">
-              <span class="font-bold text-xs text-on-surface">Санкт-Петербург</span>
-              <span class="text-[10px] text-slate-400">Санкт-Петербург и Ленинградская область</span>
-            </div>
-          </div>
-          <span class="city-check-icon material-symbols-outlined text-primary text-[20px] hidden">check_circle</span>
-        </div>
+      <!-- City Options List (Rendered dynamically) -->
+      <div class="flex flex-col gap-1.5 pt-1 max-h-[50vh] overflow-y-auto no-scrollbar pr-0.5" id="cityOptionsList">
+        <!-- Populated dynamically by renderCityOptions() -->
       </div>
 
       <!-- Set as Default Checkbox -->
@@ -2379,16 +2393,34 @@
           globalHeader.classList.remove('hidden');
         }
 
-        // Update Nav button active states
+        // Update Nav button active states & sliding glass bubble indicator
         document.querySelectorAll('.nav-btn').forEach(btn => {
           btn.classList.remove('text-primary');
-          btn.classList.add('text-on-surface-variant');
+          btn.classList.add('text-slate-500');
+          const spanText = btn.querySelector('span:last-child');
+          if (spanText) spanText.classList.replace('font-bold', 'font-semibold');
         });
 
         const activeNavBtn = document.getElementById(`nav-${screen}`);
         if (activeNavBtn) {
           activeNavBtn.classList.add('text-primary');
-          activeNavBtn.classList.remove('text-on-surface-variant');
+          activeNavBtn.classList.remove('text-slate-500');
+          const spanText = activeNavBtn.querySelector('span:last-child');
+          if (spanText) spanText.classList.replace('font-semibold', 'font-bold');
+        }
+
+        // Slide the telegram liquid lens indicator
+        const indicator = document.getElementById('navActiveIndicator');
+        if (indicator) {
+          const tabPositions = {
+            'map': '0%',
+            'appointments': '100%',
+            'profile': '200%'
+          };
+          if (tabPositions[screen] !== undefined) {
+            indicator.style.transform = `translateX(${tabPositions[screen]})`;
+            indicator.style.display = 'block';
+          }
         }
 
         if (screen === 'map') {
@@ -2454,8 +2486,18 @@
     const REGION_CENTERS = {
       all: { center: [55.766324, 37.604245], zoom: 6 },
       moscow: { center: [55.765000, 37.605000], zoom: 13 },
+      spb: { center: [59.934000, 30.335000], zoom: 13 },
+      kazan: { center: [55.788700, 49.122100], zoom: 12 },
+      samara: { center: [53.195900, 50.100200], zoom: 12 },
       rostov: { center: [47.228000, 39.715000], zoom: 12 },
-      spb: { center: [59.934000, 30.335000], zoom: 13 }
+      krasnodar: { center: [45.035500, 38.975300], zoom: 12 },
+      voronezh: { center: [51.675500, 39.208900], zoom: 12 },
+      volgograd: { center: [48.707100, 44.516900], zoom: 12 },
+      sochi: { center: [43.602800, 39.734200], zoom: 12 },
+      stavropol: { center: [45.044500, 41.969100], zoom: 12 },
+      anapa: { center: [44.894800, 37.316300], zoom: 13 },
+      tuapse: { center: [44.097500, 39.076000], zoom: 13 },
+      novorossiysk: { center: [44.723900, 37.768700], zoom: 12 }
     };
 
     let currentFilterRegion = 'all';
@@ -5189,18 +5231,37 @@
     // CITY & REGION SELECTION MANAGEMENT
     // ==========================================
     const CITY_CONFIG = {
-      all: { name: 'Все регионы', short: 'Все', icon: '🗺️', sub: 'Вся география' },
-      moscow: { name: 'Москва', short: 'Москва', icon: '🏙️', sub: 'Москва и МО' },
-      rostov: { name: 'Ростовская обл.', short: 'Ростов', icon: '🌾', sub: 'Ростов-на-Дону' },
-      spb: { name: 'Санкт-Петербург', short: 'СПб', icon: '🏛️', sub: 'Санкт-Петербург' }
+      all: { name: 'Все регионы России', short: 'Все', icon: '🗺️', sub: 'Вся география сервиса' },
+      moscow: { name: 'Москва', short: 'Москва', icon: '🏙️', sub: 'Москва и Московская область' },
+      spb: { name: 'Санкт-Петербург', short: 'СПб', icon: '🏛️', sub: 'Санкт-Петербург и ЛО' },
+      kazan: { name: 'Казань', short: 'Казань', icon: '🕌', sub: 'Республика Татарстан' },
+      samara: { name: 'Самара', short: 'Самара', icon: '⛵', sub: 'Самарская область' },
+      rostov: { name: 'Ростов-на-Дону', short: 'Ростов', icon: '🌾', sub: 'Ростовская область' },
+      krasnodar: { name: 'Краснодар', short: 'Краснодар', icon: '☀️', sub: 'Краснодарский край' },
+      voronezh: { name: 'Воронеж', short: 'Воронеж', icon: '🌳', sub: 'Воронежская область' },
+      volgograd: { name: 'Волгоград', short: 'Волгоград', icon: '⚓', sub: 'Волгоградская область' },
+      sochi: { name: 'Сочи', short: 'Сочи', icon: '🌴', sub: 'Курортный район и Сириус' },
+      stavropol: { name: 'Ставрополь', short: 'Ставрополь', icon: '⛰️', sub: 'Ставропольский край' },
+      anapa: { name: 'Анапа', short: 'Анапа', icon: '🏖️', sub: 'Черноморское побережье' },
+      tuapse: { name: 'Туапсе', short: 'Туапсе', icon: '🚢', sub: 'Туапсинский район' },
+      novorossiysk: { name: 'Новороссийск', short: 'Новороссийск', icon: '🌊', sub: 'Цемесская бухта' }
     };
+
+    let citySearchQuery = '';
 
     function openCityModal() {
       const modal = document.getElementById('citySelectModal');
       if (!modal) return;
+      citySearchQuery = '';
+      const input = document.getElementById('citySearchInput');
+      if (input) input.value = '';
+      const clearBtn = document.getElementById('citySearchClearBtn');
+      if (clearBtn) clearBtn.classList.add('hidden');
+
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      updateCityModalUI();
+      renderCityOptions();
+      setTimeout(() => input?.focus(), 100);
     }
 
     function closeCityModal() {
@@ -5218,16 +5279,102 @@
       }
     });
 
-    function updateCityModalUI() {
-      document.querySelectorAll('.city-option-item').forEach(el => {
-        const c = el.getAttribute('data-city');
-        const isSelected = (c === currentFilterRegion);
-        el.classList.toggle('bg-primary-fixed/30', isSelected);
-        el.classList.toggle('border-primary', isSelected);
-        el.classList.toggle('border-slate-200/80', !isSelected);
-        const check = el.querySelector('.city-check-icon');
-        if (check) check.classList.toggle('hidden', !isSelected);
+    // Handle city search input with smart prefix/match highlight
+    function handleCitySearchInput(val) {
+      citySearchQuery = (val || '').trim().toLowerCase();
+      const clearBtn = document.getElementById('citySearchClearBtn');
+      if (clearBtn) {
+        clearBtn.classList.toggle('hidden', !citySearchQuery);
+      }
+      renderCityOptions();
+    }
+
+    function clearCitySearch() {
+      const input = document.getElementById('citySearchInput');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      citySearchQuery = '';
+      const clearBtn = document.getElementById('citySearchClearBtn');
+      if (clearBtn) clearBtn.classList.add('hidden');
+      renderCityOptions();
+    }
+
+    // Render city list with prefix matching
+    function renderCityOptions() {
+      const container = document.getElementById('cityOptionsList');
+      if (!container) return;
+
+      const entries = Object.entries(CITY_CONFIG);
+
+      // Filter: prioritize matches at the beginning of the city name, then anywhere in name/sub
+      const filtered = entries.filter(([key, info]) => {
+        if (!citySearchQuery) return true;
+        const nameLower = info.name.toLowerCase();
+        const shortLower = info.short.toLowerCase();
+        const subLower = (info.sub || '').toLowerCase();
+        return nameLower.startsWith(citySearchQuery) || 
+               shortLower.startsWith(citySearchQuery) || 
+               nameLower.includes(citySearchQuery) || 
+               subLower.includes(citySearchQuery);
       });
+
+      // Sort so exact prefix matches come first
+      if (citySearchQuery) {
+        filtered.sort((a, b) => {
+          const aStarts = a[1].name.toLowerCase().startsWith(citySearchQuery);
+          const bStarts = b[1].name.toLowerCase().startsWith(citySearchQuery);
+          if (aStarts && !bStarts) return -1;
+          if (!aStarts && bStarts) return 1;
+          return 0;
+        });
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="py-8 flex flex-col items-center justify-center text-center text-slate-400">
+            <span class="material-symbols-outlined text-3xl mb-1 text-slate-300">location_off</span>
+            <p class="text-xs font-semibold">Город не найден</p>
+            <p class="text-[10px] mt-0.5">Попробуйте ввести другое название или выберите «Все регионы»</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(([key, info]) => {
+        const isSelected = (key === currentFilterRegion);
+        const activeClasses = isSelected
+          ? 'bg-primary-fixed/30 border-primary ring-1 ring-primary/40'
+          : 'border-slate-200/80 hover:border-primary/40 bg-white';
+
+        // Highlight matching prefix letters
+        let displayName = info.name;
+        if (citySearchQuery && info.name.toLowerCase().includes(citySearchQuery)) {
+          const idx = info.name.toLowerCase().indexOf(citySearchQuery);
+          const before = info.name.slice(0, idx);
+          const match = info.name.slice(idx, idx + citySearchQuery.length);
+          const after = info.name.slice(idx + citySearchQuery.length);
+          displayName = `${before}<span class="text-primary font-extrabold underline decoration-primary/40">${match}</span>${after}`;
+        }
+
+        return `
+          <div onclick="selectCityOption('${key}')" data-city="${key}" class="city-option-item p-3 rounded-2xl border ${activeClasses} flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-xl shrink-0">${info.icon}</span>
+              <div class="flex flex-col min-w-0">
+                <span class="font-bold text-xs text-on-surface truncate">${displayName}</span>
+                <span class="text-[10px] text-slate-400 truncate">${info.sub}</span>
+              </div>
+            </div>
+            <span class="city-check-icon material-symbols-outlined text-primary text-[20px] ${isSelected ? '' : 'hidden'} shrink-0 ml-2">check_circle</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateCityModalUI() {
+      renderCityOptions();
     }
 
     function updateHeaderAndProfileCityUI() {
