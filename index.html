@@ -436,11 +436,28 @@
 
     /* Fullscreen Map Mode */
     body.map-fullscreen-mode {
-      overflow: hidden;
+      overflow: hidden !important;
+      height: 100vh !important;
+      background-color: #faf9fd !important;
+    }
+    body.map-fullscreen-mode #appContainer {
+      background-color: transparent !important;
+      min-height: 100vh !important;
+      height: 100vh !important;
+      overflow: hidden !important;
+    }
+    body.map-fullscreen-mode #screen-map {
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+      height: 100% !important;
+      overflow: hidden !important;
     }
     #mapContainerCard.is-fullscreen {
       position: fixed !important;
-      inset: 0 !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
       width: 100vw !important;
       height: 100vh !important;
       max-width: none !important;
@@ -449,6 +466,18 @@
       z-index: 25 !important;
       box-shadow: none !important;
       border: none !important;
+    }
+    #mapContainerCard.is-fullscreen #yandexMap {
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute !important;
+      inset: 0 !important;
+    }
+    /* Hide carousel, search header and counter bar when map is fullscreen */
+    body.map-fullscreen-mode #mapVenueCounterBar,
+    body.map-fullscreen-mode #venuesCarousel,
+    body.map-fullscreen-mode .venues-carousel {
+      display: none !important;
     }
   </style>
 </head>
@@ -755,16 +784,21 @@
           </div>
         </div>
 
-        <!-- Interactive Yandex Map Container (compact & friendly for scrolling, expandable to fullscreen) -->
-        <div id="mapContainerCard" onclick="handleMapCardClick(event)" class="relative mx-3.5 my-2.5 h-[240px] rounded-3xl overflow-hidden shadow-sm border border-black/[0.06] bg-[#EAE7F0] cursor-pointer transition-all">
+        <!-- Interactive Yandex Map Container (compact in feed, expandable via fullscreen button) -->
+        <div id="mapContainerCard" class="relative mx-3.5 my-2.5 h-[240px] rounded-3xl overflow-hidden shadow-sm border border-black/[0.06] bg-[#EAE7F0] transition-all">
           <!-- Real Yandex Map element -->
           <div id="yandexMap" class="w-full h-full"></div>
 
           <!-- Subtle hint badge top left (only in compact mode) -->
           <div id="mapHintBadge" class="absolute left-3 top-3 z-10 pointer-events-none flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md shadow-xs border border-white/80 text-[10px] font-semibold text-slate-700">
             <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-            <span>Нажмите, чтобы развернуть</span>
+            <span>Метки кликабельны</span>
           </div>
+
+          <!-- Button to open map in fullscreen mode (top-right of compact map) -->
+          <button id="openFullscreenMapBtn" onclick="openFullscreenMap(event)" aria-label="Развернуть карту на весь экран" class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/95 backdrop-blur-xl shadow-md flex items-center justify-center text-primary hover:text-primary-container active:scale-90 transition-all border border-white">
+            <span class="material-symbols-outlined text-[19px]">fullscreen</span>
+          </button>
 
           <!-- Close / Exit Fullscreen Button (shown in fullscreen mode) -->
           <button id="closeFullscreenMapBtn" onclick="closeFullscreenMap(event)" aria-label="Закрыть карту" class="hidden absolute top-4 right-4 z-40 w-11 h-11 rounded-full bg-white/95 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.18)] flex items-center justify-center text-on-surface hover:text-primary active:scale-90 transition-all border border-white">
@@ -772,8 +806,8 @@
           </button>
         </div>
 
-        <!-- Cards Navigation & Indicator Header -->
-        <div class="relative z-30 px-3.5 pt-1 flex items-center justify-between pointer-events-auto">
+        <!-- Cards Navigation & Indicator Header (hidden in fullscreen mode) -->
+        <div id="mapVenueCounterBar" class="relative z-30 px-3.5 pt-1 flex items-center justify-between pointer-events-auto">
           <div class="flex items-center gap-1.5 bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full shadow-xs border border-white text-xs font-semibold text-on-surface">
             <span id="venueCounterText" class="text-primary font-bold">1 из 5</span>
             <span class="text-slate-300">·</span>
@@ -3354,28 +3388,24 @@
     // Fullscreen Map State
     let isMapFullscreen = false;
 
-    function handleMapCardClick(e) {
-      // If click was on a marker or on close button, do nothing
-      if (e.target.closest('.ymap-custom-marker') || e.target.closest('#closeFullscreenMapBtn')) {
-        return;
+    function openFullscreenMap(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
       }
-      if (!isMapFullscreen) {
-        openFullscreenMap();
-      }
-    }
-
-    function openFullscreenMap() {
       if (isMapFullscreen) return;
       isMapFullscreen = true;
 
       const mapCard = document.getElementById('mapContainerCard');
       const closeBtn = document.getElementById('closeFullscreenMapBtn');
+      const openBtn = document.getElementById('openFullscreenMapBtn');
       const hintBadge = document.getElementById('mapHintBadge');
       const globalHeader = document.getElementById('globalHeader');
       const globalNav = document.getElementById('globalNav');
 
       if (mapCard) mapCard.classList.add('is-fullscreen');
       if (closeBtn) closeBtn.classList.remove('hidden');
+      if (openBtn) openBtn.classList.add('hidden');
       if (hintBadge) hintBadge.classList.add('hidden');
       if (globalHeader) globalHeader.classList.add('hidden');
       if (globalNav) {
@@ -3392,11 +3422,12 @@
         }
       } catch (err) {}
 
-      // Trigger fitToViewport for Yandex Map
+      // Multi-stage trigger fitToViewport for Yandex Map to ensure 100% viewport filling without gaps
       if (yandexMapInstance && yandexMapInstance.container) {
-        setTimeout(() => {
-          yandexMapInstance.container.fitToViewport();
-        }, 100);
+        yandexMapInstance.container.fitToViewport();
+        setTimeout(() => { if (yandexMapInstance?.container) yandexMapInstance.container.fitToViewport(); }, 60);
+        setTimeout(() => { if (yandexMapInstance?.container) yandexMapInstance.container.fitToViewport(); }, 200);
+        setTimeout(() => { if (yandexMapInstance?.container) yandexMapInstance.container.fitToViewport(); }, 400);
       }
 
       try {
@@ -3420,6 +3451,8 @@
 
       if (mapCard) mapCard.classList.remove('is-fullscreen');
       if (closeBtn) closeBtn.classList.add('hidden');
+      const openBtn = document.getElementById('openFullscreenMapBtn');
+      if (openBtn) openBtn.classList.remove('hidden');
       if (hintBadge) hintBadge.classList.remove('hidden');
       if (globalHeader) globalHeader.classList.remove('hidden');
       if (globalNav) {
@@ -3438,9 +3471,9 @@
 
       // Trigger fitToViewport for compact card
       if (yandexMapInstance && yandexMapInstance.container) {
-        setTimeout(() => {
-          yandexMapInstance.container.fitToViewport();
-        }, 100);
+        yandexMapInstance.container.fitToViewport();
+        setTimeout(() => { if (yandexMapInstance?.container) yandexMapInstance.container.fitToViewport(); }, 80);
+        setTimeout(() => { if (yandexMapInstance?.container) yandexMapInstance.container.fitToViewport(); }, 250);
       }
 
       try {
@@ -4814,11 +4847,37 @@
 
       updateVenueCounter();
 
-      // Pan Yandex Map to coordinates and ensure zoom is high enough to uncluster
+      // Pan Yandex Map to coordinates without shifting or dropping the marker in compact view
       if (yandexMapInstance && venue) {
-        const curZoom = yandexMapInstance.getZoom ? yandexMapInstance.getZoom() : 14;
-        const targetZoom = Math.max(curZoom, 13);
-        yandexMapInstance.setCenter(venue.coords, targetZoom, { flying: true, duration: 500 });
+        try {
+          if (!isMapFullscreen) {
+            // In compact card mode: if pin is already within the map bounds, don't change center to prevent pin jumping down
+            const bounds = yandexMapInstance.getBounds ? yandexMapInstance.getBounds() : null;
+            let isInsideBounds = false;
+            if (bounds && bounds[0] && bounds[1]) {
+              const [minLat, minLng] = bounds[0];
+              const [maxLat, maxLng] = bounds[1];
+              const [lat, lng] = venue.coords;
+              isInsideBounds = (lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng);
+            }
+
+            if (!isInsideBounds) {
+              // Smooth pan without sudden zoom changes
+              if (yandexMapInstance.panTo) {
+                yandexMapInstance.panTo(venue.coords, { flying: false, duration: 300 });
+              } else {
+                yandexMapInstance.setCenter(venue.coords, yandexMapInstance.getZoom(), { duration: 300 });
+              }
+            }
+          } else {
+            // Fullscreen mode: comfortable center and view
+            const curZoom = yandexMapInstance.getZoom ? yandexMapInstance.getZoom() : 14;
+            const targetZoom = Math.max(curZoom, 13);
+            yandexMapInstance.setCenter(venue.coords, targetZoom, { flying: true, duration: 450 });
+          }
+        } catch (err) {
+          console.error('Error centering map:', err);
+        }
       }
     }
 
