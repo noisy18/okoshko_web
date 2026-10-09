@@ -662,9 +662,57 @@
             <button id="searchClearBtn" onclick="clearSearch()" aria-label="Очистить" class="hidden w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 active:scale-90 transition-all mr-1 shrink-0">
               <span class="material-symbols-outlined text-[18px]">cancel</span>
             </button>
-            <button onclick="toggleFiltersModal()" aria-label="Фильтры" class="flex items-center justify-center w-8 h-8 rounded-full bg-surface-container text-on-surface-variant hover:text-primary active:scale-95 transition-all ml-1 shrink-0">
-              <span class="material-symbols-outlined text-[17px]">tune</span>
-            </button>
+            <!-- Filter & Sort Dropdown Container -->
+            <div class="relative shrink-0">
+              <button id="searchFilterBtn" onclick="toggleSearchFilterDropdown(event)" aria-label="Сортировка и фильтры" class="relative flex items-center justify-center w-8 h-8 rounded-full bg-surface-container text-on-surface-variant hover:text-primary active:scale-95 transition-all ml-1 shrink-0">
+                <span class="material-symbols-outlined text-[17px]">tune</span>
+                <span id="searchFilterActiveDot" class="hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-primary ring-2 ring-white"></span>
+              </button>
+
+              <!-- Sorting & Filters Dropdown Menu -->
+              <div id="searchFilterDropdown" class="hidden absolute right-0 top-10 w-64 bg-white/95 backdrop-blur-xl rounded-2xl p-2 shadow-[0_12px_36px_rgba(0,0,0,0.18)] border border-slate-200/80 z-50 flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 select-none">
+                <div class="px-2.5 py-1.5 flex items-center justify-between border-b border-slate-100 mb-1">
+                  <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Сортировка</span>
+                  <button onclick="resetSortOption(event)" class="text-[11px] text-primary hover:underline font-semibold">Сброс</button>
+                </div>
+
+                <!-- 1. С лучшей оценкой -->
+                <button onclick="selectSortOption('rating', event)" class="sort-option-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-slate-100/80 active:bg-slate-200/60 transition-colors" data-sort="rating">
+                  <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-[18px] text-amber-500">star</span>
+                    <span class="text-xs font-semibold text-on-surface">С лучшей оценкой</span>
+                  </div>
+                  <span class="sort-check material-symbols-outlined text-[18px] text-primary hidden">check</span>
+                </button>
+
+                <!-- 2. По количеству отзывов -->
+                <button onclick="selectSortOption('reviews', event)" class="sort-option-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-slate-100/80 active:bg-slate-200/60 transition-colors" data-sort="reviews">
+                  <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-[18px] text-primary">rate_review</span>
+                    <span class="text-xs font-semibold text-on-surface">По количеству отзывов</span>
+                  </div>
+                  <span class="sort-check material-symbols-outlined text-[18px] text-primary hidden">check</span>
+                </button>
+
+                <!-- 3. Сначала недорогие -->
+                <button onclick="selectSortOption('price_asc', event)" class="sort-option-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-slate-100/80 active:bg-slate-200/60 transition-colors" data-sort="price_asc">
+                  <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-[18px] text-emerald-600">trending_down</span>
+                    <span class="text-xs font-semibold text-on-surface">Сначала недорогие</span>
+                  </div>
+                  <span class="sort-check material-symbols-outlined text-[18px] text-primary hidden">check</span>
+                </button>
+
+                <!-- 4. Сначала дорогие -->
+                <button onclick="selectSortOption('price_desc', event)" class="sort-option-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-slate-100/80 active:bg-slate-200/60 transition-colors" data-sort="price_desc">
+                  <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-[18px] text-purple-600">trending_up</span>
+                    <span class="text-xs font-semibold text-on-surface">Сначала дорогие</span>
+                  </div>
+                  <span class="sort-check material-symbols-outlined text-[18px] text-primary hidden">check</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Category Chips -->
@@ -701,10 +749,6 @@
             <span>Метки кликабельны</span>
           </div>
 
-          <!-- Center to my location button -->
-          <button onclick="centerLocation()" aria-label="Мое местоположение" class="absolute right-3 bottom-3 z-10 w-10 h-10 rounded-full bg-white/95 backdrop-blur-xl shadow-md flex items-center justify-center text-primary active:scale-90 transition-all border border-white">
-            <span class="material-symbols-outlined text-[19px]" style="font-variation-settings: 'FILL' 1;">near_me</span>
-          </button>
         </div>
 
         <!-- Cards Navigation & Indicator Header -->
@@ -3368,24 +3412,6 @@
           }
         });
 
-        // User Location Pin
-        const UserPinLayout = ymaps.templateLayoutFactory.createClass(
-          '<div class="ymap-user-marker">' +
-            '<span class="ymap-user-pulse"></span>' +
-            '<span class="ymap-user-dot"></span>' +
-          '</div>'
-        );
-
-        const userPlacemark = new ymaps.Placemark(
-          userCoordinates,
-          {},
-          {
-            iconLayout: UserPinLayout,
-            iconOffset: [-11, -11]
-          }
-        );
-        yandexMapInstance.geoObjects.add(userPlacemark);
-
         // Add clusterer to map once
         yandexMapInstance.geoObjects.add(mapClustererInstance);
 
@@ -5486,8 +5512,44 @@
       applyCombinedFilters();
     }
 
-    // Central combined filtering handler
+    // Sorting Option State: 'default' | 'rating' | 'reviews' | 'price_asc' | 'price_desc'
+    let currentSortOption = 'default';
+
+    // Helper: calculate effective average rating for a venue (from calculated reviews or fallback)
+    function getVenueEffectiveRating(venue) {
+      if (typeof calculateSalonAverageRating === 'function') {
+        const stats = calculateSalonAverageRating(venue.id);
+        if (stats && !isNaN(stats.avg)) return stats.avg;
+      }
+      return parseFloat(venue.rating) || 0;
+    }
+
+    // Helper: calculate total review count for a venue
+    function getVenueEffectiveReviewsCount(venue) {
+      if (typeof calculateSalonAverageRating === 'function') {
+        const stats = calculateSalonAverageRating(venue.id);
+        if (stats && !isNaN(stats.count) && stats.count > 0) return stats.count;
+      }
+      return parseInt(venue.reviewsCount, 10) || 0;
+    }
+
+    // Helper: extract numeric base price from venue
+    function getVenueBasePrice(venue) {
+      if (venue.services && venue.services.length > 0) {
+        const prices = venue.services.map(s => s.price).filter(p => typeof p === 'number' && p > 0);
+        if (prices.length > 0) return Math.min(...prices);
+      }
+      if (venue.priceFrom) {
+        const cleaned = venue.priceFrom.replace(/\s+/g, '').replace(/[^\d]/g, '');
+        const parsed = parseInt(cleaned, 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+      return 2000;
+    }
+
+    // Central combined filtering and sorting handler
     function applyCombinedFilters() {
+      // 1. Filter by Region, Category and Search Query
       visibleVenues = venues.filter(v => {
         const matchRegion = (currentFilterRegion === 'all' || v.region === currentFilterRegion);
         const matchCategory = (currentFilterCategory === 'all' || v.categoryTags.includes(currentFilterCategory));
@@ -5498,6 +5560,21 @@
         }
         return matchRegion && matchCategory && matchSearch;
       });
+
+      // 2. Sort visible venues according to selected criteria (на понижение / по возрастанию цены)
+      if (currentSortOption === 'rating') {
+        // С лучшей оценкой (средняя оценка на понижение)
+        visibleVenues.sort((a, b) => getVenueEffectiveRating(b) - getVenueEffectiveRating(a));
+      } else if (currentSortOption === 'reviews') {
+        // По количеству отзывов (на понижение)
+        visibleVenues.sort((a, b) => getVenueEffectiveReviewsCount(b) - getVenueEffectiveReviewsCount(a));
+      } else if (currentSortOption === 'price_asc') {
+        // Сначала недорогие (по возрастанию цены)
+        visibleVenues.sort((a, b) => getVenueEffectiveBasePrice(a) - getVenueEffectiveBasePrice(b));
+      } else if (currentSortOption === 'price_desc') {
+        // Сначала дорогие (по убыванию цены)
+        visibleVenues.sort((a, b) => getVenueEffectiveBasePrice(b) - getVenueEffectiveBasePrice(a));
+      }
 
       // Update placemarks inside clusterer
       if (yandexMapInstance && typeof rebuildMapPlacemarks === 'function') {
@@ -5513,6 +5590,101 @@
       }
     }
 
+    function getVenueEffectiveBasePrice(venue) {
+      return getVenueBasePrice(venue);
+    }
+
+    // Toggle Search Filter / Sort Dropdown
+    function toggleSearchFilterDropdown(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('searchFilterDropdown');
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        menu.classList.add('flex');
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+          }
+        } catch (err) {}
+      } else {
+        closeSearchFilterDropdown();
+      }
+    }
+
+    function closeSearchFilterDropdown() {
+      const menu = document.getElementById('searchFilterDropdown');
+      if (menu) {
+        menu.classList.add('hidden');
+        menu.classList.remove('flex');
+      }
+    }
+
+    // Select sort option
+    function selectSortOption(sortKey, e) {
+      if (e) e.stopPropagation();
+      currentSortOption = sortKey;
+      updateSortDropdownUI();
+      closeSearchFilterDropdown();
+      applyCombinedFilters();
+
+      const labels = {
+        rating: 'С лучшей оценкой ⭐',
+        reviews: 'По количеству отзывов 💬',
+        price_asc: 'Сначала недорогие 📉',
+        price_desc: 'Сначала дорогие 📈'
+      };
+      showToast(`Сортировка: ${labels[sortKey] || 'Выбрана'}`);
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+      } catch (err) {}
+    }
+
+    // Reset sort option
+    function resetSortOption(e) {
+      if (e) e.stopPropagation();
+      currentSortOption = 'default';
+      updateSortDropdownUI();
+      closeSearchFilterDropdown();
+      applyCombinedFilters();
+      showToast('Сортировка сброшена');
+    }
+
+    function updateSortDropdownUI() {
+      const activeDot = document.getElementById('searchFilterActiveDot');
+      if (activeDot) {
+        activeDot.classList.toggle('hidden', currentSortOption === 'default');
+      }
+
+      document.querySelectorAll('.sort-option-btn').forEach(btn => {
+        const sortType = btn.getAttribute('data-sort');
+        const isSelected = (sortType === currentSortOption);
+        const check = btn.querySelector('.sort-check');
+        if (check) {
+          check.classList.toggle('hidden', !isSelected);
+        }
+        if (isSelected) {
+          btn.classList.add('bg-primary-fixed/40', 'text-primary');
+        } else {
+          btn.classList.remove('bg-primary-fixed/40', 'text-primary');
+        }
+      });
+    }
+
+    // Close sort dropdown when tapping outside
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('searchFilterDropdown');
+      const btn = document.getElementById('searchFilterBtn');
+      if (menu && !menu.classList.contains('hidden')) {
+        if (!menu.contains(e.target) && !btn?.contains(e.target)) {
+          closeSearchFilterDropdown();
+        }
+      }
+    });
+
     // Clear Search Input
     function clearSearch() {
       const input = document.getElementById('searchInput');
@@ -5524,17 +5696,8 @@
       showToast('Поиск сброшен');
     }
 
-    function toggleFiltersModal() {
-      showToast('Фильтры: рейтинг от 4.5, свободные слоты сегодня');
-    }
-
-    function centerLocation() {
-      if (yandexMapInstance) {
-        yandexMapInstance.panTo(userCoordinates, { flying: true, duration: 600 });
-        showToast('Карта центрирована на вашей локации 📍');
-      } else {
-        showToast('Определено текущее местоположение 📍');
-      }
+    function toggleFiltersModal(e) {
+      toggleSearchFilterDropdown(e);
     }
 
     function showClusterAlert() {
