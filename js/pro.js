@@ -548,23 +548,47 @@ function handleSalonCoverUploaded(event) {
 // ------------------------------------------
 let uploadedServicePhotos = [];
 
-function openProServicesModal() {
-  const modal = document.getElementById('proServicesModal');
+function openProServicesListModal() {
+  const modal = document.getElementById('proServicesListModal');
+  if (!modal) return;
+  renderProServicesList();
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeProServicesListModal() {
+  const modal = document.getElementById('proServicesListModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function openProAddServiceModal() {
+  const modal = document.getElementById('proAddServiceModal');
   if (!modal) return;
   uploadedServicePhotos = [];
-  renderProServicesList();
   renderServiceMastersSelection();
   renderServicePhotosPreview();
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 }
 
-function closeProServicesModal() {
-  const modal = document.getElementById('proServicesModal');
+function closeProAddServiceModal() {
+  const modal = document.getElementById('proAddServiceModal');
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
   }
+}
+
+// Backward compatibility alias
+function openProServicesModal() {
+  openProServicesListModal();
+}
+
+function closeProServicesModal() {
+  closeProServicesListModal();
 }
 
 function renderServiceMastersSelection() {
@@ -685,6 +709,8 @@ function addProService() {
     uploadedServicePhotos = [];
     renderServicePhotosPreview();
     renderProServicesList();
+    closeProAddServiceModal();
+    openProServicesListModal();
     showToast('Услуга успешно добавлена 💅');
   });
 }

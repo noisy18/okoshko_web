@@ -499,3 +499,20 @@
       background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
     }
 
+    /* Custom thin scrollbar for lists with visible indicator */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f0f4;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #5f3add;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: #5f3add #f1f0f4;
+    }
+
