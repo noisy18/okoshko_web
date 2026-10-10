@@ -17,22 +17,33 @@
     // User profile extractor from Telegram WebApp
     function getTelegramUser() {
       const defaultUser = {
-        id: 8949973080,
-        first_name: "Пользователь",
+        id: 1205557089,
+        first_name: "Максим",
         last_name: "",
-        username: "okoshko_user",
+        username: "maximtepin",
         is_premium: true,
+        is_pro: true,
         photo_url: ""
       };
 
+      // Check URL search params for is_pro
+      let isProFromUrl = false;
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        isProFromUrl = (urlParams.get('is_pro') === '1');
+      } catch (e) { }
+
       const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
       if (tgUser && (tgUser.first_name || tgUser.username || tgUser.id)) {
+        const userId = tgUser.id || defaultUser.id;
+        const isUserPro = isProFromUrl || (userId === 1205557089);
         return {
-          id: tgUser.id || defaultUser.id,
+          id: userId,
           first_name: tgUser.first_name || 'Пользователь',
           last_name: tgUser.last_name || '',
           username: tgUser.username || '',
           is_premium: !!tgUser.is_premium,
+          is_pro: isUserPro,
           photo_url: tgUser.photo_url || ''
         };
       }
@@ -88,6 +99,19 @@
       } else {
         if (pInit) { pInit.textContent = initials; pInit.classList.remove('hidden'); }
         if (pImg) pImg.classList.add('hidden');
+      }
+
+      // If user has PRO status in DB / Telegram
+      const bizCardTitle = document.getElementById('bizCardTitle');
+      const bizCardBadge = document.getElementById('bizCardBadge');
+      const bizCardSub = document.getElementById('bizCardSub');
+      if (user.is_pro) {
+        if (bizCardTitle) bizCardTitle.textContent = 'Бизнес-аккаунт активен';
+        if (bizCardBadge) {
+          bizCardBadge.textContent = 'PRO АКТИВЕН';
+          bizCardBadge.className = 'px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black uppercase tracking-wider';
+        }
+        if (bizCardSub) bizCardSub.textContent = 'Ваш профиль верифицирован как партнер сервиса';
       }
 
       // Top Header Avatar

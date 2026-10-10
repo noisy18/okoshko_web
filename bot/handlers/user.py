@@ -27,10 +27,15 @@ async def handle_start(message: Message, bot: Bot):
                 first_name=message.from_user.first_name,
                 last_name=message.from_user.last_name,
             )
-            if db_user and db_user.created_at:
-                ts_ms = int(db_user.created_at.timestamp() * 1000)
-                delimiter = "&" if "?" in MINI_APP_URL else "?"
-                app_url = f"{MINI_APP_URL}{delimiter}registered_at={ts_ms}"
+            if db_user:
+                params = []
+                if db_user.created_at:
+                    params.append(f"registered_at={int(db_user.created_at.timestamp() * 1000)}")
+                if db_user.is_pro:
+                    params.append("is_pro=1")
+                if params:
+                    delimiter = "&" if "?" in MINI_APP_URL else "?"
+                    app_url = f"{MINI_APP_URL}{delimiter}{'&'.join(params)}"
         except Exception as e:
             logger.error(f"Ошибка сохранения пользователя {message.from_user.id} в БД: {e}")
 
@@ -69,7 +74,7 @@ async def handle_start(message: Message, bot: Bot):
 
 
 async def get_user_app_url(telegram_id: Optional[int]) -> str:
-    """Генерирует ссылку на WebApp с параметром даты регистрации created_at из БД"""
+    """Генерирует ссылку на WebApp с параметрами даты регистрации и PRO статуса из БД"""
     if not telegram_id:
         return MINI_APP_URL
     try:
@@ -80,12 +85,17 @@ async def get_user_app_url(telegram_id: Optional[int]) -> str:
         async with async_session_maker() as session:
             res = await session.execute(select(User).where(User.telegram_id == telegram_id))
             user = res.scalar_one_or_none()
-            if user and user.created_at:
-                ts_ms = int(user.created_at.timestamp() * 1000)
-                delimiter = "&" if "?" in MINI_APP_URL else "?"
-                return f"{MINI_APP_URL}{delimiter}registered_at={ts_ms}"
+            if user:
+                params = []
+                if user.created_at:
+                    params.append(f"registered_at={int(user.created_at.timestamp() * 1000)}")
+                if user.is_pro:
+                    params.append("is_pro=1")
+                if params:
+                    delimiter = "&" if "?" in MINI_APP_URL else "?"
+                    return f"{MINI_APP_URL}{delimiter}{'&'.join(params)}"
     except Exception as e:
-        logger.warning(f"Ошибка получения created_at для {telegram_id}: {e}")
+        logger.warning(f"Ошибка получения параметров пользователя для {telegram_id}: {e}")
     return MINI_APP_URL
 
 
