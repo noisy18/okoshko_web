@@ -1,5 +1,5 @@
 from bot.database.base import Base, engine, async_session_maker, init_db
-from bot.database.models import User, Booking, Salon, Master, Review, City, BusinessApplication
+from bot.database.models import User, Booking, Salon, Master, Review, City, BusinessApplication, BusinessStatistic
 from bot.database.requests import (
     get_or_create_user,
     create_booking,
@@ -23,6 +23,7 @@ __all__ = [
     "Review",
     "City",
     "BusinessApplication",
+    "BusinessStatistic",
     "get_or_create_user",
     "create_booking",
     "get_user_bookings",

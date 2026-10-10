@@ -721,12 +721,44 @@
           const tabPositions = {
             'map': '0%',
             'appointments': '100%',
-            'profile': '200%'
+            'profile': '200%',
+            'pro-stats': '0%',
+            'pro-appointments': '100%',
+            'pro-profile': '200%'
           };
           if (tabPositions[screen] !== undefined) {
             indicator.style.transform = `translateX(${tabPositions[screen]})`;
             indicator.style.display = 'block';
           }
+        }
+
+        // PRO Nav bubble indicator
+        const proIndicator = document.getElementById('proNavActiveIndicator');
+        if (proIndicator) {
+          const proPositions = {
+            'pro-stats': '0%',
+            'pro-appointments': '100%',
+            'pro-profile': '200%'
+          };
+          if (proPositions[screen] !== undefined) {
+            proIndicator.style.transform = `translateX(${proPositions[screen]})`;
+            proIndicator.style.display = 'block';
+          }
+        }
+
+        // Update Pro Nav buttons
+        document.querySelectorAll('.pro-nav-btn').forEach(btn => {
+          btn.classList.remove('text-primary');
+          btn.classList.add('text-slate-500');
+          const spanText = btn.querySelector('span:last-child');
+          if (spanText) spanText.classList.replace('font-bold', 'font-semibold');
+        });
+        const activeProBtn = document.getElementById(`nav-${screen}`);
+        if (activeProBtn) {
+          activeProBtn.classList.add('text-primary');
+          activeProBtn.classList.remove('text-slate-500');
+          const spanText = activeProBtn.querySelector('span:last-child');
+          if (spanText) spanText.classList.replace('font-semibold', 'font-bold');
         }
 
         const backBtn = document.getElementById('headerBackBtn');
@@ -787,6 +819,21 @@
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Окошко';
           globalNav.classList.remove('hidden');
+        } else if (screen === 'pro-stats') {
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
+          headerTitle.textContent = 'Панель PRO';
+          globalNav.classList.remove('hidden');
+          if (typeof renderProStats === 'function') renderProStats();
+        } else if (screen === 'pro-appointments') {
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
+          headerTitle.textContent = 'Панель PRO';
+          globalNav.classList.remove('hidden');
+          if (typeof renderProAppointments === 'function') renderProAppointments();
+        } else if (screen === 'pro-profile') {
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
+          headerTitle.textContent = 'Панель PRO';
+          globalNav.classList.remove('hidden');
+          if (typeof syncProSalonUI === 'function') syncProSalonUI();
         }
       }
     };

@@ -5,6 +5,7 @@ from .master import Master
 from .review import Review
 from .city import City
 from .business_application import BusinessApplication
+from .statistic import BusinessStatistic
 
 __all__ = [
     "User",
@@ -14,4 +15,6 @@ __all__ = [
     "Review",
     "City",
     "BusinessApplication",
+    "BusinessStatistic",
 ]
+

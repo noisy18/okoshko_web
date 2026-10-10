@@ -478,3 +478,21 @@
     body.map-fullscreen-mode .venues-carousel {
       display: none !important;
     }
+
+    /* PRO Mode Navigation Switching */
+    body.pro-mode-active #nav-map-label {
+      display: none;
+    }
+    body.pro-mode-active .client-nav-dock {
+      display: none !important;
+    }
+    body.pro-mode-active .pro-nav-dock {
+      display: block !important;
+    }
+    .pro-nav-dock {
+      display: none;
+    }
+    .pro-gradient-card {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+    }
+

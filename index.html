@@ -1269,10 +1269,330 @@
     </section>
 
     <!-- ======================================================== -->
+    <!-- SCREEN 6: PRO STATISTICS (Статистика вместо Карты) -->
+    <!-- ======================================================== -->
+    <section id="screen-pro-stats" class="screen pb-44">
+      <div class="px-4 pt-3 flex flex-col gap-4">
+        <!-- Top Pro Banner -->
+        <div class="p-4 rounded-3xl pro-gradient-card text-white shadow-md flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-xs">
+              <span class="material-symbols-outlined text-[24px]">query_stats</span>
+            </div>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-1.5">
+                <span class="font-extrabold text-sm tracking-tight">Панель управления</span>
+                <span class="px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black uppercase">PRO</span>
+              </div>
+              <span class="text-[11px] text-indigo-200 mt-0.5">Статистика и аналитика салона</span>
+            </div>
+          </div>
+          <button onclick="exitProMode()" class="px-2.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-[11px] font-semibold text-white transition-all active:scale-95 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">logout</span>
+            <span>Клиент</span>
+          </button>
+        </div>
+
+        <!-- Key Metrics Grid -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <!-- Metric 1: Revenue -->
+          <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-1">
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="text-[11px] font-semibold">Выручка</span>
+              <span class="material-symbols-outlined text-emerald-500 text-[18px]">payments</span>
+            </div>
+            <span id="proStatRevenue" class="text-base font-extrabold text-on-surface">20 900 ₽</span>
+            <span class="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
+              <span>↑ 18%</span>
+              <span class="text-slate-400 font-normal">за неделю</span>
+            </span>
+          </div>
+
+          <!-- Metric 2: Bookings -->
+          <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-1">
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="text-[11px] font-semibold">Всего записей</span>
+              <span class="material-symbols-outlined text-primary text-[18px]">event_note</span>
+            </div>
+            <span id="proStatBookings" class="text-base font-extrabold text-on-surface">16</span>
+            <span class="text-[10px] text-primary font-semibold flex items-center gap-0.5">
+              <span>+4 новых</span>
+              <span class="text-slate-400 font-normal">сегодня</span>
+            </span>
+          </div>
+
+          <!-- Metric 3: Views -->
+          <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-1">
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="text-[11px] font-semibold">Просмотры</span>
+              <span class="material-symbols-outlined text-indigo-500 text-[18px]">visibility</span>
+            </div>
+            <span id="proStatViews" class="text-base font-extrabold text-on-surface">284</span>
+            <span class="text-[10px] text-slate-400">в каталоге сервиса</span>
+          </div>
+
+          <!-- Metric 4: Avg Check -->
+          <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-1">
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="text-[11px] font-semibold">Средний чек</span>
+              <span class="material-symbols-outlined text-amber-500 text-[18px]">receipt_long</span>
+            </div>
+            <span id="proStatAvgCheck" class="text-base font-extrabold text-on-surface">2 350 ₽</span>
+            <span class="text-[10px] text-slate-400">по всем услугам</span>
+          </div>
+        </div>
+
+        <!-- Conversion & Performance Section -->
+        <div class="p-4 rounded-3xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-3">
+          <span class="text-xs font-bold text-on-surface">Эффективность витрины</span>
+          <div class="flex flex-col gap-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Заполняемость графика</span>
+              <span class="font-bold text-primary">82%</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div class="h-full bg-primary rounded-full" style="width: 82%;"></div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-2 pt-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Возвращаемость клиентов</span>
+              <span class="font-bold text-emerald-600">76%</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div class="h-full bg-emerald-500 rounded-full" style="width: 76%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="flex gap-2">
+          <button onclick="router.navigate('pro-appointments')" class="flex-1 py-3 px-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center gap-2 text-xs font-bold text-on-surface active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-primary text-[18px]">calendar_today</span>
+            <span>Записи клиентов</span>
+          </button>
+          <button onclick="router.navigate('pro-profile')" class="flex-1 py-3 px-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center gap-2 text-xs font-bold text-on-surface active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-indigo-600 text-[18px]">settings</span>
+            <span>Настройки профиля</span>
+          </button>
+        </div>
+
+        <!-- Spacer for bottom dock -->
+        <div class="w-full h-24 pointer-events-none" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 7: PRO APPOINTMENTS (Записи клиентов) -->
+    <!-- ======================================================== -->
+    <section id="screen-pro-appointments" class="screen pb-44">
+      <div class="px-4 pt-3 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl font-bold text-on-surface">Записи клиентов</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Управление бронированиями и клиентами</p>
+          </div>
+          <span id="proActiveApptCountBadge" class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-xs font-semibold border border-emerald-200">
+            3 активных
+          </span>
+        </div>
+
+        <!-- Active Appointments List Container -->
+        <div id="proActiveAppointmentsList" class="flex flex-col gap-3">
+          <!-- Populated dynamically by renderProAppointments() -->
+        </div>
+
+        <!-- History Section -->
+        <div class="flex flex-col gap-2 mt-2">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Завершенные и отмененные визиты</span>
+          <div id="proHistoryAppointmentsList" class="flex flex-col gap-2">
+            <!-- Populated dynamically by renderProAppointments() -->
+          </div>
+        </div>
+
+        <!-- Spacer for bottom dock -->
+        <div class="w-full h-24 pointer-events-none" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 8: PRO PROFILE (Профиль бизнеса / салона) -->
+    <!-- ======================================================== -->
+    <section id="screen-pro-profile" class="screen pb-44">
+      <div class="px-4 pt-3 flex flex-col gap-4">
+        <!-- Business Header Card -->
+        <div class="flex flex-col items-center text-center">
+          <div class="relative mb-2">
+            <div class="w-20 h-20 rounded-full overflow-hidden shadow-md bg-indigo-50 p-1 flex items-center justify-center border-2 border-indigo-300">
+              <span class="material-symbols-outlined text-indigo-600 text-[38px]">storefront</span>
+            </div>
+            <span class="absolute bottom-0 right-0 px-1.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black uppercase">PRO</span>
+          </div>
+
+          <h1 id="proSalonName" class="font-bold text-lg text-on-surface">Beauty Studio</h1>
+          <p id="proSalonAddress" class="text-xs text-slate-500 mt-0.5 max-w-[280px]">ул. Большая Садовая, 42 • м. Маяковская</p>
+        </div>
+
+        <!-- Business Fields (1 to 5) -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Основные данные бизнеса</span>
+          <div class="rounded-2xl bg-white shadow-xs border border-slate-200/60 overflow-hidden flex flex-col text-xs">
+            <!-- 1. Название -->
+            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProFieldModal('name')">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-[18px]">badge</span>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-on-surface">1. Название</span>
+                  <span id="proProfileNameSub" class="text-[11px] text-slate-500">Beauty Studio</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 text-slate-400 text-xs">
+                <span class="font-semibold text-primary text-[11px]">Изменить</span>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </div>
+            </div>
+
+            <div class="h-px bg-slate-100 mx-3"></div>
+
+            <!-- 2. Адрес -->
+            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProFieldModal('address')">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-[18px]">location_on</span>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-on-surface">2. Адрес</span>
+                  <span id="proProfileAddressSub" class="text-[11px] text-slate-500 truncate max-w-[190px]">ул. Большая Садовая, 42</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 text-slate-400 text-xs">
+                <span class="font-semibold text-primary text-[11px]">Изменить</span>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </div>
+            </div>
+
+            <div class="h-px bg-slate-100 mx-3"></div>
+
+            <!-- 3. Телефон -->
+            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProFieldModal('phone')">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-[18px]">call</span>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-on-surface">3. Телефон</span>
+                  <span id="proProfilePhoneSub" class="text-[11px] text-slate-500">+7 (999) 123-45-67</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 text-slate-400 text-xs">
+                <span class="font-semibold text-primary text-[11px]">Изменить</span>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </div>
+            </div>
+
+            <div class="h-px bg-slate-100 mx-3"></div>
+
+            <!-- 4. Тег в Telegram создателя (не меняется) -->
+            <div class="p-3.5 flex items-center justify-between bg-slate-50/60">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-slate-400 text-[18px]">verified_user</span>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-on-surface">4. Создатель (Владелец)</span>
+                  <span id="proProfileCreatorTag" class="text-[11px] text-slate-500 font-semibold">@maximtepin</span>
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded-full font-medium">Фиксирован</span>
+            </div>
+
+            <div class="h-px bg-slate-100 mx-3"></div>
+
+            <!-- 5. Тег в Telegram администратора -->
+            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProFieldModal('admin')">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-[18px]">manage_accounts</span>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-on-surface">5. Администратор в Telegram</span>
+                  <span id="proProfileAdminSub" class="text-[11px] text-slate-500">@okoshko_admin</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 text-slate-400 text-xs">
+                <span class="font-semibold text-primary text-[11px]">Изменить</span>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Management Buttons (6 & 7) -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Каталог и персонал</span>
+          <div class="rounded-2xl bg-white shadow-xs border border-slate-200/60 overflow-hidden flex flex-col text-xs">
+            <!-- 6. Кнопка выбора и редактирования списка услуг -->
+            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProServicesModal()">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-[20px]">spa</span>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-on-surface">6. Список услуг</span>
+                  <span class="text-[10px] text-slate-400">Прайс-лист, длительность и описание</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="proServicesCountBadge" class="font-bold text-primary bg-primary-fixed/50 px-2 py-0.5 rounded-full text-[11px]">4 услуги</span>
+                <span class="material-symbols-outlined text-slate-400 text-[16px]">chevron_right</span>
+              </div>
+            </div>
+
+            <div class="h-px bg-slate-100 mx-3"></div>
+
+            <!-- 7. Кнопка выбора и редактирования списка мастеров -->
+            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProMastersModal()">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-[20px]">group</span>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-on-surface">7. Список мастеров</span>
+                  <span class="text-[10px] text-slate-400">Специалисты, опыт и бейджи</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="proMastersCountBadge" class="font-bold text-primary bg-primary-fixed/50 px-2 py-0.5 rounded-full text-[11px]">2 мастера</span>
+                <span class="material-symbols-outlined text-slate-400 text-[16px]">chevron_right</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. Подключение уведомлений администратору -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Уведомления о записях</span>
+          <div class="rounded-2xl bg-white shadow-xs border border-slate-200/60 overflow-hidden flex flex-col text-xs">
+            <div class="p-3.5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-[20px]">notifications_active</span>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-on-surface">8. Уведомления администратору</span>
+                  <span class="text-[10px] text-slate-400">Присылать новые бронирования в Telegram</span>
+                </div>
+              </div>
+              <label class="ios-switch">
+                <input type="checkbox" id="proTgNotificationsToggle" checked onchange="toggleProNotifications(this.checked)" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exit Button -->
+        <button onclick="exitProMode()" class="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 mt-1">
+          <span class="material-symbols-outlined text-[17px]">arrow_back</span>
+          <span>Вернуться в клиентский режим</span>
+        </button>
+
+        <!-- Spacer for bottom dock -->
+        <div class="w-full h-24 pointer-events-none" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
     <!-- GLOBAL BOTTOM NAVIGATION DOCK (Карта, Записи, Профиль) -->
     <!-- ======================================================== -->
-    <nav id="globalNav"
-      class="fixed bottom-0 inset-x-0 z-30 pb-safe max-w-[440px] mx-auto pointer-events-none px-4 pb-3">
+    <!-- 1. Client Navigation Dock -->
+    <nav id="globalNav" class="client-nav-dock fixed bottom-0 inset-x-0 z-30 pb-safe max-w-[440px] mx-auto pointer-events-none px-4 pb-3">
       <div class="pointer-events-auto telegram-liquid-nav rounded-full px-2 py-1">
         <!-- Floating glass bubble indicator -->
         <div id="navActiveIndicator" class="telegram-nav-indicator" style="transform: translateX(0%);"></div>
@@ -1299,6 +1619,40 @@
           <button onclick="router.navigate('profile')" id="nav-profile"
             class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
             <span class="material-symbols-outlined text-[23px] transition-transform">person</span>
+            <span class="text-[11px] font-semibold tracking-tight">Профиль</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 2. PRO Business Navigation Dock (Статистика, Записи, Профиль) -->
+    <nav id="proNav" class="pro-nav-dock fixed bottom-0 inset-x-0 z-30 pb-safe max-w-[440px] mx-auto pointer-events-none px-4 pb-3">
+      <div class="pointer-events-auto telegram-liquid-nav rounded-full px-2 py-1">
+        <!-- Floating glass bubble indicator -->
+        <div id="proNavActiveIndicator" class="telegram-nav-indicator" style="transform: translateX(0%);"></div>
+
+        <div class="relative z-10 flex justify-around items-center h-14">
+          <!-- Tab: Statistics (вместо Карты) -->
+          <button onclick="router.navigate('pro-stats')" id="nav-pro-stats"
+            class="pro-nav-btn active flex-1 flex flex-col items-center justify-center gap-0.5 text-primary transition-all active:scale-95">
+            <span class="material-symbols-outlined text-[23px] transition-transform">monitoring</span>
+            <span class="text-[11px] font-bold tracking-tight">Статистика</span>
+          </button>
+
+          <!-- Tab: Client Appointments -->
+          <button onclick="router.navigate('pro-appointments')" id="nav-pro-appointments"
+            class="pro-nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
+            <div class="relative">
+              <span class="material-symbols-outlined text-[23px] transition-transform">receipt_long</span>
+              <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+            </div>
+            <span class="text-[11px] font-semibold tracking-tight">Записи</span>
+          </button>
+
+          <!-- Tab: Business Profile -->
+          <button onclick="router.navigate('pro-profile')" id="nav-pro-profile"
+            class="pro-nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
+            <span class="material-symbols-outlined text-[23px] transition-transform">storefront</span>
             <span class="text-[11px] font-semibold tracking-tight">Профиль</span>
           </button>
         </div>
@@ -1635,6 +1989,132 @@
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- MODAL: PRO FIELD EDIT (Название, Адрес, Телефон, Админ) -->
+  <!-- ======================================================== -->
+  <div id="proFieldEditModal" onclick="if(event.target === this) closeProFieldModal()"
+    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom duration-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined text-[22px]">edit</span>
+          </div>
+          <div class="flex flex-col">
+            <h3 id="proFieldEditTitle" class="font-bold text-base text-on-surface">Редактирование</h3>
+            <span id="proFieldEditHint" class="text-[11px] text-slate-400">Изменение данных профиля салона</span>
+          </div>
+        </div>
+        <button onclick="closeProFieldModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
+      </div>
+
+      <div class="pt-1">
+        <input id="proFieldEditInput" type="text"
+          class="w-full px-4 py-3 rounded-2xl bg-surface-container-low border border-slate-200 text-sm font-semibold text-on-surface outline-none focus:border-primary focus:bg-white transition-all" />
+      </div>
+
+      <button type="button" onclick="saveProFieldEdit()"
+        class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-sm shadow-[0_8px_20px_rgba(95,58,221,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-1">
+        <span class="material-symbols-outlined text-[18px]">check</span>
+        <span>Сохранить изменения</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PRO SERVICES MANAGEMENT (Список услуг) -->
+  <!-- ======================================================== -->
+  <div id="proServicesModal" onclick="if(event.target === this) closeProServicesModal()"
+    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-primary-fixed/50 flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined text-[22px]">spa</span>
+          </div>
+          <div class="flex flex-col">
+            <h3 class="font-bold text-base text-on-surface">Услуги и прайс-лист</h3>
+            <span class="text-[11px] text-slate-400">Управление позициями в каталоге</span>
+          </div>
+        </div>
+        <button onclick="closeProServicesModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
+      </div>
+
+      <!-- Services List -->
+      <div id="proServicesListContainer" class="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-0.5">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Add New Service Form -->
+      <div class="p-3.5 rounded-2xl bg-surface-container-low border border-slate-200/70 flex flex-col gap-2.5">
+        <span class="text-xs font-bold text-slate-600">Добавить новую услугу</span>
+        <input id="newServiceNameInput" type="text" placeholder="Название услуги (например: Маникюр Luxio)"
+          class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-on-surface outline-none focus:border-primary" />
+        <div class="grid grid-cols-2 gap-2">
+          <input id="newServicePriceInput" type="number" placeholder="Цена в ₽"
+            class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-on-surface outline-none focus:border-primary" />
+          <input id="newServiceDurationInput" type="number" placeholder="Длительность (мин)" value="60"
+            class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-on-surface outline-none focus:border-primary" />
+        </div>
+        <button type="button" onclick="addProService()"
+          class="w-full py-2.5 rounded-xl bg-primary text-white font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs">
+          <span class="material-symbols-outlined text-[16px]">add</span>
+          <span>Добавить в прайс</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PRO MASTERS MANAGEMENT (Список мастеров) -->
+  <!-- ======================================================== -->
+  <div id="proMastersModal" onclick="if(event.target === this) closeProMastersModal()"
+    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined text-[22px]">group</span>
+          </div>
+          <div class="flex flex-col">
+            <h3 class="font-bold text-base text-on-surface">Команда мастеров</h3>
+            <span class="text-[11px] text-slate-400">Специалисты салона и квалификация</span>
+          </div>
+        </div>
+        <button onclick="closeProMastersModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
+      </div>
+
+      <!-- Masters List -->
+      <div id="proMastersListContainer" class="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-0.5">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Add New Master Form -->
+      <div class="p-3.5 rounded-2xl bg-surface-container-low border border-slate-200/70 flex flex-col gap-2.5">
+        <span class="text-xs font-bold text-slate-600">Добавить мастера</span>
+        <input id="newMasterNameInput" type="text" placeholder="Имя и фамилия мастера"
+          class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-on-surface outline-none focus:border-primary" />
+        <div class="grid grid-cols-2 gap-2">
+          <input id="newMasterRoleInput" type="text" placeholder="Специализация (Маникюр PRO)"
+            class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-on-surface outline-none focus:border-primary" />
+          <input id="newMasterExpInput" type="text" placeholder="Опыт (3 года)"
+            class="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-on-surface outline-none focus:border-primary" />
+        </div>
+        <button type="button" onclick="addProMaster()"
+          class="w-full py-2.5 rounded-xl bg-primary text-white font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs">
+          <span class="material-symbols-outlined text-[16px]">person_add</span>
+          <span>Добавить мастера</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast"
     class="fixed top-12 z-50 bg-slate-900/90 text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl backdrop-blur-md transform -translate-y-20 opacity-0 transition-all pointer-events-none flex items-center gap-2">
@@ -1653,5 +2133,6 @@
   <script src="js/business.js"></script>
   <script src="js/cities.js"></script>
   <script src="js/favorites.js"></script>
+  <script src="js/pro.js"></script>
 </body>
 </html>
