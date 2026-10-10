@@ -106,12 +106,12 @@
       const bizCardBadge = document.getElementById('bizCardBadge');
       const bizCardSub = document.getElementById('bizCardSub');
       if (user.is_pro) {
-        if (bizCardTitle) bizCardTitle.textContent = 'Бизнес-аккаунт активен';
+        if (bizCardTitle) bizCardTitle.textContent = 'Войти в бизнес-аккаунт';
         if (bizCardBadge) {
-          bizCardBadge.textContent = 'PRO АКТИВЕН';
-          bizCardBadge.className = 'px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black uppercase tracking-wider';
+          bizCardBadge.textContent = 'PRO';
+          bizCardBadge.className = 'px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-extrabold uppercase';
         }
-        if (bizCardSub) bizCardSub.textContent = 'Ваш профиль верифицирован как партнер сервиса';
+        if (bizCardSub) bizCardSub.textContent = 'Управление салоном, мастерами и онлайн-записями';
       }
 
       // Top Header Avatar

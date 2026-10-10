@@ -4,6 +4,16 @@
     let currentBizType = 'salon';
 
     function openBusinessModal() {
+      if (state.user?.is_pro) {
+        showToast('Вход в панель управления PRO... 💼');
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          }
+        } catch (e) { }
+        return;
+      }
+
       const modal = document.getElementById('businessModal');
       if (modal) {
         const contactInput = document.getElementById('bizContactInput');
