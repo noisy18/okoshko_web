@@ -4,6 +4,7 @@
 
 const PRO_DATA_STORAGE_KEY = 'okoshko_pro_salon_data_v1';
 const PRO_APPOINTMENTS_STORAGE_KEY = 'okoshko_pro_clients_appointments_v1';
+const BOT_LINK = 'https://t.me/okooshko_bot';
 
 // Default initial state for PRO Salon (Beauty Studio as baseline partner)
 const DEFAULT_PRO_SALON = {
@@ -13,33 +14,77 @@ const DEFAULT_PRO_SALON = {
   address: 'ул. Большая Садовая, 42 • м. Маяковская',
   phone: '+7 (999) 123-45-67',
   creatorTag: '@maximtepin',
-  adminTag: '@okoshko_admin',
+  adminTag: '', // Не назначен по умолчанию
   notificationsEnabled: true,
   categoryText: 'Маникюр · Брови · Педикюр',
   rating: '4.9',
   reviewsCount: 148,
+  avatarUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=300&q=80',
+  coverUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
   services: [
-    { id: 'bs_s1', name: 'Маникюр с покрытием гель-лак Luxio', desc: 'Снятие, выравнивание, покрытие • 90 мин', price: 2500, duration: 90 },
-    { id: 'bs_s2', name: 'Архитектура и окрашивание бровей', desc: 'Хна или премиум-краситель Levissime • 60 мин', price: 1800, duration: 60 },
-    { id: 'bs_s3', name: 'Smart-педикюр эстетический', desc: 'Аппаратная обработка стопы + пальчики • 75 мин', price: 2800, duration: 75 },
-    { id: 'bs_s4', name: 'Ремонт / Дизайн френч', desc: 'Укрепление акрилом или пудрой • 20 мин', price: 400, duration: 20 }
+    {
+      id: 'bs_s1',
+      name: 'Маникюр с покрытием гель-лак Luxio',
+      category: 'Маникюр',
+      desc: 'Снятие старого покрытия, аппаратный маникюр, выравнивание базой, цветное покрытие Luxio',
+      price: 2500,
+      duration: 90,
+      masterIds: ['master_beauty_alina'],
+      photos: ['https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=400&q=80']
+    },
+    {
+      id: 'bs_s2',
+      name: 'Архитектура и окрашивание бровей',
+      category: 'Ресницы & Брови',
+      desc: 'Построение правильной формы, коррекция пинцетом/воском, стойкое окрашивание Levissime',
+      price: 1800,
+      duration: 60,
+      masterIds: ['master_beauty_daria'],
+      photos: ['https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=400&q=80']
+    },
+    {
+      id: 'bs_s3',
+      name: 'Smart-педикюр эстетический',
+      category: 'Педикюр',
+      desc: 'Аппаратная обработка стопы smart-дисками, пальчики, покрытие лечебным лаком',
+      price: 2800,
+      duration: 75,
+      masterIds: ['master_beauty_alina'],
+      photos: []
+    },
+    {
+      id: 'bs_s4',
+      name: 'Ремонт / Дизайн френч',
+      category: 'Маникюр',
+      desc: 'Укрепление акрилом или пудрой одного ногтя / французский дизайн',
+      price: 400,
+      duration: 20,
+      masterIds: ['master_beauty_alina'],
+      photos: []
+    }
   ],
   masters: [
     {
       id: 'master_beauty_alina',
-      name: 'Алина Романова',
-      role_title: 'Топ-мастер аппаратного маникюра',
-      grade_badge: 'PRO TOP',
+      name: 'Алина',
+      lastName: 'Романова',
+      role_title: 'Мастер аппаратного маникюра',
       experience: '5 лет',
-      avatar_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDk4gw1UO5MRK6ZgCmtBhgbzfykfvdMi22HxmB42TFZv43Ycfx-fGIgpdWlkDauw_wwkEdituuObvw2bYr3OWyoV7Rqd3KFJr3g1SQM8vQ9ejRqbfexejYKE6z1IcUAVFuonjPm6mZI6Wyfi3KUqpeR2pHxtJfueeBJ_aDmYd4TtueiDxgWXzAv7kB7okWv6LGjfOYzg5WbMcK7hUcST54m7JMjCxVmk0kjDtDoRw'
+      avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80',
+      portfolio_photos: [
+        'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=400&q=80'
+      ]
     },
     {
       id: 'master_beauty_daria',
-      name: 'Дарья Мельникова',
-      role_title: 'Бровист-лэшмейкер PRO',
-      grade_badge: 'PRO BROW',
+      name: 'Дарья',
+      lastName: 'Мельникова',
+      role_title: 'Бровист-лэшмейкер',
       experience: '3 года',
-      avatar_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCH0Y8FhK0i_d2lU1h52Jg3-vBfE3xQ194Z3U4tF9-3-P21l6E2GgZ4rX2v7FmZ0H3qL2kM-6z7VpW4eR2A7y'
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+      portfolio_photos: [
+        'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=400&q=80'
+      ]
     }
   ]
 };
@@ -159,13 +204,13 @@ function exitProMode() {
 // ------------------------------------------
 function syncProSalonUI() {
   const data = getProSalonData();
-  
+
   // Name
   const nameEl = document.getElementById('proSalonName');
   const nameSubEl = document.getElementById('proProfileNameSub');
   if (nameEl) nameEl.textContent = data.name;
   if (nameSubEl) nameSubEl.textContent = data.name;
-  
+
   // City
   const citySubEl = document.getElementById('proProfileCitySub');
   const cityBadgeEl = document.getElementById('proProfileCityBadge');
@@ -182,15 +227,28 @@ function syncProSalonUI() {
   const phoneEl = document.getElementById('proProfilePhoneSub');
   if (phoneEl) phoneEl.textContent = data.phone || 'Не указан';
 
-  // Tags
+  // Creator Tag (Fixed)
   const creatorEl = document.getElementById('proProfileCreatorTag');
   if (creatorEl) {
     const userHandle = state.user?.username ? `@${state.user.username}` : (data.creatorTag || '@maximtepin');
     creatorEl.textContent = userHandle;
   }
 
+  // Admin Tag (Optional, bound via link)
   const adminEl = document.getElementById('proProfileAdminSub');
-  if (adminEl) adminEl.textContent = data.adminTag || 'Не назначен';
+  const adminBadge = document.getElementById('proAdminStatusBadge');
+  const unbindBtn = document.getElementById('proAdminUnbindBtn');
+  if (adminEl) {
+    if (data.adminTag) {
+      adminEl.textContent = data.adminTag;
+      if (adminBadge) adminBadge.innerHTML = '<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">Привязан</span>';
+      unbindBtn?.classList.remove('hidden');
+    } else {
+      adminEl.textContent = 'Не привязан (нажмите «Отправить ссылку»)';
+      if (adminBadge) adminBadge.innerHTML = '<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">Свободно</span>';
+      unbindBtn?.classList.add('hidden');
+    }
+  }
 
   // Counts
   const svcCountEl = document.getElementById('proServicesCountBadge');
@@ -202,6 +260,13 @@ function syncProSalonUI() {
   // Notifications switch
   const notifToggle = document.getElementById('proTgNotificationsToggle');
   if (notifToggle) notifToggle.checked = !!data.notificationsEnabled;
+
+  // Avatar & Cover
+  const avatarImg = document.getElementById('proSalonAvatarImg');
+  if (avatarImg && data.avatarUrl) avatarImg.src = data.avatarUrl;
+
+  const coverImg = document.getElementById('proSalonCoverImg');
+  if (coverImg && data.coverUrl) coverImg.src = data.coverUrl;
 }
 
 // ------------------------------------------
@@ -229,8 +294,8 @@ function handleProCitySelected(cityKey, cityName) {
 function getAdminInviteLink() {
   const data = getProSalonData();
   const salonSlug = encodeURIComponent((data.name || 'salon').toLowerCase().replace(/\s+/g, '-'));
-  // Deep link into Telegram bot for admin role binding
-  return `https://t.me/okoshko_bot?start=bind_admin_${salonSlug}`;
+  // Point to https://t.me/okooshko_bot
+  return `${BOT_LINK}?start=bind_admin_${salonSlug}`;
 }
 
 function sendAdminInviteLink() {
@@ -269,6 +334,49 @@ function copyAdminInviteLink() {
   } catch (e) { }
 }
 
+function resetProAdminBinding() {
+  const data = getProSalonData();
+  data.adminTag = '';
+  saveProSalonData(data);
+  showToast('Администратор отвязан ✓');
+}
+
+// ------------------------------------------
+// CONFIRMATION MODAL HELPER
+// ------------------------------------------
+let pendingProConfirmedAction = null;
+
+function confirmProAction(title, desc, actionFn) {
+  pendingProConfirmedAction = actionFn;
+  const modal = document.getElementById('proConfirmModal');
+  const tEl = document.getElementById('proConfirmTitle');
+  const dEl = document.getElementById('proConfirmDesc');
+
+  if (tEl) tEl.textContent = title;
+  if (dEl) dEl.textContent = desc;
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeProConfirmModal() {
+  const modal = document.getElementById('proConfirmModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  pendingProConfirmedAction = null;
+}
+
+function executeProConfirmedAction() {
+  if (typeof pendingProConfirmedAction === 'function') {
+    pendingProConfirmedAction();
+  }
+  closeProConfirmModal();
+}
+
 // ------------------------------------------
 // PRO PROFILE EDITING MODALS
 // ------------------------------------------
@@ -280,9 +388,15 @@ function openProFieldModal(fieldKey) {
   const title = document.getElementById('proFieldEditTitle');
   const input = document.getElementById('proFieldEditInput');
   const hint = document.getElementById('proFieldEditHint');
+  const validationHint = document.getElementById('proFieldEditValidationHint');
   const data = getProSalonData();
 
   if (!modal || !input) return;
+
+  if (validationHint) validationHint.classList.add('hidden');
+  input.oninput = null;
+  input.onkeydown = null;
+  input.type = 'text';
 
   if (fieldKey === 'name') {
     title.textContent = 'Название предприятия';
@@ -297,13 +411,33 @@ function openProFieldModal(fieldKey) {
   } else if (fieldKey === 'phone') {
     title.textContent = 'Контактный телефон';
     input.placeholder = '+7 (999) 000-00-00';
+    input.type = 'tel';
     input.value = data.phone || '';
     hint.textContent = 'Номер для звонков и клиентской связи';
-  } else if (fieldKey === 'admin') {
-    title.textContent = 'Тег администратора';
-    input.placeholder = '@admin_username';
-    input.value = data.adminTag || '';
-    hint.textContent = 'В Telegram этого администратора будут приходить уведомления о записях';
+    if (validationHint) {
+      validationHint.classList.remove('hidden');
+      validationHint.textContent = 'Введите 10 цифр номера (начиная после +7)';
+    }
+
+    input.oninput = function() {
+      const formatted = formatPhoneNumber(this.value);
+      this.value = formatted;
+      const digits = this.value.replace(/\D/g, '').replace(/^[78]/, '');
+      if (validationHint) {
+        if (digits.length === 10) {
+          validationHint.textContent = '✓ Номер введен полностью';
+          validationHint.className = 'text-[11px] text-emerald-600 font-semibold px-1';
+        } else {
+          validationHint.textContent = `Осталось ввести ${10 - digits.length} цифр`;
+          validationHint.className = 'text-[11px] text-slate-400 px-1';
+        }
+      }
+    };
+    input.onkeydown = function(e) {
+      const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Escape'];
+      if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) return;
+      if (!/^\d$/.test(e.key)) e.preventDefault();
+    };
   }
 
   modal.classList.remove('hidden');
@@ -330,23 +464,30 @@ function saveProFieldEdit() {
     return;
   }
 
-  const data = getProSalonData();
-  if (activeProEditField === 'name') {
-    data.name = val;
-    showToast('Название обновлено ✓');
-  } else if (activeProEditField === 'address') {
-    data.address = val;
-    showToast('Адрес обновлен ✓');
-  } else if (activeProEditField === 'phone') {
-    data.phone = val;
-    showToast('Телефон обновлен ✓');
-  } else if (activeProEditField === 'admin') {
-    data.adminTag = val.startsWith('@') ? val : `@${val}`;
-    showToast('Администратор обновлен ✓');
+  if (activeProEditField === 'phone') {
+    const digits = val.replace(/\D/g, '').replace(/^[78]/, '');
+    if (digits.length < 10) {
+      showToast('Пожалуйста, введите полный номер из 10 цифр ⚠️');
+      input.focus();
+      return;
+    }
   }
 
-  saveProSalonData(data);
-  closeProFieldModal();
+  confirmProAction('Сохранить изменения?', `Обновить поле «${activeProEditField === 'name' ? 'Название' : activeProEditField === 'address' ? 'Адрес' : 'Телефон'}»?`, () => {
+    const data = getProSalonData();
+    if (activeProEditField === 'name') {
+      data.name = val;
+      showToast('Название обновлено ✓');
+    } else if (activeProEditField === 'address') {
+      data.address = val;
+      showToast('Адрес обновлен ✓');
+    } else if (activeProEditField === 'phone') {
+      data.phone = val;
+      showToast('Телефон обновлен ✓');
+    }
+    saveProSalonData(data);
+    closeProFieldModal();
+  });
 }
 
 function toggleProNotifications(enabled) {
@@ -358,12 +499,62 @@ function toggleProNotifications(enabled) {
 }
 
 // ------------------------------------------
-// PRO SERVICES MANAGEMENT MODAL
+// SALON AVATAR & COVER UPLOAD HANDLERS
 // ------------------------------------------
+function triggerSalonAvatarUpload() {
+  document.getElementById('proSalonAvatarInput')?.click();
+}
+
+function handleSalonAvatarUploaded(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    confirmProAction('Обновить аватарку салона?', 'Загрузить новое изображение логотипа/аватарки салона?', () => {
+      const data = getProSalonData();
+      data.avatarUrl = base64;
+      saveProSalonData(data);
+      showToast('Аватарка салона обновлена 🖼️');
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function triggerSalonCoverUpload() {
+  document.getElementById('proSalonCoverInput')?.click();
+}
+
+function handleSalonCoverUploaded(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    confirmProAction('Обновить фон карточки?', 'Загрузить новое фоновое фото для шапки салона?', () => {
+      const data = getProSalonData();
+      data.coverUrl = base64;
+      saveProSalonData(data);
+      showToast('Фоновое изображение обновлено 📸');
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+// ------------------------------------------
+// PRO SERVICES MANAGEMENT
+// ------------------------------------------
+let uploadedServicePhotos = [];
+
 function openProServicesModal() {
   const modal = document.getElementById('proServicesModal');
   if (!modal) return;
+  uploadedServicePhotos = [];
   renderProServicesList();
+  renderServiceMastersSelection();
+  renderServicePhotosPreview();
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 }
@@ -374,6 +565,50 @@ function closeProServicesModal() {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
   }
+}
+
+function renderServiceMastersSelection() {
+  const container = document.getElementById('newServiceMastersCheckboxes');
+  if (!container) return;
+  const data = getProSalonData();
+
+  if (data.masters.length === 0) {
+    container.innerHTML = '<span class="text-[11px] text-slate-400">Сначала добавьте мастеров</span>';
+    return;
+  }
+
+  container.innerHTML = data.masters.map(m => `
+    <label class="flex items-center gap-2 cursor-pointer py-0.5">
+      <input type="checkbox" name="serviceMasterIds" value="${m.id}" class="accent-primary rounded" />
+      <span class="text-xs text-on-surface font-medium">${m.name} ${m.lastName || ''}</span>
+      <span class="text-[10px] text-slate-400">(${m.role_title})</span>
+    </label>
+  `).join('');
+}
+
+function handleServicePhotoUploaded(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadedServicePhotos.push(e.target.result);
+    renderServicePhotosPreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderServicePhotosPreview() {
+  const container = document.getElementById('newServicePhotosPreview');
+  if (!container) return;
+
+  container.innerHTML = uploadedServicePhotos.map((src, idx) => `
+    <div class="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-300 group">
+      <img src="${src}" class="w-full h-full object-cover" />
+      <button onclick="uploadedServicePhotos.splice(${idx}, 1); renderServicePhotosPreview();"
+        class="absolute top-0 right-0 w-4 h-4 bg-black/60 text-white flex items-center justify-center text-[9px] rounded-bl-lg">✕</button>
+    </div>
+  `).join('');
 }
 
 function renderProServicesList() {
@@ -389,11 +624,19 @@ function renderProServicesList() {
   container.innerHTML = data.services.map((svc, idx) => `
     <div class="p-3.5 rounded-2xl bg-surface-container-low border border-slate-200/70 flex items-center justify-between gap-2">
       <div class="flex flex-col min-w-0 flex-1">
-        <span class="font-bold text-xs text-on-surface truncate">${svc.name}</span>
-        <span class="text-[10px] text-slate-400 mt-0.5 truncate">${svc.desc || (svc.duration + ' мин')}</span>
-        <span class="text-xs font-extrabold text-primary mt-1">${(svc.price || 0).toLocaleString('ru-RU')} ₽</span>
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-xs text-on-surface truncate">${svc.name}</span>
+          ${svc.category ? `<span class="px-1.5 py-0.2 rounded-full bg-slate-200/60 text-slate-600 text-[9px] font-semibold">${svc.category}</span>` : ''}
+        </div>
+        <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${svc.desc || ''}</span>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="text-xs font-extrabold text-primary">${(svc.price || 0).toLocaleString('ru-RU')} ₽</span>
+          <span class="text-[10px] text-slate-400">• ${svc.duration || 60} мин</span>
+          ${svc.photos?.length ? `<span class="text-[10px] text-slate-400">📷 ${svc.photos.length} фото</span>` : ''}
+        </div>
       </div>
-      <button onclick="deleteProService(${idx})" class="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center shrink-0 active:scale-90 transition-transform">
+      <button onclick="confirmProAction('Удалить услугу?', 'Вы действительно хотите удалить эту позицию из прайс-листа?', () => deleteProService(${idx}))"
+        class="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center shrink-0 active:scale-90 transition-transform">
         <span class="material-symbols-outlined text-[17px]">delete</span>
       </button>
     </div>
@@ -402,32 +645,48 @@ function renderProServicesList() {
 
 function addProService() {
   const nameInput = document.getElementById('newServiceNameInput');
+  const descInput = document.getElementById('newServiceDescInput');
+  const catSelect = document.getElementById('newServiceCategorySelect');
   const priceInput = document.getElementById('newServicePriceInput');
-  const durInput = document.getElementById('newServiceDurationInput');
+  const durSelect = document.getElementById('newServiceDurationSelect');
 
   const name = nameInput?.value?.trim();
+  const desc = descInput?.value?.trim() || '';
+  const category = catSelect?.value || 'Маникюр';
   const price = parseInt(priceInput?.value || '0', 10);
-  const dur = parseInt(durInput?.value || '60', 10);
+  const dur = parseInt(durSelect?.value || '60', 10);
 
   if (!name || isNaN(price) || price <= 0) {
     showToast('Укажите название и корректную стоимость');
     return;
   }
 
-  const data = getProSalonData();
-  data.services.push({
-    id: 'svc_' + Date.now(),
-    name: name,
-    desc: `${dur} мин`,
-    price: price,
-    duration: dur
-  });
+  // Selected masters
+  const masterCheckboxes = document.querySelectorAll('input[name="serviceMasterIds"]:checked');
+  const masterIds = Array.from(masterCheckboxes).map(cb => cb.value);
 
-  saveProSalonData(data);
-  if (nameInput) nameInput.value = '';
-  if (priceInput) priceInput.value = '';
-  renderProServicesList();
-  showToast('Услуга успешно добавлена 💅');
+  confirmProAction('Добавить услугу в каталог?', `Услуга «${name}» (${price} ₽) будет доступна клиентам при записи.`, () => {
+    const data = getProSalonData();
+    data.services.push({
+      id: 'svc_' + Date.now(),
+      name: name,
+      desc: desc,
+      category: category,
+      price: price,
+      duration: dur,
+      masterIds: masterIds,
+      photos: [...uploadedServicePhotos]
+    });
+
+    saveProSalonData(data);
+    if (nameInput) nameInput.value = '';
+    if (descInput) descInput.value = '';
+    if (priceInput) priceInput.value = '';
+    uploadedServicePhotos = [];
+    renderServicePhotosPreview();
+    renderProServicesList();
+    showToast('Услуга успешно добавлена 💅');
+  });
 }
 
 function deleteProService(idx) {
@@ -441,12 +700,17 @@ function deleteProService(idx) {
 }
 
 // ------------------------------------------
-// PRO MASTERS MANAGEMENT MODAL
+// PRO MASTERS MANAGEMENT
 // ------------------------------------------
+let uploadedMasterPortfolio = [];
+let uploadedMasterAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+
 function openProMastersModal() {
   const modal = document.getElementById('proMastersModal');
   if (!modal) return;
+  uploadedMasterPortfolio = [];
   renderProMastersList();
+  renderMasterPortfolioPreview();
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 }
@@ -457,6 +721,70 @@ function closeProMastersModal() {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
   }
+}
+
+function getMasterInviteLink(masterName = '') {
+  const data = getProSalonData();
+  const salonSlug = encodeURIComponent((data.name || 'salon').toLowerCase().replace(/\s+/g, '-'));
+  return `${BOT_LINK}?start=bind_master_${salonSlug}_${encodeURIComponent(masterName || 'spec')}`;
+}
+
+function sendMasterInviteLink(masterName = '') {
+  const link = getMasterInviteLink(masterName);
+  const text = `Привет! Приглашаю тебя подключиться в качестве мастера в «Окошко» для получения записей:\n${link}`;
+
+  if (window.Telegram?.WebApp?.openTelegramLink) {
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Приглашение мастера в команду Okoshko')}`;
+    window.Telegram.WebApp.openTelegramLink(shareUrl);
+  } else if (navigator.share) {
+    navigator.share({
+      title: 'Приглашение мастера',
+      text: text,
+      url: link
+    }).catch(() => {
+      prompt('Скопируйте ссылку мастера:', link);
+    });
+  } else {
+    prompt('Скопируйте ссылку мастера:', link);
+  }
+}
+
+function handleMasterAvatarUploaded(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadedMasterAvatar = e.target.result;
+    const img = document.getElementById('newMasterAvatarPreviewImg');
+    if (img) img.src = uploadedMasterAvatar;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleMasterPortfolioUploaded(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadedMasterPortfolio.push(e.target.result);
+    renderMasterPortfolioPreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderMasterPortfolioPreview() {
+  const container = document.getElementById('newMasterPortfolioPreview');
+  if (!container) return;
+
+  container.innerHTML = uploadedMasterPortfolio.map((src, idx) => `
+    <div class="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-300 group">
+      <img src="${src}" class="w-full h-full object-cover" />
+      <button onclick="uploadedMasterPortfolio.splice(${idx}, 1); renderMasterPortfolioPreview();"
+        class="absolute top-0 right-0 w-4 h-4 bg-black/60 text-white flex items-center justify-center text-[9px] rounded-bl-lg">✕</button>
+    </div>
+  `).join('');
 }
 
 function renderProMastersList() {
@@ -471,53 +799,73 @@ function renderProMastersList() {
 
   container.innerHTML = data.masters.map((m, idx) => `
     <div class="p-3.5 rounded-2xl bg-surface-container-low border border-slate-200/70 flex items-center justify-between gap-3">
-      <div class="w-11 h-11 rounded-2xl overflow-hidden bg-slate-200 shrink-0">
-        <img src="${m.avatar_url}" alt="${m.name}" class="w-full h-full object-cover"/>
+      <div class="w-12 h-12 rounded-2xl overflow-hidden bg-slate-200 shrink-0 border border-slate-300/60">
+        <img src="${m.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}" alt="${m.name}" class="w-full h-full object-cover"/>
       </div>
       <div class="flex flex-col min-w-0 flex-1">
-        <div class="flex items-center gap-1.5">
-          <span class="font-bold text-xs text-on-surface truncate">${m.name}</span>
-          <span class="px-1.5 py-0.2 rounded-full bg-primary-fixed text-primary text-[9px] font-bold">${m.grade_badge || 'PRO'}</span>
-        </div>
+        <span class="font-bold text-xs text-on-surface truncate">${m.name} ${m.lastName || ''}</span>
         <span class="text-[11px] text-slate-500 mt-0.5 truncate">${m.role_title}</span>
-        <span class="text-[10px] text-slate-400">Опыт: ${m.experience}</span>
+        <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+          <span>Опыт: ${m.experience}</span>
+          ${m.portfolio_photos?.length ? `<span>• 📷 ${m.portfolio_photos.length} работ</span>` : ''}
+        </div>
       </div>
-      <button onclick="deleteProMaster(${idx})" class="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center shrink-0 active:scale-90 transition-transform">
-        <span class="material-symbols-outlined text-[17px]">delete</span>
-      </button>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="sendMasterInviteLink('${m.name}')" title="Отправить ссылку в Telegram"
+          class="w-8 h-8 rounded-xl bg-indigo-50 text-primary hover:bg-indigo-100 flex items-center justify-center active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[16px]">share</span>
+        </button>
+        <button onclick="openProMasterEditModal(${idx})" title="Редактировать"
+          class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[16px]">edit</span>
+        </button>
+        <button onclick="confirmProAction('Удалить мастера?', 'Вы уверены, что хотите удалить этого мастера из команды салона?', () => deleteProMaster(${idx}))" title="Удалить"
+          class="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[16px]">delete</span>
+        </button>
+      </div>
     </div>
   `).join('');
 }
 
 function addProMaster() {
-  const nameInput = document.getElementById('newMasterNameInput');
+  const firstInput = document.getElementById('newMasterFirstNameInput');
+  const lastInput = document.getElementById('newMasterLastNameInput');
   const roleInput = document.getElementById('newMasterRoleInput');
   const expInput = document.getElementById('newMasterExpInput');
 
-  const name = nameInput?.value?.trim();
+  const firstName = firstInput?.value?.trim();
+  const lastName = lastInput?.value?.trim() || '';
   const role = roleInput?.value?.trim();
   const exp = expInput?.value?.trim() || '2 года';
 
-  if (!name || !role) {
+  if (!firstName || !role) {
     showToast('Укажите имя и специализацию мастера');
     return;
   }
 
-  const data = getProSalonData();
-  data.masters.push({
-    id: 'master_' + Date.now(),
-    name: name,
-    role_title: role,
-    grade_badge: 'PRO',
-    experience: exp,
-    avatar_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDk4gw1UO5MRK6ZgCmtBhgbzfykfvdMi22HxmB42TFZv43Ycfx-fGIgpdWlkDauw_wwkEdituuObvw2bYr3OWyoV7Rqd3KFJr3g1SQM8vQ9ejRqbfexejYKE6z1IcUAVFuonjPm6mZI6Wyfi3KUqpeR2pHxtJfueeBJ_aDmYd4TtueiDxgWXzAv7kB7okWv6LGjfOYzg5WbMcK7hUcST54m7JMjCxVmk0kjDtDoRw'
-  });
+  confirmProAction('Добавить мастера?', `Добавить специалиста ${firstName} ${lastName} в команду салона?`, () => {
+    const data = getProSalonData();
+    data.masters.push({
+      id: 'master_' + Date.now(),
+      name: firstName,
+      lastName: lastName,
+      role_title: role,
+      experience: exp,
+      avatar_url: uploadedMasterAvatar,
+      portfolio_photos: [...uploadedMasterPortfolio]
+    });
 
-  saveProSalonData(data);
-  if (nameInput) nameInput.value = '';
-  if (roleInput) roleInput.value = '';
-  renderProMastersList();
-  showToast('Мастер успешно добавлен 💇');
+    saveProSalonData(data);
+    if (firstInput) firstInput.value = '';
+    if (lastInput) lastInput.value = '';
+    if (roleInput) roleInput.value = '';
+    if (expInput) expInput.value = '';
+    uploadedMasterPortfolio = [];
+    renderMasterPortfolioPreview();
+    renderProMastersList();
+    showToast('Мастер успешно добавлен 💇');
+  });
 }
 
 function deleteProMaster(idx) {
@@ -528,6 +876,79 @@ function deleteProMaster(idx) {
     renderProMastersList();
     showToast('Мастер удален');
   }
+}
+
+// ------------------------------------------
+// PRO MASTER EDIT MODAL
+// ------------------------------------------
+function openProMasterEditModal(idx) {
+  const data = getProSalonData();
+  const master = data.masters[idx];
+  if (!master) return;
+
+  const modal = document.getElementById('proMasterEditModal');
+  const idxInput = document.getElementById('editMasterIdxInput');
+  const firstInput = document.getElementById('editMasterFirstNameInput');
+  const lastInput = document.getElementById('editMasterLastNameInput');
+  const roleInput = document.getElementById('editMasterRoleInput');
+  const expInput = document.getElementById('editMasterExpInput');
+
+  if (idxInput) idxInput.value = idx;
+  if (firstInput) firstInput.value = master.name;
+  if (lastInput) lastInput.value = master.lastName || '';
+  if (roleInput) roleInput.value = master.role_title;
+  if (expInput) expInput.value = master.experience || '2 года';
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeProMasterEditModal() {
+  const modal = document.getElementById('proMasterEditModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function sendMasterInviteLinkFromModal() {
+  const firstInput = document.getElementById('editMasterFirstNameInput');
+  sendMasterInviteLink(firstInput?.value || '');
+}
+
+function saveProMasterEdit() {
+  const idxInput = document.getElementById('editMasterIdxInput');
+  const firstInput = document.getElementById('editMasterFirstNameInput');
+  const lastInput = document.getElementById('editMasterLastNameInput');
+  const roleInput = document.getElementById('editMasterRoleInput');
+  const expInput = document.getElementById('editMasterExpInput');
+
+  const idx = parseInt(idxInput?.value || '-1', 10);
+  const firstName = firstInput?.value?.trim();
+  const lastName = lastInput?.value?.trim();
+  const role = roleInput?.value?.trim();
+  const exp = expInput?.value?.trim();
+
+  if (!firstName || !role) {
+    showToast('Заполните имя и специализацию');
+    return;
+  }
+
+  confirmProAction('Сохранить данные мастера?', 'Обновить профиль специалиста в системе?', () => {
+    const data = getProSalonData();
+    if (data.masters[idx]) {
+      data.masters[idx].name = firstName;
+      data.masters[idx].lastName = lastName;
+      data.masters[idx].role_title = role;
+      data.masters[idx].experience = exp;
+      saveProSalonData(data);
+      renderProMastersList();
+      closeProMasterEditModal();
+      showToast('Данные мастера сохранены ✓');
+    }
+  });
 }
 
 // ------------------------------------------
@@ -589,11 +1010,13 @@ function renderProAppointments() {
           </div>
 
           <div class="flex items-center gap-2 pt-1">
-            <button onclick="completeProAppointment('${a.id}')" class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs active:scale-95 transition-all flex items-center justify-center gap-1">
+            <button onclick="confirmProAction('Завершить визит?', 'Отметить визит клиента как успешно завершенный?', () => completeProAppointment('${a.id}'))"
+              class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs active:scale-95 transition-all flex items-center justify-center gap-1">
               <span class="material-symbols-outlined text-[15px]">done_all</span>
               <span>Визит завершен</span>
             </button>
-            <button onclick="cancelProAppointment('${a.id}')" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs active:scale-95 transition-all">
+            <button onclick="confirmProAction('Отменить запись?', 'Вы уверены, что хотите отменить эту запись клиента?', () => cancelProAppointment('${a.id}'))"
+              class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs active:scale-95 transition-all">
               Отмена
             </button>
           </div>
@@ -650,7 +1073,6 @@ function cancelProAppointment(id) {
 function renderProStats() {
   const appts = getProAppointments();
   const completed = appts.filter(a => a.status === 'completed');
-  const active = appts.filter(a => a.status === 'active');
 
   const baseRevenue = completed.reduce((sum, a) => sum + (a.price || 0), 0) + 18400; // baseline
   const totalBookingsCount = appts.length + 12;

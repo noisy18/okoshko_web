@@ -24,6 +24,8 @@ class Salon(Base):
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
     image_url: Mapped[str] = mapped_column(Text, nullable=False)
+    logo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cover_image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     services_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     slots_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

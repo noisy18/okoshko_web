@@ -18,6 +18,8 @@ class Service(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     price: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     duration_minutes: Mapped[int] = mapped_column(Integer, default=60)
+    master_ids_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON-массив ID привязанных мастеров
+    photos_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)      # JSON-массив ссылок на примеры работ
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
