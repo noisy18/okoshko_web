@@ -31,6 +31,7 @@ class Salon(Base):
 
     masters: Mapped[List["Master"]] = relationship("Master", back_populates="salon", cascade="all, delete-orphan")
     reviews: Mapped[List["Review"]] = relationship("Review", back_populates="salon", cascade="all, delete-orphan")
+    business_services: Mapped[List["Service"]] = relationship("Service", back_populates="salon", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Salon id={self.id} slug={self.slug} name={self.name}>"

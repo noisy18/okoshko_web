@@ -177,6 +177,17 @@
     // Called when user selects a city from the bottom sheet modal
     function selectCityOption(cityId) {
       if (!CITY_CONFIG[cityId]) cityId = 'all';
+
+      // If called from PRO profile city selector
+      if (typeof isProCitySelection !== 'undefined' && isProCitySelection) {
+        const cityName = CITY_CONFIG[cityId]?.name || 'Москва';
+        if (typeof handleProCitySelected === 'function') {
+          handleProCitySelected(cityId, cityName);
+        }
+        closeCityModal();
+        return;
+      }
+
       currentFilterRegion = cityId;
 
       const saveDefault = document.getElementById('saveAsDefaultCityCheck');

@@ -483,6 +483,9 @@
     body.pro-mode-active #nav-map-label {
       display: none;
     }
+    body.pro-mode-active #headerCityBtn {
+      display: none !important;
+    }
     body.pro-mode-active .client-nav-dock {
       display: none !important;
     }

@@ -8,6 +8,8 @@ const PRO_APPOINTMENTS_STORAGE_KEY = 'okoshko_pro_clients_appointments_v1';
 // Default initial state for PRO Salon (Beauty Studio as baseline partner)
 const DEFAULT_PRO_SALON = {
   name: 'Beauty Studio',
+  city: 'Москва',
+  cityKey: 'moscow',
   address: 'ул. Большая Садовая, 42 • м. Маяковская',
   phone: '+7 (999) 123-45-67',
   creatorTag: '@maximtepin',
@@ -164,6 +166,12 @@ function syncProSalonUI() {
   if (nameEl) nameEl.textContent = data.name;
   if (nameSubEl) nameSubEl.textContent = data.name;
   
+  // City
+  const citySubEl = document.getElementById('proProfileCitySub');
+  const cityBadgeEl = document.getElementById('proProfileCityBadge');
+  if (citySubEl) citySubEl.textContent = data.city || 'Москва';
+  if (cityBadgeEl) cityBadgeEl.textContent = 'Изменить';
+
   // Address
   const addrEl = document.getElementById('proSalonAddress');
   const addrSubEl = document.getElementById('proProfileAddressSub');
@@ -194,6 +202,71 @@ function syncProSalonUI() {
   // Notifications switch
   const notifToggle = document.getElementById('proTgNotificationsToggle');
   if (notifToggle) notifToggle.checked = !!data.notificationsEnabled;
+}
+
+// ------------------------------------------
+// PRO CITY SELECTOR
+// ------------------------------------------
+let isProCitySelection = false;
+
+function openProCityModal() {
+  isProCitySelection = true;
+  openCityModal();
+}
+
+function handleProCitySelected(cityKey, cityName) {
+  const data = getProSalonData();
+  data.city = cityName;
+  data.cityKey = cityKey;
+  saveProSalonData(data);
+  showToast(`Город изменен на ${cityName} ✓`);
+  isProCitySelection = false;
+}
+
+// ------------------------------------------
+// ADMIN INVITE LINK HANDLERS
+// ------------------------------------------
+function getAdminInviteLink() {
+  const data = getProSalonData();
+  const salonSlug = encodeURIComponent((data.name || 'salon').toLowerCase().replace(/\s+/g, '-'));
+  // Deep link into Telegram bot for admin role binding
+  return `https://t.me/okoshko_bot?start=bind_admin_${salonSlug}`;
+}
+
+function sendAdminInviteLink() {
+  const link = getAdminInviteLink();
+  const text = `Привет! Приглашаю тебя стать администратором салона в приложении «Окошко» для управления записями и клиентами:\n${link}`;
+
+  if (window.Telegram?.WebApp?.openTelegramLink) {
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Приглашение администратора салона в Okoshko PRO')}`;
+    window.Telegram.WebApp.openTelegramLink(shareUrl);
+  } else if (navigator.share) {
+    navigator.share({
+      title: 'Приглашение администратора',
+      text: text,
+      url: link
+    }).catch(() => copyAdminInviteLink());
+  } else {
+    copyAdminInviteLink();
+  }
+}
+
+function copyAdminInviteLink() {
+  const link = getAdminInviteLink();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(() => {
+      showToast('Ссылка на привязку скопирована 📋');
+    }).catch(() => {
+      prompt('Скопируйте ссылку администратора:', link);
+    });
+  } else {
+    prompt('Скопируйте ссылку администратора:', link);
+  }
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+  } catch (e) { }
 }
 
 // ------------------------------------------
@@ -280,7 +353,7 @@ function toggleProNotifications(enabled) {
   const data = getProSalonData();
   data.notificationsEnabled = enabled;
   saveProSalonData(data);
-  const msg = enabled ? 'Уведомления администратору включены 🔔' : 'Уведомления отключены 🔕';
+  const msg = enabled ? 'Уведомления о записях включены 🔔' : 'Уведомления о записях отключены 🔕';
   showToast(msg);
 }
 

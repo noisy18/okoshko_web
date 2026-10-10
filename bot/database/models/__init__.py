@@ -4,8 +4,7 @@ from .salon import Salon
 from .master import Master
 from .review import Review
 from .city import City
-from .business_application import BusinessApplication
-from .statistic import BusinessStatistic
+from .business import BusinessApplication, BusinessStatistic, Service
 
 __all__ = [
     "User",
@@ -16,5 +15,5 @@ __all__ = [
     "City",
     "BusinessApplication",
     "BusinessStatistic",
+    "Service",
 ]
-
