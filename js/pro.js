@@ -153,6 +153,18 @@ function saveProSalonData(data) {
   try {
     localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
   } catch (e) { }
+
+  // Sync to Telegram CloudStorage across devices (PC <-> Mobile)
+  try {
+    if (window.Telegram?.WebApp?.CloudStorage?.setItem) {
+      window.Telegram.WebApp.CloudStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data), (err, stored) => {
+        if (!err && stored) {
+          console.log('[PRO] Salon data synced to Telegram CloudStorage');
+        }
+      });
+    }
+  } catch (e) { }
+
   syncProSalonUI();
 }
 
@@ -168,8 +180,65 @@ function saveProAppointments(appts) {
   try {
     localStorage.setItem(PRO_APPOINTMENTS_STORAGE_KEY, JSON.stringify(appts));
   } catch (e) { }
+
+  // Sync appointments to Telegram CloudStorage across devices
+  try {
+    if (window.Telegram?.WebApp?.CloudStorage?.setItem) {
+      window.Telegram.WebApp.CloudStorage.setItem(PRO_APPOINTMENTS_STORAGE_KEY, JSON.stringify(appts), (err, stored) => {
+        if (!err && stored) {
+          console.log('[PRO] Appointments synced to Telegram CloudStorage');
+        }
+      });
+    }
+  } catch (e) { }
+
   renderProAppointments();
   renderProStats();
+}
+
+// Cross-device synchronization on launch from Telegram CloudStorage
+function initProCloudSync() {
+  try {
+    if (window.Telegram?.WebApp?.CloudStorage?.getItems) {
+      window.Telegram.WebApp.CloudStorage.getItems([PRO_DATA_STORAGE_KEY, PRO_APPOINTMENTS_STORAGE_KEY], (err, values) => {
+        if (!err && values) {
+          let updated = false;
+          if (values[PRO_DATA_STORAGE_KEY]) {
+            try {
+              const cloudSalon = JSON.parse(values[PRO_DATA_STORAGE_KEY]);
+              if (cloudSalon && typeof cloudSalon === 'object') {
+                localStorage.setItem(PRO_DATA_STORAGE_KEY, values[PRO_DATA_STORAGE_KEY]);
+                updated = true;
+              }
+            } catch (e) { }
+          }
+          if (values[PRO_APPOINTMENTS_STORAGE_KEY]) {
+            try {
+              const cloudAppts = JSON.parse(values[PRO_APPOINTMENTS_STORAGE_KEY]);
+              if (Array.isArray(cloudAppts)) {
+                localStorage.setItem(PRO_APPOINTMENTS_STORAGE_KEY, values[PRO_APPOINTMENTS_STORAGE_KEY]);
+                updated = true;
+              }
+            } catch (e) { }
+          }
+          if (updated) {
+            syncProSalonUI();
+            if (typeof renderProAppointments === 'function') renderProAppointments();
+            if (typeof renderProStats === 'function') renderProStats();
+          }
+        }
+      });
+    }
+  } catch (e) { }
+}
+
+// Auto-run sync on script initialization
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProCloudSync);
+  } else {
+    initProCloudSync();
+  }
 }
 
 // ------------------------------------------
@@ -731,22 +800,49 @@ function deleteProService(idx) {
 let uploadedMasterPortfolio = [];
 let uploadedMasterAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
 
-function openProMastersModal() {
-  const modal = document.getElementById('proMastersModal');
+function openProMastersListModal() {
+  const modal = document.getElementById('proMastersListModal');
+  if (!modal) return;
+  renderProMastersList();
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeProMastersListModal() {
+  const modal = document.getElementById('proMastersListModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function openProAddMasterModal() {
+  const modal = document.getElementById('proAddMasterModal');
   if (!modal) return;
   uploadedMasterPortfolio = [];
-  renderProMastersList();
+  uploadedMasterAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+  const img = document.getElementById('newMasterAvatarPreviewImg');
+  if (img) img.src = uploadedMasterAvatar;
   renderMasterPortfolioPreview();
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 }
 
-function closeProMastersModal() {
-  const modal = document.getElementById('proMastersModal');
+function closeProAddMasterModal() {
+  const modal = document.getElementById('proAddMasterModal');
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
   }
+}
+
+// Backward compatibility aliases
+function openProMastersModal() {
+  openProMastersListModal();
+}
+
+function closeProMastersModal() {
+  closeProMastersListModal();
 }
 
 function getMasterInviteLink(masterName = '') {
@@ -890,6 +986,8 @@ function addProMaster() {
     uploadedMasterPortfolio = [];
     renderMasterPortfolioPreview();
     renderProMastersList();
+    closeProAddMasterModal();
+    openProMastersListModal();
     showToast('Мастер успешно добавлен 💇');
   });
 }
