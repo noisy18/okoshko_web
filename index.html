@@ -138,6 +138,17 @@
         inset 0 -1px 2px rgba(95, 58, 221, 0.04) !important;
     }
 
+    .telegram-glass-pill {
+      background: rgba(255, 255, 255, 0.72) !important;
+      backdrop-filter: blur(32px) saturate(210%) contrast(105%) !important;
+      -webkit-backdrop-filter: blur(32px) saturate(210%) contrast(105%) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+      box-shadow: 0 8px 24px -4px rgba(18, 14, 38, 0.12),
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 2px rgba(255, 255, 255, 1),
+        inset 0 -1px 1.5px rgba(0, 0, 0, 0.03) !important;
+    }
+
     /* Telegram Liquid Lens Bubble Indicator */
     .telegram-nav-indicator {
       position: absolute;
@@ -249,16 +260,14 @@
       flex: 0 0 88%;
       max-width: 360px;
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      border: 1.5px solid rgba(255, 255, 255, 0.95);
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      box-shadow: 0 16px 36px -8px rgba(18, 19, 22, 0.12);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
     }
 
     .venue-card-item.active {
       border-color: #5f3add !important;
-      box-shadow: 0 18px 44px -8px rgba(95, 58, 221, 0.35), 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
       transform: translateY(-2px);
     }
 
@@ -558,29 +567,36 @@
 
     <!-- Global Telegram Top Header with iOS Frosted Glass -->
     <header id="globalHeader" class="sticky top-0 w-full z-40 pt-safe ios-frosted-header transition-all">
-      <div class="h-14 px-4 flex items-center justify-between">
-        <!-- Back button or Close button -->
-        <button id="headerBackBtn" onclick="router.goBack()" aria-label="Назад"
-          class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-all">
-          <span id="headerBackIcon" class="material-symbols-outlined text-[20px]">close</span>
-        </button>
-
-        <!-- Center Title & Status (Balanced with Logo) -->
-        <div class="flex items-center justify-center gap-2 cursor-pointer max-w-[170px]" onclick="router.navigate('map')">
+      <div class="h-14 px-3.5 flex items-center justify-between gap-2">
+        <!-- Left: Logo & Title (with conditional back chevron when in inner screen) -->
+        <div class="flex items-center gap-2 cursor-pointer shrink-0" onclick="router.navigate('map')">
+          <button id="headerBackBtn" onclick="event.stopPropagation(); router.goBack()" aria-label="Назад"
+            class="hidden w-8 h-8 -ml-1 rounded-full text-on-surface hover:text-primary active:scale-95 transition-all items-center justify-center">
+            <span id="headerBackIcon" class="material-symbols-outlined text-[19px]">arrow_back_ios_new</span>
+          </button>
           <img src="img/okoshko_logo_png.png" alt="Окошко" class="w-6 h-6 object-contain rounded-lg shrink-0 shadow-2xs" />
-          <span id="headerTitle" class="font-bold text-[16px] text-on-surface tracking-tight truncate leading-none">Окошко</span>
+          <span id="headerTitle" class="font-bold text-[15px] text-on-surface tracking-tight truncate max-w-[110px] leading-none">Окошко</span>
           <span id="headerSubtitle" class="hidden"></span>
         </div>
 
-        <!-- Right Action: City Selector Dropdown & Profile Avatar -->
-        <div class="flex items-center gap-1.5">
-          <!-- City Selector Dropdown Pill Button -->
+        <!-- Center: City Selector Pill Button (Telegram Liquid Glass style) -->
+        <div class="flex-1 flex items-center justify-center min-w-0">
           <button id="headerCityBtn" onclick="event.stopPropagation(); openCityModal()" aria-label="Выбрать город"
-            class="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-surface-container-high/90 hover:bg-surface-container-highest border border-black/[0.04] text-on-surface text-xs font-semibold active:scale-95 transition-all shadow-2xs">
-            <span class="text-[13px] leading-none" id="headerCityIcon">🏙</span>
-            <span id="headerCityName" class="max-w-[76px] truncate text-[11px] font-bold">Москва</span>
-            <span class="material-symbols-outlined text-[15px] text-slate-500">expand_more</span>
+            class="telegram-glass-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full text-on-surface text-xs font-semibold active:scale-95 transition-all max-w-[150px]">
+            <span class="text-[13px] leading-none shrink-0" id="headerCityIcon">🏙</span>
+            <span id="headerCityName" class="truncate text-[11px] font-bold">Москва</span>
+            <span class="material-symbols-outlined text-[15px] text-slate-500 shrink-0">expand_more</span>
           </button>
+        </div>
+
+        <!-- Right: Profile Avatar & 3-Dots More Options Menu -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <!-- Profile Avatar -->
+          <div onclick="router.navigate('profile')"
+            class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center shadow-xs cursor-pointer text-white overflow-hidden shrink-0 active:scale-95 transition-transform">
+            <span id="headerUserInitials" class="text-xs font-bold">ТГ</span>
+            <img id="headerUserPhoto" class="w-full h-full object-cover hidden" alt="User" />
+          </div>
 
           <!-- Header More Options Dropdown -->
           <div class="relative">
@@ -618,12 +634,6 @@
                 </div>
               </button>
             </div>
-          </div>
-
-          <div onclick="router.navigate('profile')"
-            class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center shadow-xs cursor-pointer text-white overflow-hidden shrink-0">
-            <span id="headerUserInitials" class="text-xs font-bold">ТГ</span>
-            <img id="headerUserPhoto" class="w-full h-full object-cover hidden" alt="User" />
           </div>
         </div>
       </div>
@@ -877,7 +887,7 @@
         <!-- Category Chips -->
         <div class="-mx-4 px-4 overflow-x-auto flex items-center gap-2 no-scrollbar py-1">
           <button onclick="filterCategory('all', this)"
-            class="cat-pill active flex items-center px-4 py-1.5 rounded-full bg-primary text-white text-xs font-semibold shadow-[0_4px_12px_rgba(95,58,221,0.3)] whitespace-nowrap active:scale-95 transition-all shrink-0">
+            class="cat-pill active flex items-center px-4 py-1.5 rounded-full bg-primary text-white text-xs font-semibold shadow-xs whitespace-nowrap active:scale-95 transition-all shrink-0">
             Все
           </button>
           <button onclick="filterCategory('nails', this)"
@@ -916,9 +926,9 @@
           <span>Метки кликабельны</span>
         </div>
 
-        <!-- City Selector Pill Button (shown in fullscreen mode, top-left) -->
+        <!-- City Selector Pill Button (shown in fullscreen mode, top-left with Telegram Liquid Glass style) -->
         <button id="mapFullscreenCityBtn" onclick="event.stopPropagation(); openCityModal()" aria-label="Выбрать город"
-          class="hidden absolute top-4 left-4 z-40 flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/95 backdrop-blur-xl border border-white text-on-surface text-xs font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.18)] active:scale-95 transition-all">
+          class="hidden absolute top-4 left-4 z-40 telegram-glass-pill flex items-center gap-1.5 px-3 py-2 rounded-full text-on-surface text-xs font-semibold active:scale-95 transition-all">
           <span class="text-[14px] leading-none" id="mapFullscreenCityIcon">🏙</span>
           <span id="mapFullscreenCityName" class="max-w-[100px] truncate text-[12px] font-bold text-on-surface">Москва</span>
           <span class="material-symbols-outlined text-[16px] text-slate-500">expand_more</span>
@@ -2821,36 +2831,50 @@
           }
         }
 
+        const backBtn = document.getElementById('headerBackBtn');
         if (headerSubtitle) headerSubtitle.textContent = '';
+
+        // Only show back button on inner detail sub-screens, never on main screens
+        const isSubScreen = (screen === 'salon' || screen === 'master' || screen === 'favorites' || screen === 'reviews');
+        if (backBtn) {
+          if (isSubScreen) {
+            backBtn.classList.remove('hidden');
+            backBtn.classList.add('flex');
+          } else {
+            backBtn.classList.add('hidden');
+            backBtn.classList.remove('flex');
+          }
+        }
+
         if (screen === 'map') {
-          backIcon.textContent = 'close';
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Окошко';
           globalNav.classList.remove('hidden');
           if (yandexMapInstance && yandexMapInstance.container) {
             setTimeout(() => yandexMapInstance.container.fitToViewport(), 150);
           }
         } else if (screen === 'salon') {
-          backIcon.textContent = 'arrow_back_ios_new';
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           const currentVenue = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) : null;
           headerTitle.textContent = currentVenue ? currentVenue.name : 'Салон красоты';
           globalNav.classList.add('hidden');
         } else if (screen === 'master') {
-          backIcon.textContent = 'arrow_back_ios_new';
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           const activeMaster = (typeof getMasterById === 'function') ? getMasterById(state.activeMaster) : null;
           headerTitle.textContent = activeMaster ? activeMaster.name : 'Мастер';
           globalNav.classList.add('hidden');
         } else if (screen === 'appointments') {
-          backIcon.textContent = 'close';
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Записи';
           globalNav.classList.remove('hidden');
           renderAppointments();
         } else if (screen === 'favorites') {
-          backIcon.textContent = 'arrow_back_ios_new';
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Избранное';
           globalNav.classList.remove('hidden');
           renderFavorites();
         } else if (screen === 'reviews') {
-          backIcon.textContent = 'arrow_back_ios_new';
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           if (state.reviewsTargetType === 'master') {
             const activeMaster = (typeof getMasterById === 'function') ? getMasterById(state.activeMaster) : null;
             headerTitle.textContent = 'Отзывы о мастере';
@@ -2862,7 +2886,7 @@
           }
           globalNav.classList.add('hidden');
         } else if (screen === 'profile') {
-          backIcon.textContent = 'close';
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Профиль';
           globalNav.classList.remove('hidden');
         }
@@ -5955,11 +5979,11 @@
     // Category filter in map
     function filterCategory(cat, el) {
       document.querySelectorAll('.cat-pill').forEach(p => {
-        p.classList.remove('bg-primary', 'text-white', 'shadow-[0_4px_12px_rgba(95,58,221,0.3)]');
+        p.classList.remove('bg-primary', 'text-white', 'shadow-xs');
         p.classList.add('bg-white/90', 'text-on-surface');
       });
       if (el) {
-        el.classList.add('bg-primary', 'text-white', 'shadow-[0_4px_12px_rgba(95,58,221,0.3)]');
+        el.classList.add('bg-primary', 'text-white', 'shadow-xs');
         el.classList.remove('bg-white/90', 'text-on-surface');
       }
 
