@@ -5748,7 +5748,41 @@
 
       showToast('🎉 Заявка принята! Мы свяжемся с вами в Telegram');
 
-      // Отправляем данные боту через Telegram WebApp sendData
+      // 1. Формируем текст уведомления для Telegram группы
+      const typeLabel = (bizType === 'salon') ? '🏢 Салон красоты' : '💇 Частный мастер';
+      const userTg = state.user?.username ? `@${state.user.username} (ID: <code>${state.user.id}</code>)` : `ID: <code>${state.user?.id || 'не указан'}</code>`;
+      const notifText =
+        `🔥 <b>Новая заявка на PRO Бизнес-аккаунт!</b>\n\n` +
+        `🏷 <b>Тип:</b> ${typeLabel}\n` +
+        `🏢 <b>Название / Имя:</b> <b>${name}</b>\n` +
+        `💅 <b>Категория:</b> ${category}\n` +
+        `📍 <b>Адрес:</b> ${address || 'Не указан'}\n` +
+        `📞 <b>Контакт для связи:</b> <code>${contact}</code>\n` +
+        `👤 <b>Отправитель в TG:</b> ${userTg}\n\n` +
+        `⚡ <i>Свяжитесь с партнером для подключения и настройки профиля!</i>`;
+
+      // 2. Прямая отправка в группу через Telegram Bot API (работает при открытии через Menu Button, Inline Button и прямую ссылку)
+      const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+      const targetGroup = '-5590032342';
+      try {
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: targetGroup,
+            text: notifText,
+            parse_mode: 'HTML'
+          })
+        }).then(r => r.json()).then(res => {
+          console.log('Direct Bot API notification response:', res);
+        }).catch(err => {
+          console.warn('Direct Bot API fetch error:', err);
+        });
+      } catch (e) {
+        console.warn('Bot API fetch exception:', e);
+      }
+
+      // 3. Отправка боту через Telegram WebApp sendData (работает если WebApp открыт через Reply-клавиатуру)
       try {
         if (window.Telegram?.WebApp?.sendData) {
           window.Telegram.WebApp.sendData(JSON.stringify({
