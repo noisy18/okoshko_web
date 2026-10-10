@@ -25,6 +25,8 @@ else:
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 MINI_APP_URL = os.getenv("MINI_APP_URL", "https://noisy18.github.io/okoshko_web/").strip()
+# Группа/чат для заявок на подключение PRO бизнес-аккаунтов
+BUSINESS_GROUP_ID = int(os.getenv("BUSINESS_GROUP_ID", "-5590032342").strip())
 
 DB_HOST = os.getenv("DB_HOST", "localhost").strip()
 DB_PORT = os.getenv("DB_PORT", "5432").strip()
@@ -35,3 +37,4 @@ DB_PASS = os.getenv("DB_PASS", "okoshko_secret").strip()
 DATABASE_URL = (
     f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
+

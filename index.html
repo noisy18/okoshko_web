@@ -5722,6 +5722,8 @@
       const name = (document.getElementById('bizNameInput')?.value || '').trim();
       const contact = (document.getElementById('bizContactInput')?.value || '').trim();
       const category = document.getElementById('bizCategorySelect')?.value || 'Салон красоты';
+      const address = (document.getElementById('bizAddressInput')?.value || '').trim();
+      const bizType = currentBizType || 'salon';
 
       if (!name) {
         showToast('Пожалуйста, укажите название предприятия или ваше имя');
@@ -5745,6 +5747,22 @@
       if (cardSub) cardSub.textContent = `${name} (${category}) • Менеджер скоро свяжется`;
 
       showToast('🎉 Заявка принята! Мы свяжемся с вами в Telegram');
+
+      // Отправляем данные боту через Telegram WebApp sendData
+      try {
+        if (window.Telegram?.WebApp?.sendData) {
+          window.Telegram.WebApp.sendData(JSON.stringify({
+            action: 'business_application_submitted',
+            biz_type: bizType,
+            name: name,
+            category: category,
+            address: address,
+            contact: contact
+          }));
+        }
+      } catch (e) {
+        console.log('sendData biz application error:', e);
+      }
 
       try {
         if (window.Telegram?.WebApp?.HapticFeedback) {

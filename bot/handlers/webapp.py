@@ -125,6 +125,85 @@ async def handle_web_app_data(message: Message):
             )
             return
 
+        elif data.get("action") == "business_application_submitted":
+            from bot.config import BUSINESS_GROUP_ID
+            from bot.database import create_business_application
+
+            biz_type = data.get("biz_type", "salon")
+            name = data.get("name", "Не указано")
+            category = data.get("category", "Салон красоты")
+            address = data.get("address") or "Не указан"
+            contact = data.get("contact", "Не указан")
+            user_tg_id = message.from_user.id if message.from_user else None
+
+            # 1. Сохраняем в базу данных
+            app_id = None
+            try:
+                if message.from_user:
+                    await get_or_create_user(
+                        telegram_id=message.from_user.id,
+                        username=message.from_user.username,
+                        first_name=message.from_user.first_name,
+                        last_name=message.from_user.last_name,
+                    )
+                app = await create_business_application(
+                    user_id=user_tg_id,
+                    biz_type=biz_type,
+                    name=name,
+                    category=category,
+                    address=address if address != "Не указан" else None,
+                    contact=contact,
+                )
+                app_id = app.id
+            except Exception as e:
+                logger.error(f"Ошибка сохранения заявки бизнеса в БД: {e}")
+
+            # 2. Формируем подробное уведомление для администраторов в группе
+            type_label = "🏢 Салон красоты" if biz_type == "salon" else "💇 Частный мастер"
+            app_id_str = f"#{app_id}" if app_id else "Новая"
+
+            user_mention = "Не указан"
+            if message.from_user:
+                if message.from_user.username:
+                    user_mention = f"@{message.from_user.username} (ID: <code>{message.from_user.id}</code>)"
+                else:
+                    user_mention = f"{message.from_user.full_name} (ID: <code>{message.from_user.id}</code>)"
+
+            group_notification = (
+                f"🔥 <b>Новая заявка на PRO Бизнес-аккаунт!</b>\n\n"
+                f"📌 <b>Заявка:</b> {app_id_str}\n"
+                f"🏷 <b>Тип:</b> {type_label}\n"
+                f"🏢 <b>Название / Имя:</b> <b>{name}</b>\n"
+                f"💅 <b>Категория:</b> {category}\n"
+                f"📍 <b>Адрес:</b> {address}\n"
+                f"📞 <b>Контакт для связи:</b> <code>{contact}</code>\n"
+                f"👤 <b>Отправитель в TG:</b> {user_mention}\n\n"
+                f"⚡ <i>Свяжитесь с партнером для подключения и настройки профиля!</i>"
+            )
+
+            # 3. Отправляем в группу бизнеса
+            try:
+                await message.bot.send_message(
+                    chat_id=BUSINESS_GROUP_ID,
+                    text=group_notification,
+                )
+                logger.info(f"Заявка на PRO аккаунт {app_id_str} успешно отправлена в группу {BUSINESS_GROUP_ID}")
+            except Exception as e:
+                logger.error(f"Не удалось отправить заявку в группу {BUSINESS_GROUP_ID}: {e}")
+
+            # 4. Отвечаем пользователю в личный чат с ботом
+            user_response = (
+                f"🎉 <b>Ваша заявка на подключение PRO принята!</b>\n\n"
+                f"🏢 <b>Предприятие:</b> {name}\n"
+                f"🏷 <b>Категория:</b> {category}\n"
+                f"📞 <b>Контакт:</b> {contact}\n\n"
+                f"Менеджер Okoshko уже получил вашу заявку и свяжется с вами в Telegram в ближайшее время для подтверждения данных."
+            )
+            await message.answer(
+                text=user_response,
+                reply_markup=get_inline_keyboard(),
+            )
+            return
 
     except Exception as e:
         logger.error(f"Ошибка парсинга WebApp данных: {e}")

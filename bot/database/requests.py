@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.base import async_session_maker
-from bot.database.models import Booking, City, Review, Salon, User
+from bot.database.models import Booking, City, Review, Salon, User, BusinessApplication
 
 logger = logging.getLogger(__name__)
 
@@ -164,5 +164,32 @@ async def get_active_cities() -> List[City]:
             select(City).where(City.is_active == True).order_by(City.order_num.asc(), City.id.asc())
         )
         return list(result.scalars().all())
+
+
+async def create_business_application(
+    name: str,
+    contact: str,
+    biz_type: str = "salon",
+    category: str = "Салон красоты",
+    address: Optional[str] = None,
+    user_id: Optional[int] = None,
+) -> BusinessApplication:
+    """Сохраняет новую заявку на подключение Бизнес / PRO аккаунта в БД"""
+    async with async_session_maker() as session:
+        app = BusinessApplication(
+            user_id=user_id,
+            biz_type=biz_type,
+            name=name,
+            category=category,
+            address=address,
+            contact=contact,
+            status="pending",
+        )
+        session.add(app)
+        await session.commit()
+        await session.refresh(app)
+        logger.info(f"Создана заявка на PRO аккаунт #{app.id} от '{name}' ({contact})")
+        return app
+
 
 
