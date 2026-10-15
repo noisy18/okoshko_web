@@ -225,6 +225,9 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
 
                 if user_salon:
                     import urllib.parse
+                    import json
+                    from bot.database.models import Master
+
                     if user_salon.admin_tag:
                         params.append(f"admin_tag={urllib.parse.quote(user_salon.admin_tag)}")
                     if user_salon.name:
@@ -238,6 +241,31 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                         params.append(f"phone={urllib.parse.quote(salon_phone)}")
                     if user_salon.id:
                         params.append(f"salon_id={user_salon.id}")
+
+                    # Передаем актуальный список мастеров салона из БД в Mini App
+                    try:
+                        masters_res = await session.execute(
+                            select(Master).where(Master.salon_id == user_salon.id).order_by(Master.id)
+                        )
+                        db_masters = list(masters_res.scalars().all())
+                        if db_masters:
+                            masters_list = [
+                                {
+                                    "id": f"db_master_{m.id}",
+                                    "name": m.name,
+                                    "lastName": m.last_name or "",
+                                    "role_title": m.role_title,
+                                    "experience": m.experience or "3 года",
+                                    "avatar_url": m.avatar_url or "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+                                    "telegram_handle": m.telegram_handle or "",
+                                    "telegram_id": m.telegram_id,
+                                }
+                                for m in db_masters
+                            ]
+                            masters_json_str = json.dumps(masters_list, ensure_ascii=False)
+                            params.append(f"masters_json={urllib.parse.quote(masters_json_str)}")
+                    except Exception as me:
+                        logger.warning(f"Ошибка получения списка мастеров салона {user_salon.id}: {me}")
 
                 user_phone = getattr(user, "phone", None) or (user_salon and getattr(user_salon, "phone", None))
                 if user_phone:

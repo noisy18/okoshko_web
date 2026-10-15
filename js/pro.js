@@ -251,6 +251,8 @@ function initProCloudSync() {
     urlPhone = urlParams.get('phone');
     urlCity = urlParams.get('city');
 
+    let urlMastersJson = urlParams.get('masters_json');
+
     let needSave = false;
     const data = getProSalonData();
 
@@ -275,8 +277,87 @@ function initProCloudSync() {
       needSave = true;
     }
 
+    // Синхронизация списка мастеров из БД
+    if (urlMastersJson) {
+      try {
+        const dbMasters = JSON.parse(urlMastersJson);
+        if (Array.isArray(dbMasters) && dbMasters.length > 0) {
+          if (!Array.isArray(data.masters)) {
+            data.masters = [];
+          }
+          let mastersChanged = false;
+
+          dbMasters.forEach(dbm => {
+            const normName = (dbm.name || '').trim().toLowerCase();
+            const normLast = (dbm.lastName || '').trim().toLowerCase();
+
+            // Проверяем, есть ли уже такой мастер в локальном списке
+            const existingIdx = data.masters.findIndex(m => {
+              if (dbm.telegram_id && m.telegram_id && Number(m.telegram_id) === Number(dbm.telegram_id)) return true;
+              if (m.id && m.id === dbm.id) return true;
+              const mName = (m.name || '').trim().toLowerCase();
+              const mLast = (m.lastName || '').trim().toLowerCase();
+              return normName && normName === mName && normLast === mLast;
+            });
+
+            if (existingIdx >= 0) {
+              // Обновляем данные мастера из БД
+              const current = data.masters[existingIdx];
+              let itemUpdated = false;
+              if (dbm.role_title && current.role_title !== dbm.role_title) {
+                current.role_title = dbm.role_title;
+                itemUpdated = true;
+              }
+              if (dbm.experience && current.experience !== dbm.experience) {
+                current.experience = dbm.experience;
+                itemUpdated = true;
+              }
+              if (dbm.telegram_handle && current.telegram_handle !== dbm.telegram_handle) {
+                current.telegram_handle = dbm.telegram_handle;
+                itemUpdated = true;
+              }
+              if (dbm.telegram_id && current.telegram_id !== dbm.telegram_id) {
+                current.telegram_id = dbm.telegram_id;
+                itemUpdated = true;
+              }
+              if (dbm.avatar_url && (!current.avatar_url || current.avatar_url.includes('images.unsplash.com/photo-1534528741775'))) {
+                current.avatar_url = dbm.avatar_url;
+                itemUpdated = true;
+              }
+              if (itemUpdated) mastersChanged = true;
+            } else {
+              // Новый мастер из базы данных — добавляем в команду!
+              data.masters.push({
+                id: dbm.id || ('master_' + Date.now()),
+                name: dbm.name,
+                lastName: dbm.lastName || '',
+                role_title: dbm.role_title || 'Специалист салона',
+                experience: dbm.experience || '3 года',
+                avatar_url: dbm.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+                telegram_handle: dbm.telegram_handle || '',
+                telegram_id: dbm.telegram_id || null,
+                portfolio_photos: []
+              });
+              mastersChanged = true;
+            }
+          });
+
+          if (mastersChanged) {
+            needSave = true;
+            console.log('[PRO] Masters list updated from DB URL parameters:', data.masters.length);
+          }
+        }
+      } catch (parseErr) {
+        console.warn('[PRO] Error parsing masters_json:', parseErr);
+      }
+    }
+
     if (needSave) {
       saveProSalonData(data);
+      syncProSalonUI();
+      if (typeof renderProMastersList === 'function') {
+        renderProMastersList();
+      }
     }
   } catch (e) { }
 
@@ -317,6 +398,7 @@ function initProCloudSync() {
             syncProSalonUI();
             if (typeof renderProAppointments === 'function') renderProAppointments();
             if (typeof renderProStats === 'function') renderProStats();
+            if (typeof renderProMastersList === 'function') renderProMastersList();
           }
         }
       });
