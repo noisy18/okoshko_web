@@ -205,6 +205,47 @@ async def handle_web_app_data(message: Message):
             )
             return
 
+        elif data.get("action") == "pro_salon_updated":
+            from bot.database import Salon, User
+            from bot.database.base import async_session_maker
+            from sqlalchemy import select
+
+            s_name = data.get("salon_name", "Beauty Studio")
+            s_addr = data.get("address")
+            s_phone = data.get("phone")
+            s_city = data.get("city")
+            s_avatar = data.get("avatar_url")
+            s_cover = data.get("cover_url")
+            s_admin_tag = data.get("admin_tag")
+            user_id = message.from_user.id if message.from_user else None
+
+            if user_id:
+                async with async_session_maker() as session:
+                    # Ищем салон по owner_id или по первому салону
+                    res = await session.execute(
+                        select(Salon).where((Salon.owner_id == user_id) | (Salon.id == 1))
+                    )
+                    salon = res.scalars().first()
+                    if salon:
+                        salon.owner_id = user_id
+                        salon.name = s_name
+                        if s_addr: salon.address = s_addr
+                        if s_city: salon.region_name = s_city
+                        if s_avatar: salon.logo_url = s_avatar
+                        if s_cover: salon.cover_image_url = s_cover
+                        if s_admin_tag: salon.admin_tag = s_admin_tag
+
+                        # Также обновляем пользователя как владельца/PRO
+                        u_res = await session.execute(select(User).where(User.telegram_id == user_id))
+                        user = u_res.scalar_one_or_none()
+                        if user:
+                            user.is_pro = True
+                            user.salon_id = salon.id
+
+                        await session.commit()
+                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}) успешно обновлены в БД для владельца {user_id}")
+            return
+
     except Exception as e:
         logger.error(f"Ошибка парсинга WebApp данных: {e}")
 

@@ -29,6 +29,7 @@ class Salon(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     services_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     slots_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    owner_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
     admin_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
     admin_tag: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

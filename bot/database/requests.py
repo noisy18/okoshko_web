@@ -192,10 +192,19 @@ async def create_business_application(
         return app
 
 
-async def get_salon_by_slug_or_name(slug_or_name: str) -> Optional[Salon]:
-    """Поиск салона по slug или названию (регистронезависимо)"""
+async def get_salon_by_slug_or_name(slug_or_name: str, owner_id: Optional[int] = None) -> Optional[Salon]:
+    """Поиск салона по slug, названию или владельцу (регистронезависимо)"""
     async with async_session_maker() as session:
         clean_slug = slug_or_name.strip().lower()
+
+        # 1. Если передан owner_id, сначала ищем салон владельца
+        if owner_id:
+            res = await session.execute(select(Salon).where(Salon.owner_id == owner_id))
+            salon = res.scalars().first()
+            if salon:
+                return salon
+
+        # 2. Ищем по slug или имени
         res = await session.execute(
             select(Salon).where(
                 (Salon.slug == clean_slug) |
@@ -205,13 +214,19 @@ async def get_salon_by_slug_or_name(slug_or_name: str) -> Optional[Salon]:
         )
         salon = res.scalars().first()
         if not salon:
-            # Попробуем также заменить дефисы на пробелы
             name_alt = clean_slug.replace("-", " ")
             res = await session.execute(
                 select(Salon).where(Salon.name.ilike(f"%{name_alt}%"))
             )
             salon = res.scalars().first()
+
+        # 3. Если салон все еще не найден, проверим первый главный салон (Beauty Studio)
+        if not salon:
+            res = await session.execute(select(Salon).order_by(Salon.id.asc()))
+            salon = res.scalars().first()
+
         return salon
+
 
 
 async def bind_user_as_admin(

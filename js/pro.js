@@ -165,6 +165,23 @@ function saveProSalonData(data) {
     }
   } catch (e) { }
 
+  // Send update to Telegram bot backend if available
+  try {
+    if (window.Telegram?.WebApp?.sendData) {
+      window.Telegram.WebApp.sendData(JSON.stringify({
+        action: 'pro_salon_updated',
+        salon_name: data.name,
+        address: data.address,
+        phone: data.phone,
+        city: data.city,
+        avatar_url: data.avatarUrl,
+        cover_url: data.coverUrl,
+        admin_tag: data.adminTag,
+        creator_tag: data.creatorTag
+      }));
+    }
+  } catch (e) { }
+
   syncProSalonUI();
 }
 

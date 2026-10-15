@@ -8,7 +8,7 @@ async def main():
         salons = (await s.execute(select(Salon))).scalars().all()
         print("\n=== САЛОНЫ И АДМИНИСТРАТОРЫ ===")
         for sal in salons:
-            print(f"ID: {sal.id} | Slug: {sal.slug} | Name: '{sal.name}' | Admin ID: {sal.admin_id} | Admin Tag: {sal.admin_tag}")
+            print(f"ID: {sal.id} | Slug: {sal.slug} | Name: '{sal.name}' | Owner ID: {sal.owner_id} | Admin ID: {sal.admin_id} | Admin Tag: {sal.admin_tag}")
 
         users = (await s.execute(select(User))).scalars().all()
         print("\n=== ВСЕ ПОЛЬЗОВАТЕЛИ ===")

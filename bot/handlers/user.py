@@ -23,15 +23,27 @@ logger = logging.getLogger(__name__)
 user_router = Router(name="user_router")
 
 
+import urllib.parse
+from aiogram.filters import Command, CommandObject, CommandStart
+
 @user_router.message(CommandStart())
-async def handle_start(message: Message, bot: Bot, command: Optional[CommandStart] = None):
+async def handle_start(message: Message, bot: Bot, command: Optional[CommandObject] = None):
     """Обработчик команды /start с поддержкой deep-link приглашений администраторов и мастеров."""
     user_name = message.from_user.first_name if message.from_user else "друг"
     start_arg = ""
 
-    # Извлечение deep-link аргумента
-    if message.text and " " in message.text:
+    # Извлечение deep-link аргумента через CommandObject или message.text
+    if command and command.args:
+        start_arg = command.args.strip()
+    elif message.text and " " in message.text:
         start_arg = message.text.split(maxsplit=1)[1].strip()
+
+    # Декодируем URL-encoded символы (например %D0%BC%D0%B0%D0%BA%D1%81%D0%B8%D0%BC -> максим)
+    if start_arg:
+        try:
+            start_arg = urllib.parse.unquote(start_arg)
+        except Exception:
+            pass
 
     app_url = MINI_APP_URL
     db_user = None
@@ -69,10 +81,13 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandStar
     if start_arg:
         logger.info(f"Получен start аргумент: '{start_arg}' от пользователя {message.from_user.id if message.from_user else 'unknown'}")
 
-        if start_arg.startswith("bind_admin_"):
-            salon_slug = start_arg.replace("bind_admin_", "", 1)
-            salon = await get_salon_by_slug_or_name(salon_slug)
-            salon_name = salon.name if salon else salon_slug.replace("-", " ").title()
+        clean_arg = start_arg.lower()
+        if clean_arg.startswith("bind_admin_"):
+            salon_ident = start_arg[len("bind_admin_"):].strip()
+            # Пробуем найти салон по slug, имени, или если это ID владельца/салона
+            owner_hint = int(salon_ident) if salon_ident.isdigit() else None
+            salon = await get_salon_by_slug_or_name(salon_ident, owner_id=owner_hint)
+            salon_name = salon.name if salon else salon_ident.replace("-", " ").title()
             salon_id = salon.id if salon else 1
 
             invite_text = (
@@ -91,13 +106,15 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandStar
             )
             return
 
-        elif start_arg.startswith("bind_master_"):
-            parts = start_arg.replace("bind_master_", "", 1).split("_", 1)
-            salon_slug = parts[0]
+        elif clean_arg.startswith("bind_master_"):
+            raw_target = start_arg[len("bind_master_"):].strip()
+            parts = raw_target.split("_", 1)
+            salon_ident = parts[0]
             master_hint = parts[1] if len(parts) > 1 else ""
 
-            salon = await get_salon_by_slug_or_name(salon_slug)
-            salon_name = salon.name if salon else salon_slug.replace("-", " ").title()
+            owner_hint = int(salon_ident) if salon_ident.isdigit() else None
+            salon = await get_salon_by_slug_or_name(salon_ident, owner_id=owner_hint)
+            salon_name = salon.name if salon else salon_ident.replace("-", " ").title()
             salon_id = salon.id if salon else 1
 
             invite_text = (
@@ -116,10 +133,12 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandStar
             )
             return
 
-        elif start_arg.startswith("invite_") or start_arg.startswith("bind_"):
-            raw_slug = start_arg.replace("invite_", "", 1).replace("bind_", "", 1)
-            salon = await get_salon_by_slug_or_name(raw_slug)
-            salon_name = salon.name if salon else raw_slug.replace("-", " ").title()
+        elif clean_arg.startswith("invite_") or clean_arg.startswith("bind_"):
+            prefix = "invite_" if clean_arg.startswith("invite_") else "bind_"
+            salon_ident = start_arg[len(prefix):].strip()
+            owner_hint = int(salon_ident) if salon_ident.isdigit() else None
+            salon = await get_salon_by_slug_or_name(salon_ident, owner_id=owner_hint)
+            salon_name = salon.name if salon else salon_ident.replace("-", " ").title()
             salon_id = salon.id if salon else 1
 
             invite_text = (
