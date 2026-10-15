@@ -241,10 +241,15 @@ async def get_salon_by_slug_or_name(slug_or_name: str, owner_id: Optional[int] =
             if salon:
                 return salon
 
-        # 2. Ищем по точному совпадению или подстроке в slug или имени
+        # 1.5. Ищем по точному совпадению slug
+        res = await session.execute(select(Salon).where(Salon.slug == clean_slug))
+        salon = res.scalar_one_or_none()
+        if salon:
+            return salon
+
+        # 2. Ищем по подстроке в slug или имени
         res = await session.execute(
             select(Salon).where(
-                (Salon.slug == clean_slug) |
                 (Salon.slug.ilike(f"%{clean_slug}%")) |
                 (Salon.name.ilike(f"%{clean_slug}%"))
             )
@@ -365,8 +370,15 @@ async def bind_user_as_master(
 
             # Если в ссылке было конкретное имя мастера (не общее 'spec'/'master') и карточка не занята
             if master_hint_name and master_hint_name.lower() not in ("spec", "master", "", "none"):
+                m_hint = master_hint_name.lower().strip()
                 for m in masters:
-                    if (master_hint_name.lower() in m.name.lower() or (m.last_name and master_hint_name.lower() in m.last_name.lower())) and not m.telegram_id:
+                    if m.telegram_id:
+                        continue
+                    m_name_low = (m.name or "").lower()
+                    m_last_low = (m.last_name or "").lower()
+                    m_translit = transliterate_to_latin(m.name or "").lower()
+                    m_last_translit = transliterate_to_latin(m.last_name or "").lower()
+                    if m_hint in m_name_low or m_hint in m_last_low or m_hint in m_translit or m_hint in m_last_translit or m_translit in m_hint:
                         master = m
                         break
 

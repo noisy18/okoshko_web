@@ -489,8 +489,6 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
     if salon and salon.owner_id and salon.owner_id != user.id:
         try:
             m_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
-            owner_app_url = await get_user_app_url(salon.owner_id)
-            owner_pro_url = await get_user_app_url(salon.owner_id, is_pro_entry=True)
             await bot.send_message(
                 chat_id=salon.owner_id,
                 text=(
@@ -502,6 +500,22 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
             )
         except Exception as e:
             logger.warning(f"Не удалось уведомить владельца салона: {e}")
+
+    # Если у салона есть администратор, отправляем ему тоже уведомление
+    if salon and salon.admin_id and salon.admin_id != user.id and salon.admin_id != salon.owner_id:
+        try:
+            m_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
+            await bot.send_message(
+                chat_id=salon.admin_id,
+                text=(
+                    f"🎉 <b>Новый мастер присоединился к команде!</b>\n\n"
+                    f"🏢 Салон: <b>{salon_name}</b>\n"
+                    f"💇 Мастер: <b>{master_name}</b> ({m_mention}, ID: <code>{user.id}</code>)\n"
+                    f"Специализация: <i>{master.role_title if master else 'Специалист'}</i>"
+                ),
+            )
+        except Exception as e:
+            logger.warning(f"Не удалось уведомить администратора салона: {e}")
 
     # Интерактивная форма заполнения профиля мастера
     form_text = (
