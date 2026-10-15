@@ -208,17 +208,20 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                 if user.salon_id:
                     params.append(f"salon_id={user.salon_id}")
 
-                # Ищем салон пользователя: владелец -> администратор -> привязка к salon_id
-                salon_res = await session.execute(
-                    select(Salon).where(
-                        (Salon.owner_id == telegram_id) |
-                        (Salon.admin_id == telegram_id) |
-                        (Salon.id == user.salon_id if user.salon_id else False)
-                    )
+                # Ищем салон пользователя с четким приоритетом:
+                # 1. Владелец или администратор (owner_id / admin_id)
+                # 2. Привязанный user.salon_id
+                # 3. Лишь если ничего нет и запрошен вход в ПРО — главный салон Beauty Studio (id 1)
+                user_salon = None
+                owner_res = await session.execute(
+                    select(Salon).where((Salon.owner_id == telegram_id) | (Salon.admin_id == telegram_id))
                 )
-                user_salon = salon_res.scalar_one_or_none()
+                user_salon = owner_res.scalar_one_or_none()
 
-                # Если салон по привязке не найден, проверим главный салон Beauty Studio (id 1)
+                if not user_salon and user.salon_id:
+                    us_res = await session.execute(select(Salon).where(Salon.id == user.salon_id))
+                    user_salon = us_res.scalar_one_or_none()
+
                 if not user_salon and (user.is_pro or user.role == "admin" or is_pro_entry):
                     bs_res = await session.execute(select(Salon).where(Salon.id == 1))
                     user_salon = bs_res.scalar_one_or_none()

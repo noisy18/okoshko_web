@@ -384,7 +384,7 @@ function initProCloudSync() {
           if (values[PRO_DATA_STORAGE_KEY]) {
             try {
               const cloudSalon = JSON.parse(values[PRO_DATA_STORAGE_KEY]);
-              if (cloudSalon && typeof cloudSalon === 'object') {
+                const currentData = getProSalonData();
                 const merged = Object.assign({}, currentData, cloudSalon);
                 // Если в URL были явные параметры, они имеют наивысший приоритет
                 if (urlAdminTag) merged.adminTag = urlAdminTag;

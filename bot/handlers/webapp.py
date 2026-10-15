@@ -237,16 +237,30 @@ async def handle_web_app_data(message: Message):
                     user = u_res.scalar_one_or_none()
                     user_salon_id = user.salon_id if user else None
 
-                    # Ищем салон по owner_id, admin_id, target_salon_id, user_salon_id или салон по умолчанию (ID 1)
-                    salon_query = select(Salon).where(
-                        (Salon.owner_id == user_id) |
-                        (Salon.admin_id == user_id) |
-                        (Salon.id == target_salon_id if target_salon_id else False) |
-                        (Salon.id == user_salon_id if user_salon_id else False) |
-                        (Salon.id == 1)
+                    # Ищем салон пользователя с приоритетом:
+                    # 1. Где user_id является owner_id или admin_id
+                    # 2. По привязке user.salon_id
+                    # 3. По явному target_salon_id
+                    # 4. Лишь при их отсутствии — салон по умолчанию (ID 1)
+                    salon = None
+                    # Сначала личный салон пользователя
+                    owner_res = await session.execute(
+                        select(Salon).where((Salon.owner_id == user_id) | (Salon.admin_id == user_id))
                     )
-                    res = await session.execute(salon_query)
-                    salon = res.scalars().first()
+                    salon = owner_res.scalar_one_or_none()
+
+                    if not salon and user_salon_id:
+                        us_res = await session.execute(select(Salon).where(Salon.id == user_salon_id))
+                        salon = us_res.scalar_one_or_none()
+
+                    if not salon and target_salon_id:
+                        ts_res = await session.execute(select(Salon).where(Salon.id == target_salon_id))
+                        salon = ts_res.scalar_one_or_none()
+
+                    if not salon:
+                        bs_res = await session.execute(select(Salon).where(Salon.id == 1))
+                        salon = bs_res.scalar_one_or_none()
+
                     if salon:
                         if not salon.owner_id and (not user or user.role != "admin"):
                             salon.owner_id = user_id
@@ -300,6 +314,7 @@ async def handle_web_app_data(message: Message):
                             )
                         except Exception as m_err:
                             logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
+                return
         elif data.get("action") == "user_phone_updated":
             from bot.database import User
             from bot.database.base import async_session_maker
@@ -360,15 +375,24 @@ async def handle_direct_json_data(message: Message):
                 user = u_res.scalar_one_or_none()
                 user_salon_id = user.salon_id if user else None
 
-                salon_query = select(Salon).where(
-                    (Salon.owner_id == user_id) |
-                    (Salon.admin_id == user_id) |
-                    (Salon.id == target_salon_id if target_salon_id else False) |
-                    (Salon.id == user_salon_id if user_salon_id else False) |
-                    (Salon.id == 1)
+                salon = None
+                owner_res = await session.execute(
+                    select(Salon).where((Salon.owner_id == user_id) | (Salon.admin_id == user_id))
                 )
-                res = await session.execute(salon_query)
-                salon = res.scalars().first()
+                salon = owner_res.scalar_one_or_none()
+
+                if not salon and user_salon_id:
+                    us_res = await session.execute(select(Salon).where(Salon.id == user_salon_id))
+                    salon = us_res.scalar_one_or_none()
+
+                if not salon and target_salon_id:
+                    ts_res = await session.execute(select(Salon).where(Salon.id == target_salon_id))
+                    salon = ts_res.scalar_one_or_none()
+
+                if not salon:
+                    bs_res = await session.execute(select(Salon).where(Salon.id == 1))
+                    salon = bs_res.scalar_one_or_none()
+
                 if salon:
                     if not salon.owner_id and (not user or user.role != "admin"):
                         salon.owner_id = user_id
