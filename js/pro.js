@@ -196,8 +196,22 @@ function saveProAppointments(appts) {
   renderProStats();
 }
 
-// Cross-device synchronization on launch from Telegram CloudStorage
+// Cross-device synchronization on launch from Telegram CloudStorage and URL params
 function initProCloudSync() {
+  // 1. Проверяем URL параметры (если WebApp открыт по кнопке от бота с admin_tag)
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlAdminTag = urlParams.get('admin_tag');
+    if (urlAdminTag) {
+      const data = getProSalonData();
+      if (data.adminTag !== urlAdminTag) {
+        data.adminTag = urlAdminTag;
+        saveProSalonData(data);
+      }
+    }
+  } catch (e) { }
+
+  // 2. Синхронизация из CloudStorage Telegram
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.getItems) {
       window.Telegram.WebApp.CloudStorage.getItems([PRO_DATA_STORAGE_KEY, PRO_APPOINTMENTS_STORAGE_KEY], (err, values) => {

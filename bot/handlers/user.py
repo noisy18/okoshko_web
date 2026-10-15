@@ -45,15 +45,7 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandStar
                 first_name=message.from_user.first_name,
                 last_name=message.from_user.last_name,
             )
-            if db_user:
-                params = []
-                if db_user.created_at:
-                    params.append(f"registered_at={int(db_user.created_at.timestamp() * 1000)}")
-                if db_user.is_pro:
-                    params.append("is_pro=1")
-                if params:
-                    delimiter = "&" if "?" in MINI_APP_URL else "?"
-                    app_url = f"{MINI_APP_URL}{delimiter}{'&'.join(params)}"
+            app_url = await get_user_app_url(message.from_user.id)
         except Exception as e:
             logger.error(f"Ошибка сохранения пользователя {message.from_user.id} в БД: {e}")
 
@@ -165,12 +157,12 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandStar
 
 
 async def get_user_app_url(telegram_id: Optional[int]) -> str:
-    """Генерирует ссылку на WebApp с параметрами даты регистрации и PRO статуса из БД"""
+    """Генерирует ссылку на WebApp с параметрами даты регистрации, PRO статуса, роли и администратора салона из БД"""
     if not telegram_id:
         return MINI_APP_URL
     try:
         from bot.database.base import async_session_maker
-        from bot.database.models import User
+        from bot.database.models import User, Salon
         from sqlalchemy import select
 
         async with async_session_maker() as session:
@@ -182,12 +174,33 @@ async def get_user_app_url(telegram_id: Optional[int]) -> str:
                     params.append(f"registered_at={int(user.created_at.timestamp() * 1000)}")
                 if user.is_pro:
                     params.append("is_pro=1")
+                if user.role and user.role != "client":
+                    params.append(f"pro_role={user.role}")
+                if user.salon_id:
+                    params.append(f"salon_id={user.salon_id}")
+
+                # Ищем салон пользователя или салон, где он создатель / администратор
+                salon_res = await session.execute(
+                    select(Salon).where((Salon.admin_id == telegram_id) | (Salon.id == user.salon_id if user.salon_id else False))
+                )
+                user_salon = salon_res.scalar_one_or_none()
+
+                # Если салон по привязке не найден, проверим главный салон Beauty Studio (id 1)
+                if not user_salon and (user.is_pro or user.role == "admin"):
+                    bs_res = await session.execute(select(Salon).where(Salon.id == 1))
+                    user_salon = bs_res.scalar_one_or_none()
+
+                if user_salon and user_salon.admin_tag:
+                    import urllib.parse
+                    params.append(f"admin_tag={urllib.parse.quote(user_salon.admin_tag)}")
+
                 if params:
                     delimiter = "&" if "?" in MINI_APP_URL else "?"
                     return f"{MINI_APP_URL}{delimiter}{'&'.join(params)}"
     except Exception as e:
         logger.warning(f"Ошибка получения параметров пользователя для {telegram_id}: {e}")
     return MINI_APP_URL
+
 
 
 @user_router.message(Command("help"))

@@ -29,9 +29,24 @@ async def init_db():
         from sqlalchemy import text
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            # Миграции новых колонок для привязки администраторов и мастеров
+            # Миграции колонок salons
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS logo_url TEXT;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS cover_image_url TEXT;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS description TEXT;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS services_json TEXT;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS slots_json TEXT;"))
             await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS admin_id BIGINT;"))
             await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS admin_tag VARCHAR(128);"))
+            # Миграции колонок masters
+            await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS last_name VARCHAR(128);"))
+            await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS telegram_handle VARCHAR(128);"))
+            await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS telegram_id BIGINT;"))
+            await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS grade_badge VARCHAR(64);"))
+            await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS retention_rate VARCHAR(32) DEFAULT '98%';"))
+            await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS portfolio_photos_json TEXT;"))
+            await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS slots_json TEXT;"))
+            await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS services_json TEXT;"))
+            # Миграции колонок users
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) DEFAULT 'client';"))
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS salon_id INTEGER;"))
         logger.info("✅ База данных PostgreSQL успешно инициализирована.")
