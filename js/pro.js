@@ -168,6 +168,7 @@ function saveProSalonData(data) {
   // Send update to Telegram bot backend (supports both sendData and direct Bot API for desktop/mobile clients)
   const updatePayload = {
     action: 'pro_salon_updated',
+    salon_id: data.id || 1,
     salon_name: data.name,
     address: data.address,
     phone: data.phone,
@@ -235,14 +236,20 @@ function saveProAppointments(appts) {
 
 // Cross-device synchronization on launch from Telegram CloudStorage and URL params
 function initProCloudSync() {
+  let urlAdminTag = null;
+  let urlSalonName = null;
+  let urlAddress = null;
+  let urlPhone = null;
+  let urlCity = null;
+
   // 1. Проверяем URL параметры (если WebApp открыт по кнопке от бота с параметрами салона)
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    const urlAdminTag = urlParams.get('admin_tag');
-    const urlSalonName = urlParams.get('salon_name');
-    const urlAddress = urlParams.get('address');
-    const urlPhone = urlParams.get('phone');
-    const urlCity = urlParams.get('city');
+    urlAdminTag = urlParams.get('admin_tag');
+    urlSalonName = urlParams.get('salon_name');
+    urlAddress = urlParams.get('address');
+    urlPhone = urlParams.get('phone');
+    urlCity = urlParams.get('city');
 
     let needSave = false;
     const data = getProSalonData();
@@ -273,7 +280,7 @@ function initProCloudSync() {
     }
   } catch (e) { }
 
-  // 2. Синхронизация из CloudStorage Telegram
+  // 2. Синхронизация из CloudStorage Telegram с аккуратным слиянием (не затирая свежие URL параметры)
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.getItems) {
       window.Telegram.WebApp.CloudStorage.getItems([PRO_DATA_STORAGE_KEY, PRO_APPOINTMENTS_STORAGE_KEY], (err, values) => {
@@ -283,7 +290,16 @@ function initProCloudSync() {
             try {
               const cloudSalon = JSON.parse(values[PRO_DATA_STORAGE_KEY]);
               if (cloudSalon && typeof cloudSalon === 'object') {
-                localStorage.setItem(PRO_DATA_STORAGE_KEY, values[PRO_DATA_STORAGE_KEY]);
+                const currentData = getProSalonData();
+                // Объединяем: если из URL пришел актуальный adminTag или name, сохраняем их приоритет
+                const merged = Object.assign({}, cloudSalon, currentData);
+                if (urlAdminTag) merged.adminTag = urlAdminTag;
+                if (urlSalonName) merged.name = urlSalonName;
+                if (urlAddress) merged.address = urlAddress;
+                if (urlPhone) merged.phone = urlPhone;
+                if (urlCity) merged.city = urlCity;
+
+                localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
                 updated = true;
               }
             } catch (e) { }

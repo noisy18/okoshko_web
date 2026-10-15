@@ -256,7 +256,9 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
 @user_router.message(F.text == "💬 Помощь")
 async def handle_help(message: Message):
     """Справка и список возможностей."""
-    app_url = await get_user_app_url(message.from_user.id if message.from_user else None)
+    user_id = message.from_user.id if message.from_user else None
+    app_url = await get_user_app_url(user_id)
+    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     help_text = (
         "<b>📖 Как пользоваться сервисом «Окошко»:</b>\n\n"
         "1️⃣ Нажмите <b>«Открыть Окошко»</b> или кнопку <b>«Записаться онлайн»</b>\n"
@@ -272,17 +274,19 @@ async def handle_help(message: Message):
     )
     await message.answer(
         text=help_text,
-        reply_markup=get_inline_keyboard(app_url),
+        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
 @user_router.message(Command("app"))
 async def handle_app_command(message: Message):
     """Быстрый запуск Mini App."""
-    app_url = await get_user_app_url(message.from_user.id if message.from_user else None)
+    user_id = message.from_user.id if message.from_user else None
+    app_url = await get_user_app_url(user_id)
+    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     await message.answer(
         text="💅 Запустите приложение <b>«Окошко»</b> по кнопке ниже:",
-        reply_markup=get_inline_keyboard(app_url),
+        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
@@ -292,6 +296,7 @@ async def handle_about(event: Message | CallbackQuery):
     """Информация о сервисе «Окошко»."""
     user_id = event.from_user.id if event.from_user else None
     app_url = await get_user_app_url(user_id)
+    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     about_text = (
         "✨ <b>О сервисе «Окошко»</b>\n\n"
         "«Окошко» создано для того, чтобы поиск бьюти-мастера был лёгким, "
@@ -310,12 +315,12 @@ async def handle_about(event: Message | CallbackQuery):
         await event.answer()
         await event.message.answer(
             text=about_text,
-            reply_markup=get_inline_keyboard(app_url),
+            reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
         )
     else:
         await event.answer(
             text=about_text,
-            reply_markup=get_inline_keyboard(app_url),
+            reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
         )
 
 
@@ -325,6 +330,7 @@ async def handle_my_bookings(callback: CallbackQuery):
     await callback.answer()
     user_id = callback.from_user.id if callback.from_user else None
     app_url = await get_user_app_url(user_id)
+    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     text = (
         "📅 <b>Управление вашими записями</b>\n\n"
         "Все активные и прошедшие визиты хранятся во вкладке <b>«Записи»</b> "
@@ -337,7 +343,7 @@ async def handle_my_bookings(callback: CallbackQuery):
     )
     await callback.message.answer(
         text=text,
-        reply_markup=get_inline_keyboard(app_url),
+        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
@@ -359,8 +365,9 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
 
     salon_name = salon.name if salon else "вашему салону"
     app_url = await get_user_app_url(user.id)
+    pro_app_url = await get_user_app_url(user.id, is_pro_entry=True)
 
-    # Обновляем кнопку меню чата для администратора
+    # Обновляем кнопку меню чата для нового администратора
     try:
         await bot.set_chat_menu_button(
             chat_id=callback.message.chat.id,
@@ -370,7 +377,33 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
             ),
         )
     except Exception as e:
-        logger.warning(f"Не удалось обновить MenuButton для {callback.message.chat.id}: {e}")
+        logger.warning(f"Не удалось обновить MenuButton для администратора {callback.message.chat.id}: {e}")
+
+    # Если у салона есть владелец, обновляем ему MenuButton и отправляем уведомление
+    if salon and salon.owner_id and salon.owner_id != user.id:
+        try:
+            owner_app_url = await get_user_app_url(salon.owner_id)
+            owner_pro_url = await get_user_app_url(salon.owner_id, is_pro_entry=True)
+            await bot.set_chat_menu_button(
+                chat_id=salon.owner_id,
+                menu_button=MenuButtonWebApp(
+                    text="💅 Окошко PRO",
+                    web_app=WebAppInfo(url=owner_app_url),
+                ),
+            )
+            admin_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
+            await bot.send_message(
+                chat_id=salon.owner_id,
+                text=(
+                    f"🎉 <b>Администратор успешно привязан!</b>\n\n"
+                    f"🏢 Салон: <b>{salon_name}</b>\n"
+                    f"👤 Администратор: <b>{admin_mention}</b> (ID: <code>{user.id}</code>)\n\n"
+                    f"Ваш профиль салона синхронизирован. Нажмите кнопку ниже для перехода в бизнес-кабинет 👇"
+                ),
+                reply_markup=get_inline_keyboard(owner_app_url, pro_app_url=owner_pro_url),
+            )
+        except Exception as e:
+            logger.warning(f"Не удалось отправить уведомление владельцу салона {salon.owner_id}: {e}")
 
     success_text = (
         f"🎉 <b>Поздравляем! Вы успешно привязаны как Администратор!</b>\n\n"
@@ -386,7 +419,7 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
 
     await callback.message.edit_text(
         text=success_text,
-        reply_markup=get_inline_keyboard(app_url),
+        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
@@ -412,6 +445,7 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
     salon_name = salon.name if salon else "вашему салону"
     master_name = master.name if master else (user.first_name or "Мастер")
     app_url = await get_user_app_url(user.id)
+    pro_app_url = await get_user_app_url(user.id, is_pro_entry=True)
 
     # Обновляем кнопку меню чата для мастера
     try:
@@ -437,7 +471,7 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
 
     await callback.message.edit_text(
         text=success_text,
-        reply_markup=get_inline_keyboard(app_url),
+        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
@@ -445,13 +479,15 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
 async def handle_cancel_bind(callback: CallbackQuery):
     """Отклонение приглашения."""
     await callback.answer("Приглашение отклонено")
-    app_url = await get_user_app_url(callback.from_user.id if callback.from_user else None)
+    user_id = callback.from_user.id if callback.from_user else None
+    app_url = await get_user_app_url(user_id)
+    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     text = (
         "👌 Вы отклонили приглашение.\n\n"
         "Вы по-прежнему можете пользоваться сервисом «Окошко» для поиска и записи к лучшим мастерам города!"
     )
     await callback.message.edit_text(
         text=text,
-        reply_markup=get_inline_keyboard(app_url),
+        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 

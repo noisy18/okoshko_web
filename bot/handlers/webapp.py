@@ -5,6 +5,7 @@ from aiogram.types import Message
 
 from bot.database import create_booking, get_or_create_user
 from bot.keyboards import get_inline_keyboard
+from bot.handlers.user import get_user_app_url
 
 logger = logging.getLogger(__name__)
 webapp_router = Router(name="webapp_router")
@@ -66,9 +67,11 @@ async def handle_web_app_data(message: Message):
                 "⏰ <i>Мы пришлём вам напоминание за 2 часа до визита!</i>"
             ).replace(",", " ")
 
+            user_app_url = await get_user_app_url(message.from_user.id if message.from_user else None)
+            user_pro_url = await get_user_app_url(message.from_user.id if message.from_user else None, is_pro_entry=True)
             await message.answer(
                 text=response,
-                reply_markup=get_inline_keyboard(),
+                reply_markup=get_inline_keyboard(user_app_url, pro_app_url=user_pro_url),
             )
             return
 
@@ -119,9 +122,11 @@ async def handle_web_app_data(message: Message):
                 f"💬 <b>Отзыв:</b> «{text}»\n\n"
                 f"Ваша обратная связь помогает мастерам становиться лучше, а другим клиентам — выбирать лучших!"
             )
+            user_app_url = await get_user_app_url(message.from_user.id if message.from_user else None)
+            user_pro_url = await get_user_app_url(message.from_user.id if message.from_user else None, is_pro_entry=True)
             await message.answer(
                 text=response,
-                reply_markup=get_inline_keyboard(),
+                reply_markup=get_inline_keyboard(user_app_url, pro_app_url=user_pro_url),
             )
             return
 
@@ -199,9 +204,11 @@ async def handle_web_app_data(message: Message):
                 f"📞 <b>Контакт:</b> {contact}\n\n"
                 f"Менеджер Okoshko уже получил вашу заявку и свяжется с вами в Telegram в ближайшее время для подтверждения данных."
             )
+            user_app_url = await get_user_app_url(message.from_user.id if message.from_user else None)
+            user_pro_url = await get_user_app_url(message.from_user.id if message.from_user else None, is_pro_entry=True)
             await message.answer(
                 text=user_response,
-                reply_markup=get_inline_keyboard(),
+                reply_markup=get_inline_keyboard(user_app_url, pro_app_url=user_pro_url),
             )
             return
 
@@ -217,18 +224,30 @@ async def handle_web_app_data(message: Message):
             s_avatar = data.get("avatar_url")
             s_cover = data.get("cover_url")
             s_admin_tag = data.get("admin_tag")
+            target_salon_id = data.get("salon_id")
             user_id = message.from_user.id if message.from_user else None
 
             if user_id:
                 from bot.database.requests import transliterate_to_latin
                 async with async_session_maker() as session:
-                    # Ищем салон по owner_id или по первому салону
-                    res = await session.execute(
-                        select(Salon).where((Salon.owner_id == user_id) | (Salon.id == 1))
+                    # Ищем сначала пользователя для определения его salon_id или роли
+                    u_res = await session.execute(select(User).where(User.telegram_id == user_id))
+                    user = u_res.scalar_one_or_none()
+                    user_salon_id = user.salon_id if user else None
+
+                    # Ищем салон по owner_id, admin_id, target_salon_id, user_salon_id или салон по умолчанию (ID 1)
+                    salon_query = select(Salon).where(
+                        (Salon.owner_id == user_id) |
+                        (Salon.admin_id == user_id) |
+                        (Salon.id == target_salon_id if target_salon_id else False) |
+                        (Salon.id == user_salon_id if user_salon_id else False) |
+                        (Salon.id == 1)
                     )
+                    res = await session.execute(salon_query)
                     salon = res.scalars().first()
                     if salon:
-                        salon.owner_id = user_id
+                        if not salon.owner_id and (not user or user.role != "admin"):
+                            salon.owner_id = user_id
                         salon.name = s_name
                         # Обновляем slug на основе транслитерации нового названия
                         new_slug = transliterate_to_latin(s_name)
@@ -246,22 +265,22 @@ async def handle_web_app_data(message: Message):
                         if s_admin_tag: salon.admin_tag = s_admin_tag
 
                         # Также обновляем пользователя как владельца/PRO
-                        u_res = await session.execute(select(User).where(User.telegram_id == user_id))
-                        user = u_res.scalar_one_or_none()
                         if user:
                             user.is_pro = True
                             user.salon_id = salon.id
 
                         await session.commit()
-                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}') успешно обновлены в БД для владельца {user_id}")
+                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}') успешно обновлены в БД для пользователя {user_id}")
             return
 
     except Exception as e:
         logger.error(f"Ошибка парсинга WebApp данных: {e}")
 
+    user_app_url = await get_user_app_url(message.from_user.id if message.from_user else None)
+    user_pro_url = await get_user_app_url(message.from_user.id if message.from_user else None, is_pro_entry=True)
     await message.answer(
         f"✅ Данные из приложения получены:\n<code>{raw_data}</code>",
-        reply_markup=get_inline_keyboard(),
+        reply_markup=get_inline_keyboard(user_app_url, pro_app_url=user_pro_url),
     )
 
 
@@ -290,14 +309,25 @@ async def handle_direct_json_data(message: Message):
             s_avatar = data.get("avatar_url")
             s_cover = data.get("cover_url")
             s_admin_tag = data.get("admin_tag")
+            target_salon_id = data.get("salon_id")
 
             async with async_session_maker() as session:
-                res = await session.execute(
-                    select(Salon).where((Salon.owner_id == user_id) | (Salon.id == 1))
+                u_res = await session.execute(select(User).where(User.telegram_id == user_id))
+                user = u_res.scalar_one_or_none()
+                user_salon_id = user.salon_id if user else None
+
+                salon_query = select(Salon).where(
+                    (Salon.owner_id == user_id) |
+                    (Salon.admin_id == user_id) |
+                    (Salon.id == target_salon_id if target_salon_id else False) |
+                    (Salon.id == user_salon_id if user_salon_id else False) |
+                    (Salon.id == 1)
                 )
+                res = await session.execute(salon_query)
                 salon = res.scalars().first()
                 if salon:
-                    salon.owner_id = user_id
+                    if not salon.owner_id and (not user or user.role != "admin"):
+                        salon.owner_id = user_id
                     salon.name = s_name
                     new_slug = transliterate_to_latin(s_name)
                     if new_slug:
@@ -312,14 +342,18 @@ async def handle_direct_json_data(message: Message):
                     if s_cover: salon.cover_image_url = s_cover
                     if s_admin_tag: salon.admin_tag = s_admin_tag
 
-                    u_res = await session.execute(select(User).where(User.telegram_id == user_id))
-                    user = u_res.scalar_one_or_none()
                     if user:
                         user.is_pro = True
                         user.salon_id = salon.id
 
                     await session.commit()
-                    logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}') успешно обновлены в БД для владельца {user_id} через прямой канал")
+                    logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}') успешно обновлены в БД для пользователя {user_id} через прямой канал")
+            
+            # Удаляем системное JSON сообщение из чата, чтобы не засорять переписку
+            try:
+                await message.delete()
+            except Exception:
+                pass
             return
     except Exception as e:
         logger.error(f"Ошибка обработки прямого JSON: {e}")
