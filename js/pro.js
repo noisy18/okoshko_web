@@ -254,6 +254,8 @@ function initProCloudSync() {
     urlAddress = urlParams.get('address');
     urlPhone = urlParams.get('phone');
     urlCity = urlParams.get('city');
+    const urlLat = urlParams.get('lat');
+    const urlLon = urlParams.get('lon');
 
     let urlMastersJson = urlParams.get('masters_json');
 
@@ -278,6 +280,14 @@ function initProCloudSync() {
     }
     if (urlCity && data.city !== urlCity) {
       data.city = urlCity;
+      needSave = true;
+    }
+    if (urlLat && (!data.latitude || Math.abs(Number(data.latitude) - Number(urlLat)) > 0.0001)) {
+      data.latitude = parseFloat(urlLat);
+      needSave = true;
+    }
+    if (urlLon && (!data.longitude || Math.abs(Number(data.longitude) - Number(urlLon)) > 0.0001)) {
+      data.longitude = parseFloat(urlLon);
       needSave = true;
     }
 
@@ -375,14 +385,15 @@ function initProCloudSync() {
             try {
               const cloudSalon = JSON.parse(values[PRO_DATA_STORAGE_KEY]);
               if (cloudSalon && typeof cloudSalon === 'object') {
-                const currentData = getProSalonData();
-                // Объединяем: если из URL пришел актуальный adminTag или name, сохраняем их приоритет
-                const merged = Object.assign({}, cloudSalon, currentData);
+                const merged = Object.assign({}, currentData, cloudSalon);
+                // Если в URL были явные параметры, они имеют наивысший приоритет
                 if (urlAdminTag) merged.adminTag = urlAdminTag;
                 if (urlSalonName) merged.name = urlSalonName;
                 if (urlAddress) merged.address = urlAddress;
                 if (urlPhone) merged.phone = urlPhone;
                 if (urlCity) merged.city = urlCity;
+                if (urlLat) merged.latitude = parseFloat(urlLat);
+                if (urlLon) merged.longitude = parseFloat(urlLon);
 
                 localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
                 updated = true;
@@ -1854,64 +1865,125 @@ function clearProMapSearch() {
 
 function fetchProMapSuggestions(query) {
   const suggestionsBox = document.getElementById('proMapSearchSuggestions');
-  if (!suggestionsBox || typeof ymaps === 'undefined') return;
+  if (!suggestionsBox) return;
 
-  // Use ymaps.suggest with bounds of current map view
-  const bounds = proAddressPickerMap ? proAddressPickerMap.getBounds() : null;
-  const options = { results: 5 };
-  if (bounds) {
-    options.boundedBy = bounds;
-  }
-
-  ymaps.suggest(query, options).then((items) => {
+  const renderSuggestions = (items) => {
     if (!items || items.length === 0) {
       suggestionsBox.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">Ничего не найдено</div>';
       suggestionsBox.classList.remove('hidden');
+      suggestionsBox.classList.add('flex');
       return;
     }
 
-    suggestionsBox.innerHTML = items.map((item, idx) => {
-      const escapedVal = (item.value || '').replace(/'/g, "\\'");
+    suggestionsBox.innerHTML = items.map((item) => {
+      const title = (item.title || item.value || item.displayName || '').replace(/"/g, '&quot;');
+      const subtitle = (item.subtitle || '').replace(/"/g, '&quot;');
+      const lat = item.lat || '';
+      const lon = item.lon || '';
       return `
-        <button type="button" onclick="selectProMapSuggestion('${escapedVal}')"
+        <button type="button" onclick="selectProMapSuggestion('${title.replace(/'/g, "\\'")}', '${lat}', '${lon}')"
           class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-50 active:bg-primary/10 transition-colors flex items-center gap-2 border-b border-slate-100 last:border-b-0 text-xs">
           <span class="material-symbols-outlined text-[16px] text-primary shrink-0">location_on</span>
-          <span class="truncate text-slate-700">${item.displayName || item.value}</span>
+          <div class="flex flex-col min-w-0">
+            <span class="truncate font-medium text-slate-800">${title}</span>
+            ${subtitle ? `<span class="truncate text-[10px] text-slate-400">${subtitle}</span>` : ''}
+          </div>
         </button>
       `;
     }).join('');
     suggestionsBox.classList.remove('hidden');
-  }).catch(() => {
-    // Fallback: ymaps.geocode
-    ymaps.geocode(query, { results: 5 }).then((res) => {
-      const geoObjects = res.geoObjects.toArray();
-      if (geoObjects.length === 0) {
-        suggestionsBox.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">Ничего не найдено</div>';
-        suggestionsBox.classList.remove('hidden');
-        return;
-      }
+    suggestionsBox.classList.add('flex');
+  };
 
-      suggestionsBox.innerHTML = geoObjects.map(obj => {
-        const addr = obj.getAddressLine();
-        const escapedAddr = addr.replace(/'/g, "\\'");
-        return `
-          <button type="button" onclick="selectProMapSuggestion('${escapedAddr}')"
-            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-50 active:bg-primary/10 transition-colors flex items-center gap-2 border-b border-slate-100 last:border-b-0 text-xs">
-            <span class="material-symbols-outlined text-[16px] text-primary shrink-0">location_on</span>
-            <span class="truncate text-slate-700">${addr}</span>
-          </button>
-        `;
-      }).join('');
-      suggestionsBox.classList.remove('hidden');
-    }).catch(err => console.warn('[PRO Map] Suggest error:', err));
-  });
+  // 1. Попытка через ymaps.suggest
+  if (typeof ymaps !== 'undefined' && ymaps.suggest) {
+    const bounds = proAddressPickerMap ? proAddressPickerMap.getBounds() : null;
+    const opts = { results: 5 };
+    if (bounds) opts.boundedBy = bounds;
+
+    ymaps.suggest(query, opts).then((res) => {
+      if (res && res.length > 0) {
+        const formatted = res.map(i => ({
+          title: i.displayName || i.value,
+          value: i.value,
+          subtitle: i.description || ''
+        }));
+        renderSuggestions(formatted);
+      } else {
+        fallbackSearchGeocode(query, renderSuggestions);
+      }
+    }).catch(() => {
+      fallbackSearchGeocode(query, renderSuggestions);
+    });
+  } else {
+    fallbackSearchGeocode(query, renderSuggestions);
+  }
 }
 
-function selectProMapSuggestion(address) {
+function fallbackSearchGeocode(query, callback) {
+  // Попытка через ymaps.geocode
+  if (typeof ymaps !== 'undefined' && ymaps.geocode) {
+    ymaps.geocode(query, { results: 5 }).then((res) => {
+      const geoObjects = res.geoObjects.toArray();
+      if (geoObjects && geoObjects.length > 0) {
+        const formatted = geoObjects.map(obj => {
+          const coords = obj.geometry.getCoordinates();
+          return {
+            title: obj.getAddressLine() || obj.properties.get('name') || query,
+            subtitle: obj.properties.get('description') || '',
+            lat: coords ? coords[0] : '',
+            lon: coords ? coords[1] : ''
+          };
+        });
+        callback(formatted);
+        return;
+      }
+      nominatimSearch(query, callback);
+    }).catch(() => {
+      nominatimSearch(query, callback);
+    });
+  } else {
+    nominatimSearch(query, callback);
+  }
+}
+
+function nominatimSearch(query, callback) {
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&accept-language=ru&countrycodes=ru`)
+    .then(r => r.json())
+    .then(items => {
+      if (!items || !items.length) {
+        callback([]);
+        return;
+      }
+      const formatted = items.map(i => ({
+        title: i.display_name.split(',')[0],
+        subtitle: i.display_name.split(',').slice(1, 4).join(',').trim(),
+        lat: parseFloat(i.lat),
+        lon: parseFloat(i.lon)
+      }));
+      callback(formatted);
+    })
+    .catch(() => callback([]));
+}
+
+function selectProMapSuggestion(address, lat, lon) {
   const input = document.getElementById('proMapSearchInput');
   if (input) input.value = address;
   const suggestionsBox = document.getElementById('proMapSearchSuggestions');
-  if (suggestionsBox) suggestionsBox.classList.add('hidden');
+  if (suggestionsBox) {
+    suggestionsBox.classList.add('hidden');
+    suggestionsBox.classList.remove('flex');
+  }
+
+  // Если координаты переданы напрямую
+  if (lat && lon && proAddressPickerMap) {
+    const coords = [parseFloat(lat), parseFloat(lon)];
+    proAddressPickerMap.setCenter(coords, 16, {
+      duration: 600,
+      flying: true
+    });
+    return;
+  }
 
   if (typeof ymaps === 'undefined' || !ymaps.geocode || !proAddressPickerMap) return;
 

@@ -286,6 +286,20 @@ async def handle_web_app_data(message: Message):
 
                         await session.commit()
                         logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', адрес '{salon.address}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id}")
+
+                        # Обновляем кнопку меню чата для пользователя со свежими параметрами салона
+                        try:
+                            fresh_url = await get_user_app_url(user_id)
+                            from aiogram.types import MenuButtonWebApp, WebAppInfo
+                            await message.bot.set_chat_menu_button(
+                                chat_id=user_id,
+                                menu_button=MenuButtonWebApp(
+                                    text="💅 Окошко",
+                                    web_app=WebAppInfo(url=fresh_url),
+                                ),
+                            )
+                        except Exception as m_err:
+                            logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
         elif data.get("action") == "user_phone_updated":
             from bot.database import User
             from bot.database.base import async_session_maker
@@ -393,6 +407,20 @@ async def handle_direct_json_data(message: Message):
 
                     await session.commit()
                     logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id} через прямой канал")
+
+                    # Обновляем кнопку меню чата для пользователя со свежими параметрами салона
+                    try:
+                        fresh_url = await get_user_app_url(user_id)
+                        from aiogram.types import MenuButtonWebApp, WebAppInfo
+                        await message.bot.set_chat_menu_button(
+                            chat_id=user_id,
+                            menu_button=MenuButtonWebApp(
+                                text="💅 Окошко",
+                                web_app=WebAppInfo(url=fresh_url),
+                            ),
+                        )
+                    except Exception as m_err:
+                        logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
         
         elif data.get("action") == "user_phone_updated" and user_id:
             from bot.database import User
