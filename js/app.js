@@ -692,7 +692,7 @@
 
         // Navigation dock switching between Client and PRO
         const proNav = document.getElementById('proNav');
-        const isProScreen = screen.startsWith('pro-') || !!state.isProMode;
+        const isProScreen = screen.startsWith('pro-');
 
         if (screen === 'verify') {
           globalHeader.classList.add('hidden');
@@ -704,6 +704,7 @@
         }
 
         if (isProScreen) {
+          state.isProMode = true;
           document.body.classList.add('pro-mode-active');
           if (globalNav) {
             globalNav.classList.add('hidden');
@@ -714,6 +715,7 @@
             proNav.style.display = 'block';
           }
         } else {
+          state.isProMode = false;
           document.body.classList.remove('pro-mode-active');
           if (proNav) {
             proNav.classList.add('hidden');

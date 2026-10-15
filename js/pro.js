@@ -215,16 +215,41 @@ function saveProAppointments(appts) {
 
 // Cross-device synchronization on launch from Telegram CloudStorage and URL params
 function initProCloudSync() {
-  // 1. Проверяем URL параметры (если WebApp открыт по кнопке от бота с admin_tag)
+  // 1. Проверяем URL параметры (если WebApp открыт по кнопке от бота с параметрами салона)
   try {
     const urlParams = new URLSearchParams(window.location.search);
     const urlAdminTag = urlParams.get('admin_tag');
-    if (urlAdminTag) {
-      const data = getProSalonData();
-      if (data.adminTag !== urlAdminTag) {
-        data.adminTag = urlAdminTag;
-        saveProSalonData(data);
-      }
+    const urlSalonName = urlParams.get('salon_name');
+    const urlAddress = urlParams.get('address');
+    const urlPhone = urlParams.get('phone');
+    const urlCity = urlParams.get('city');
+
+    let needSave = false;
+    const data = getProSalonData();
+
+    if (urlAdminTag && data.adminTag !== urlAdminTag) {
+      data.adminTag = urlAdminTag;
+      needSave = true;
+    }
+    if (urlSalonName && data.name !== urlSalonName) {
+      data.name = urlSalonName;
+      needSave = true;
+    }
+    if (urlAddress && data.address !== urlAddress) {
+      data.address = urlAddress;
+      needSave = true;
+    }
+    if (urlPhone && data.phone !== urlPhone) {
+      data.phone = urlPhone;
+      needSave = true;
+    }
+    if (urlCity && data.city !== urlCity) {
+      data.city = urlCity;
+      needSave = true;
+    }
+
+    if (needSave) {
+      saveProSalonData(data);
     }
   } catch (e) { }
 
@@ -584,21 +609,19 @@ function saveProFieldEdit() {
     }
   }
 
-  confirmProAction('Сохранить изменения?', `Обновить поле «${activeProEditField === 'name' ? 'Название' : activeProEditField === 'address' ? 'Адрес' : 'Телефон'}»?`, () => {
-    const data = getProSalonData();
-    if (activeProEditField === 'name') {
-      data.name = val;
-      showToast('Название обновлено ✓');
-    } else if (activeProEditField === 'address') {
-      data.address = val;
-      showToast('Адрес обновлен ✓');
-    } else if (activeProEditField === 'phone') {
-      data.phone = val;
-      showToast('Телефон обновлен ✓');
-    }
-    saveProSalonData(data);
-    closeProFieldModal();
-  });
+  const data = getProSalonData();
+  if (activeProEditField === 'name') {
+    data.name = val;
+    showToast('Название обновлено ✓');
+  } else if (activeProEditField === 'address') {
+    data.address = val;
+    showToast('Адрес обновлен ✓');
+  } else if (activeProEditField === 'phone') {
+    data.phone = val;
+    showToast('Телефон обновлен ✓');
+  }
+  saveProSalonData(data);
+  closeProFieldModal();
 }
 
 function toggleProNotifications(enabled) {
@@ -623,12 +646,10 @@ function handleSalonAvatarUploaded(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const base64 = e.target.result;
-    confirmProAction('Обновить аватарку салона?', 'Загрузить новое изображение логотипа/аватарки салона?', () => {
-      const data = getProSalonData();
-      data.avatarUrl = base64;
-      saveProSalonData(data);
-      showToast('Аватарка салона обновлена 🖼️');
-    });
+    const data = getProSalonData();
+    data.avatarUrl = base64;
+    saveProSalonData(data);
+    showToast('Аватарка салона обновлена 🖼️');
   };
   reader.readAsDataURL(file);
 }
@@ -644,12 +665,10 @@ function handleSalonCoverUploaded(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const base64 = e.target.result;
-    confirmProAction('Обновить фон карточки?', 'Загрузить новое фоновое фото для шапки салона?', () => {
-      const data = getProSalonData();
-      data.coverUrl = base64;
-      saveProSalonData(data);
-      showToast('Фоновое изображение обновлено 📸');
-    });
+    const data = getProSalonData();
+    data.coverUrl = base64;
+    saveProSalonData(data);
+    showToast('Фоновое изображение обновлено 📸');
   };
   reader.readAsDataURL(file);
 }
