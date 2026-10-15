@@ -17,6 +17,10 @@ from bot.keyboards import (
     get_admin_invite_keyboard,
     get_master_invite_keyboard,
     get_role_choice_keyboard,
+    get_master_setup_keyboard,
+    get_master_services_keyboard,
+    get_master_exp_keyboard,
+    get_master_role_keyboard,
 )
 
 logger = logging.getLogger(__name__)
@@ -425,7 +429,7 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
 
 @user_router.callback_query(F.data.startswith("confirm_bind_master:"))
 async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
-    """Подтверждение привязки пользователя в качестве Мастера салона."""
+    """Подтверждение привязки пользователя в качестве Мастера салона с интерактивной анкетой."""
     await callback.answer()
     parts = callback.data.split(":")
     salon_id_raw = parts[1] if len(parts) > 1 else "1"
@@ -442,13 +446,13 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
         last_name=user.last_name,
     )
 
-    salon_name = salon.name if salon else "вашему салону"
+    salon_name = salon.name if salon else "Beauty Studio"
     master_name = master.name if master else (user.first_name or "Мастер")
-    app_url = await get_user_app_url(user.id)
-    pro_app_url = await get_user_app_url(user.id, is_pro_entry=True)
+    master_id = master.id if master else 0
 
     # Обновляем кнопку меню чата для мастера
     try:
+        app_url = await get_user_app_url(user.id)
         await bot.set_chat_menu_button(
             chat_id=callback.message.chat.id,
             menu_button=MenuButtonWebApp(
@@ -459,18 +463,431 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
     except Exception as e:
         logger.warning(f"Не удалось обновить MenuButton для {callback.message.chat.id}: {e}")
 
-    success_text = (
-        f"✨ <b>Добро пожаловать в команду, {master_name}!</b>\n\n"
-        f"🏢 <b>Салон:</b> {salon_name}\n"
-        f"💇 <b>Профиль мастера:</b> {master_name} {master.last_name or ''}\n"
-        f"👤 <b>Telegram:</b> @{user.username if user.username else user.first_name} (ID: <code>{user.id}</code>)\n\n"
-        f"Ваш аккаунт успешно привязан. Теперь вы будете получать уведомления "
-        f"о записях клиентов прямо в этот чат, а ваши свободные окна будут отображаться в приложении!\n\n"
-        f"Откройте сервис, чтобы посмотреть расписание 👇"
+    # Если у салона есть владелец, отправляем уведомление
+    if salon and salon.owner_id and salon.owner_id != user.id:
+        try:
+            m_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
+            owner_app_url = await get_user_app_url(salon.owner_id)
+            owner_pro_url = await get_user_app_url(salon.owner_id, is_pro_entry=True)
+            await bot.send_message(
+                chat_id=salon.owner_id,
+                text=(
+                    f"🎉 <b>Новый мастер присоединился к команде!</b>\n\n"
+                    f"🏢 Салон: <b>{salon_name}</b>\n"
+                    f"💇 Мастер: <b>{master_name}</b> ({m_mention}, ID: <code>{user.id}</code>)\n"
+                    f"Специализация: <i>{master.role_title if master else 'Специалист'}</i>"
+                ),
+                reply_markup=get_inline_keyboard(owner_app_url, pro_app_url=owner_pro_url),
+            )
+        except Exception as e:
+            logger.warning(f"Не удалось уведомить владельца салона: {e}")
+
+    # Интерактивная форма заполнения профиля мастера
+    form_text = (
+        f"🎉 <b>Вы успешно подключены к салону «{salon_name}»!</b>\n\n"
+        f"💇 <b>Анкета вашего профиля мастера:</b>\n"
+        f"• <b>Имя:</b> {master.name} {master.last_name or ''}\n"
+        f"• <b>Специализация:</b> {master.role_title}\n"
+        f"• <b>Опыт работы:</b> {master.experience or 'Не указан'}\n"
+        f"• <b>Telegram:</b> @{user.username if user.username else user.first_name} (ID: <code>{user.id}</code>)\n\n"
+        f"💡 <i>Нажмите кнопку ниже, чтобы автоматически скопировать имя и аватарку из вашего Telegram или настроить услуги и опыт:</i>"
     )
 
     await callback.message.edit_text(
-        text=success_text,
+        text=form_text,
+        reply_markup=get_master_setup_keyboard(master_id),
+    )
+
+
+@user_router.callback_query(F.data.startswith("msetup_tg:"))
+async def handle_master_setup_from_tg(callback: CallbackQuery, bot: Bot):
+    """Автоматическое заполнение профиля мастера данными из Telegram (имя + фото)."""
+    master_id = int(callback.data.split(":")[1])
+    user = callback.from_user
+
+    from bot.database.base import async_session_maker
+    from bot.database.models import Master
+    from sqlalchemy import select
+
+    avatar_url = None
+    try:
+        user_photos = await bot.get_user_profile_photos(user.id, limit=1)
+        if user_photos.total_count > 0:
+            file_id = user_photos.photos[0][-1].file_id
+            file_info = await bot.get_file(file_id)
+            if file_info.file_path:
+                avatar_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
+    except Exception as e:
+        logger.warning(f"Не удалось загрузить фото профиля Telegram для {user.id}: {e}")
+
+    async with async_session_maker() as session:
+        res = await session.execute(select(Master).where(Master.id == master_id))
+        master = res.scalar_one_or_none()
+        if master:
+            if user.first_name:
+                master.name = user.first_name
+            if user.last_name:
+                master.last_name = user.last_name
+            if avatar_url:
+                master.avatar_url = avatar_url
+            if user.username:
+                master.telegram_handle = f"@{user.username}"
+            await session.commit()
+            await session.refresh(master)
+
+            await callback.answer("✅ Данные и фото из Telegram успешно скопированы!")
+            form_text = (
+                f"✨ <b>Данные вашего профиля обновлены из Telegram!</b>\n\n"
+                f"• <b>Имя:</b> {master.name} {master.last_name or ''}\n"
+                f"• <b>Специализация:</b> {master.role_title}\n"
+                f"• <b>Опыт:</b> {master.experience or 'Не указан'}\n"
+                f"• <b>Фото:</b> Установлено из Telegram ✅\n\n"
+                f"Теперь выберите оказываемые услуги и укажите опыт 👇"
+            )
+            await callback.message.edit_text(
+                text=form_text,
+                reply_markup=get_master_setup_keyboard(master_id),
+            )
+        else:
+            await callback.answer("Мастер не найден")
+
+
+@user_router.callback_query(F.data.startswith("msetup_back:"))
+async def handle_master_setup_back(callback: CallbackQuery):
+    """Возврат к основной анкете мастера."""
+    await callback.answer()
+    master_id = int(callback.data.split(":")[1])
+
+    from bot.database.base import async_session_maker
+    from bot.database.models import Master, Salon
+    from sqlalchemy import select
+
+    async with async_session_maker() as session:
+        res = await session.execute(select(Master).where(Master.id == master_id))
+        master = res.scalar_one_or_none()
+        if not master:
+            await callback.answer("Мастер не найден")
+            return
+
+        salon_name = "Салон"
+        if master.salon_id:
+            s_res = await session.execute(select(Salon).where(Salon.id == master.salon_id))
+            salon = s_res.scalar_one_or_none()
+            if salon:
+                salon_name = salon.name
+
+        form_text = (
+            f"🏢 <b>Салон «{salon_name}»</b>\n\n"
+            f"💇 <b>Анкета вашего профиля мастера:</b>\n"
+            f"• <b>Имя:</b> {master.name} {master.last_name or ''}\n"
+            f"• <b>Специализация:</b> {master.role_title}\n"
+            f"• <b>Опыт работы:</b> {master.experience or 'Не указан'}\n"
+            f"• <b>Telegram:</b> {master.telegram_handle or f'ID {master.telegram_id}'}\n\n"
+            f"Выберите нужный пункт для настройки:"
+        )
+        await callback.message.edit_text(
+            text=form_text,
+            reply_markup=get_master_setup_keyboard(master_id),
+        )
+
+
+@user_router.callback_query(F.data.startswith("msetup_role:"))
+async def handle_master_setup_role(callback: CallbackQuery):
+    """Выбор специализации мастера кнопками."""
+    await callback.answer()
+    master_id = int(callback.data.split(":")[1])
+    text = (
+        "🏷 <b>Выберите вашу специализацию в салоне:</b>\n\n"
+        "Она будет отображаться в карточке мастера и при записи клиентов."
+    )
+    await callback.message.edit_text(
+        text=text,
+        reply_markup=get_master_role_keyboard(master_id),
+    )
+
+
+@user_router.callback_query(F.data.startswith("mrole_set:"))
+async def handle_master_role_set(callback: CallbackQuery):
+    """Установка специализации мастера."""
+    parts = callback.data.split(":", 2)
+    master_id = int(parts[1])
+    new_role = parts[2]
+
+    from bot.database.base import async_session_maker
+    from bot.database.models import Master
+    from sqlalchemy import select
+
+    async with async_session_maker() as session:
+        res = await session.execute(select(Master).where(Master.id == master_id))
+        master = res.scalar_one_or_none()
+        if master:
+            master.role_title = new_role
+            await session.commit()
+    
+    await callback.answer(f"✓ Должность: {new_role}")
+    # Возвращаемся в главное меню анкеты
+    callback.data = f"msetup_back:{master_id}"
+    await handle_master_setup_back(callback)
+
+
+@user_router.callback_query(F.data.startswith("msetup_exp:"))
+async def handle_master_setup_exp(callback: CallbackQuery):
+    """Выбор опыта работы мастера кнопками."""
+    await callback.answer()
+    master_id = int(callback.data.split(":")[1])
+    text = (
+        "⏳ <b>Укажите ваш стаж / опыт работы:</b>\n\n"
+        "Клиенты чаще выбирают специалистов с подтвержденным опытом."
+    )
+    await callback.message.edit_text(
+        text=text,
+        reply_markup=get_master_exp_keyboard(master_id),
+    )
+
+
+@user_router.callback_query(F.data.startswith("mexp_set:"))
+async def handle_master_exp_set(callback: CallbackQuery):
+    """Установка опыта работы мастера."""
+    parts = callback.data.split(":", 2)
+    master_id = int(parts[1])
+    new_exp = parts[2]
+
+    from bot.database.base import async_session_maker
+    from bot.database.models import Master
+    from sqlalchemy import select
+
+    async with async_session_maker() as session:
+        res = await session.execute(select(Master).where(Master.id == master_id))
+        master = res.scalar_one_or_none()
+        if master:
+            master.experience = new_exp
+            await session.commit()
+    
+    await callback.answer(f"✓ Опыт: {new_exp}")
+    callback.data = f"msetup_back:{master_id}"
+    await handle_master_setup_back(callback)
+
+
+# Временный кэш выбранных услуг для мастера (master_id -> set of indices)
+_master_selected_services_cache: dict[int, set[int]] = {}
+
+
+@user_router.callback_query(F.data.startswith("msetup_svc:"))
+async def handle_master_setup_services(callback: CallbackQuery):
+    """Интерактивный список услуг салона с кнопками и галочками (мультиселект)."""
+    await callback.answer()
+    master_id = int(callback.data.split(":")[1])
+
+    from bot.database.base import async_session_maker
+    from bot.database.models import Master, Salon, Service
+    from sqlalchemy import select
+    import json
+
+    services_list = []
+    async with async_session_maker() as session:
+        res = await session.execute(select(Master).where(Master.id == master_id))
+        master = res.scalar_one_or_none()
+        if master and master.salon_id:
+            # Сначала проверяем таблицу services
+            svc_res = await session.execute(select(Service).where(Service.salon_id == master.salon_id))
+            db_svcs = svc_res.scalars().all()
+            for s in db_svcs:
+                services_list.append({"name": s.name, "price": s.price})
+            
+            # Если пусто, берем из salon.services_json
+            if not services_list:
+                s_res = await session.execute(select(Salon).where(Salon.id == master.salon_id))
+                salon = s_res.scalar_one_or_none()
+                if salon and salon.services_json:
+                    try:
+                        raw = json.loads(salon.services_json)
+                        if isinstance(raw, list):
+                            services_list = raw
+                    except Exception:
+                        pass
+
+    if not services_list:
+        services_list = [
+            {"name": "Маникюр с покрытием гель-лак"},
+            {"name": "Smart-педикюр эстетический"},
+            {"name": "Окрашивание и коррекция бровей"},
+            {"name": "Ламинирование ресниц"},
+            {"name": "Стрижка + укладка"},
+        ]
+
+    # Инициализируем выбранные услуги
+    if master_id not in _master_selected_services_cache:
+        _master_selected_services_cache[master_id] = set(range(min(2, len(services_list))))
+
+    selected = _master_selected_services_cache[master_id]
+
+    text = (
+        "💇 <b>Выберите услуги, которые вы выполняете:</b>\n\n"
+        "Нажимайте на кнопки, чтобы отметить нужные услуги галочкой ✅. "
+        "После выбора нажмите «💾 Подтвердить выбор услуг»."
+    )
+    await callback.message.edit_text(
+        text=text,
+        reply_markup=get_master_services_keyboard(master_id, services_list, list(selected)),
+    )
+
+
+@user_router.callback_query(F.data.startswith("msvc_tgl:"))
+async def handle_master_svc_toggle(callback: CallbackQuery):
+    """Переключение галочки для услуги."""
+    parts = callback.data.split(":")
+    master_id = int(parts[1])
+    svc_idx = int(parts[2])
+
+    if master_id not in _master_selected_services_cache:
+        _master_selected_services_cache[master_id] = set()
+
+    if svc_idx in _master_selected_services_cache[master_id]:
+        _master_selected_services_cache[master_id].remove(svc_idx)
+    else:
+        _master_selected_services_cache[master_id].add(svc_idx)
+
+    # Перерисовываем клавиатуру
+    await handle_master_setup_services(callback)
+
+
+@user_router.callback_query(F.data.startswith("msvc_all:"))
+async def handle_master_svc_select_all(callback: CallbackQuery):
+    """Выбрать все услуги."""
+    master_id = int(callback.data.split(":")[1])
+    _master_selected_services_cache[master_id] = set(range(10))
+    await handle_master_setup_services(callback)
+
+
+@user_router.callback_query(F.data.startswith("msvc_save:"))
+async def handle_master_svc_save(callback: CallbackQuery):
+    """Сохранение выбранных услуг в профиль мастера."""
+    master_id = int(callback.data.split(":")[1])
+    selected_indices = _master_selected_services_cache.get(master_id, set())
+
+    from bot.database.base import async_session_maker
+    from bot.database.models import Master, Salon, Service
+    from sqlalchemy import select
+    import json
+
+    saved_names = []
+    async with async_session_maker() as session:
+        res = await session.execute(select(Master).where(Master.id == master_id))
+        master = res.scalar_one_or_none()
+        if master and master.salon_id:
+            all_svcs = []
+            svc_res = await session.execute(select(Service).where(Service.salon_id == master.salon_id))
+            db_svcs = svc_res.scalars().all()
+            for s in db_svcs:
+                all_svcs.append(s.name)
+            if not all_svcs:
+                s_res = await session.execute(select(Salon).where(Salon.id == master.salon_id))
+                salon = s_res.scalar_one_or_none()
+                if salon and salon.services_json:
+                    try:
+                        raw = json.loads(salon.services_json)
+                        all_svcs = [x.get("name", "") for x in raw if isinstance(x, dict)]
+                    except Exception:
+                        pass
+            if not all_svcs:
+                all_svcs = ["Маникюр", "Педикюр", "Брови", "Стрижка"]
+
+            for idx in selected_indices:
+                if idx < len(all_svcs):
+                    saved_names.append(all_svcs[idx])
+
+            master.services_json = json.dumps(saved_names, ensure_ascii=False)
+            await session.commit()
+
+    await callback.answer(f"✓ Выбрано услуг: {len(saved_names)}")
+    callback.data = f"msetup_back:{master_id}"
+    await handle_master_setup_back(callback)
+
+
+@user_router.callback_query(F.data.startswith("msetup_name:"))
+async def handle_master_setup_name_prompt(callback: CallbackQuery):
+    """Подсказка по ручному вводу имени."""
+    await callback.answer()
+    master_id = int(callback.data.split(":")[1])
+    text = (
+        "✏️ <b>Как вас зовут?</b>\n\n"
+        "Отправьте в ответ текстовым сообщением ваше Имя и Фамилию (например, <i>Анастасия Смирнова</i>).\n"
+        "Или нажмите кнопку «Использовать имя из Telegram» в анкете."
+    )
+    await callback.message.edit_text(
+        text=text,
+        reply_markup=get_master_setup_keyboard(master_id),
+    )
+
+
+@user_router.callback_query(F.data.startswith("msetup_photo:"))
+async def handle_master_setup_photo_prompt(callback: CallbackQuery):
+    """Подсказка по загрузке своего фото."""
+    await callback.answer()
+    master_id = int(callback.data.split(":")[1])
+    text = (
+        "📸 <b>Загрузка фотографии мастера:</b>\n\n"
+        "Вы можете отправить фото прямо в этот чат, или нажать <b>«⚡ Использовать имя и фото из Telegram»</b>, "
+        "чтобы бот автоматически загрузил аватарку вашего Telegram аккаунта."
+    )
+    await callback.message.edit_text(
+        text=text,
+        reply_markup=get_master_setup_keyboard(master_id),
+    )
+
+
+@user_router.callback_query(F.data.startswith("msetup_done:"))
+async def handle_master_setup_done(callback: CallbackQuery):
+    """Завершение заполнения анкеты мастера."""
+    await callback.answer("🎉 Профиль сохранён!")
+    master_id = int(callback.data.split(":")[1])
+    user = callback.from_user
+
+    from bot.database.base import async_session_maker
+    from bot.database.models import Master, Salon
+    from sqlalchemy import select
+    import json
+
+    salon_name = "Салон"
+    master_name = user.first_name or "Мастер"
+    role_title = "Специалист"
+    services_count = 0
+    experience = "Не указан"
+
+    async with async_session_maker() as session:
+        res = await session.execute(select(Master).where(Master.id == master_id))
+        master = res.scalar_one_or_none()
+        if master:
+            master_name = f"{master.name} {master.last_name or ''}".strip()
+            role_title = master.role_title
+            experience = master.experience or "3 года"
+            if master.services_json:
+                try:
+                    services_count = len(json.loads(master.services_json))
+                except Exception:
+                    pass
+            if master.salon_id:
+                s_res = await session.execute(select(Salon).where(Salon.id == master.salon_id))
+                salon = s_res.scalar_one_or_none()
+                if salon:
+                    salon_name = salon.name
+
+    app_url = await get_user_app_url(user.id)
+    pro_app_url = await get_user_app_url(user.id, is_pro_entry=True)
+
+    done_text = (
+        f"✅ <b>Профиль мастера успешно настроен и активирован!</b>\n\n"
+        f"🏢 <b>Салон:</b> {salon_name}\n"
+        f"💇 <b>Мастер:</b> {master_name}\n"
+        f"🏷 <b>Специализация:</b> {role_title}\n"
+        f"⏳ <b>Опыт:</b> {experience}\n"
+        f"💅 <b>Активных услуг:</b> {services_count or 'Все услуги салона'}\n\n"
+        f"Теперь клиенты могут записываться к вам через онлайн-расписание, а вам будут приходить мгновенные уведомления о бронированиях в этот чат!\n\n"
+        f"Нажмите кнопку ниже, чтобы открыть кабинет 👇"
+    )
+
+    await callback.message.edit_text(
+        text=done_text,
         reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 

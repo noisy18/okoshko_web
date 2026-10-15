@@ -607,10 +607,19 @@ function openProFieldModal(fieldKey) {
       validationHint.textContent = 'Введите 10 цифр номера (начиная после +7)';
     }
 
-    input.oninput = function() {
-      const formatted = formatPhoneNumber(this.value);
+    input.oninput = function(e) {
+      const val = this.value;
+      if (!val || val.trim() === '') {
+        this.value = '';
+        if (validationHint) {
+          validationHint.textContent = 'Введите 10 цифр номера (начиная после +7)';
+          validationHint.className = 'text-[11px] text-slate-400 px-1';
+        }
+        return;
+      }
+      const formatted = formatPhoneNumber(val);
       this.value = formatted;
-      const digits = this.value.replace(/\D/g, '').replace(/^[78]/, '');
+      const digits = val.replace(/\D/g, '').replace(/^[78]/, '');
       if (validationHint) {
         if (digits.length === 10) {
           validationHint.textContent = '✓ Номер введен полностью';
@@ -622,7 +631,34 @@ function openProFieldModal(fieldKey) {
       }
     };
     input.onkeydown = function(e) {
-      const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Escape'];
+      if (e.key === 'Backspace') {
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        // If cursor is right after a non-digit like '-', ')', ' ', delete preceding digit
+        if (start === end && start > 0) {
+          const charBefore = this.value[start - 1];
+          if (!/\d/.test(charBefore)) {
+            e.preventDefault();
+            let prevDigitIdx = -1;
+            for (let i = start - 1; i >= 0; i--) {
+              if (/\d/.test(this.value[i])) {
+                prevDigitIdx = i;
+                break;
+              }
+            }
+            if (prevDigitIdx > 1) { // Don't delete the +7 prefix
+              const val = this.value.substring(0, prevDigitIdx) + this.value.substring(prevDigitIdx + 1);
+              const formatted = formatPhoneNumber(val);
+              this.value = formatted;
+              this.setSelectionRange(prevDigitIdx, prevDigitIdx);
+              this.dispatchEvent(new Event('input'));
+            }
+            return;
+          }
+        }
+        return;
+      }
+      const allowedKeys = ['Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Escape'];
       if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) return;
       if (!/^\d$/.test(e.key)) e.preventDefault();
     };

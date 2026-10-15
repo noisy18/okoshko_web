@@ -346,33 +346,31 @@ async def bind_user_as_master(
         masters_res = await session.execute(select(Master).where(Master.salon_id == salon_id))
         masters = list(masters_res.scalars().all())
 
-        if master_hint_name and master_hint_name.lower() not in ("spec", "master", ""):
+        # 1. Если пользователь уже привязан к мастеру этого салона, используем его
+        for m in masters:
+            if m.telegram_id == telegram_id:
+                master = m
+                break
+
+        # 2. Если в ссылке было конкретное имя мастера (не общее 'spec'/'master') и оно совпадает
+        if not master and master_hint_name and master_hint_name.lower() not in ("spec", "master", "", "none"):
             for m in masters:
-                if master_hint_name.lower() in m.name.lower():
+                if (master_hint_name.lower() in m.name.lower() or (m.last_name and master_hint_name.lower() in m.last_name.lower())) and not m.telegram_id:
                     master = m
                     break
 
-        if not master and first_name:
-            for m in masters:
-                if first_name.lower() in m.name.lower():
-                    master = m
-                    break
-
-        # Если не найден подходящий, берем первого свободного без telegram_id или создаем нового
-        if not master and masters:
-            for m in masters:
-                if not m.telegram_id:
-                    master = m
-                    break
-
-        # Если все равно не нашли — создаем новую запись мастера для этого салона
+        # 3. Если совпадений нет, создаем персональный профиль мастера с данными Telegram пользователя
         tg_handle = f"@{username}" if username else None
-        m_name = first_name or (master_hint_name if master_hint_name and master_hint_name != "spec" else "Мастер")
+        m_name = first_name or (master_hint_name if master_hint_name and master_hint_name not in ("spec", "master") else "Мастер")
         m_lastname = last_name or ""
 
         if master:
             master.telegram_id = telegram_id
             master.telegram_handle = tg_handle
+            if first_name and not master.name:
+                master.name = first_name
+            if last_name and not master.last_name:
+                master.last_name = last_name
         else:
             master = Master(
                 salon_id=salon.id,
@@ -381,6 +379,7 @@ async def bind_user_as_master(
                 telegram_handle=tg_handle,
                 telegram_id=telegram_id,
                 role_title="Специалист салона",
+                experience="3 года",
                 avatar_url="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
             )
             session.add(master)

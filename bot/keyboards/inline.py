@@ -134,3 +134,129 @@ def get_role_choice_keyboard(salon_id: int, master_hint: str = "") -> InlineKeyb
         ]
     )
 
+
+def get_master_setup_keyboard(master_id: int) -> InlineKeyboardMarkup:
+    """Клавиатура интерактивного заполнения профиля мастера прямо в боте"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="⚡ Использовать имя и фото из Telegram",
+                    callback_data=f"msetup_tg:{master_id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="💇 Выбрать услуги салона",
+                    callback_data=f"msetup_svc:{master_id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="⏳ Опыт работы",
+                    callback_data=f"msetup_exp:{master_id}",
+                ),
+                InlineKeyboardButton(
+                    text="🏷 Должность / Роль",
+                    callback_data=f"msetup_role:{master_id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✏️ Изменить имя",
+                    callback_data=f"msetup_name:{master_id}",
+                ),
+                InlineKeyboardButton(
+                    text="📸 Свое фото",
+                    callback_data=f"msetup_photo:{master_id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✅ Готово! Сохранить и завершить",
+                    callback_data=f"msetup_done:{master_id}",
+                )
+            ]
+        ]
+    )
+
+
+def get_master_services_keyboard(master_id: int, services: list, selected_indices: list) -> InlineKeyboardMarkup:
+    """Клавиатура выбора услуг с мультиселектом (галочками)"""
+    keyboard = []
+    for idx, s in enumerate(services):
+        s_name = s.get("name", f"Услуга #{idx+1}") if isinstance(s, dict) else str(s)
+        # Укорачиваем название, если слишком длинное для кнопки
+        if len(s_name) > 28:
+            s_name = s_name[:26] + ".."
+        is_selected = idx in selected_indices
+        mark = "✅ " if is_selected else "▫️ "
+        keyboard.append([
+            InlineKeyboardButton(
+                text=f"{mark}{s_name}",
+                callback_data=f"msvc_tgl:{master_id}:{idx}",
+            )
+        ])
+    
+    keyboard.append([
+        InlineKeyboardButton(
+            text="✨ Выбрать все услуги",
+            callback_data=f"msvc_all:{master_id}",
+        )
+    ])
+    keyboard.append([
+        InlineKeyboardButton(
+            text="💾 Подтвердить выбор услуг",
+            callback_data=f"msvc_save:{master_id}",
+        )
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def get_master_exp_keyboard(master_id: int) -> InlineKeyboardMarkup:
+    """Клавиатура быстрого выбора стажа / опыта работы"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="До 1 года", callback_data=f"mexp_set:{master_id}:До 1 года"),
+                InlineKeyboardButton(text="1–2 года", callback_data=f"mexp_set:{master_id}:1-2 года"),
+            ],
+            [
+                InlineKeyboardButton(text="3–5 лет", callback_data=f"mexp_set:{master_id}:3-5 лет"),
+                InlineKeyboardButton(text="Более 5 лет", callback_data=f"mexp_set:{master_id}:Более 5 лет"),
+            ],
+            [
+                InlineKeyboardButton(text="Топ-мастер (7+ лет)", callback_data=f"mexp_set:{master_id}:Топ-мастер (7+ лет)"),
+            ],
+            [
+                InlineKeyboardButton(text="⬅️ Назад в анкету", callback_data=f"msetup_back:{master_id}"),
+            ]
+        ]
+    )
+
+
+def get_master_role_keyboard(master_id: int) -> InlineKeyboardMarkup:
+    """Клавиатура быстрого выбора специализации мастера"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="💅 Мастер ногтевого сервиса", callback_data=f"mrole_set:{master_id}:Мастер ногтевого сервиса"),
+            ],
+            [
+                InlineKeyboardButton(text="👁 Бровист & Ламимейкер", callback_data=f"mrole_set:{master_id}:Бровист & Ламимейкер"),
+            ],
+            [
+                InlineKeyboardButton(text="💇 Парикмахер-стилист", callback_data=f"mrole_set:{master_id}:Парикмахер-стилист"),
+            ],
+            [
+                InlineKeyboardButton(text="🦶 Подолог & Мастер педикюра", callback_data=f"mrole_set:{master_id}:Подолог & Мастер педикюра"),
+            ],
+            [
+                InlineKeyboardButton(text="✨ Топ-мастер салона", callback_data=f"mrole_set:{master_id}:Топ-мастер салона"),
+            ],
+            [
+                InlineKeyboardButton(text="⬅️ Назад в анкету", callback_data=f"msetup_back:{master_id}"),
+            ]
+        ]
+    )
+
