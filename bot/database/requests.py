@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.base import async_session_maker
-from bot.database.models import Booking, City, Review, Salon, User, BusinessApplication
+from bot.database.models import Booking, City, Review, Salon, User, BusinessApplication, Master
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +190,170 @@ async def create_business_application(
         await session.refresh(app)
         logger.info(f"Создана заявка на PRO аккаунт #{app.id} от '{name}' ({contact})")
         return app
+
+
+async def get_salon_by_slug_or_name(slug_or_name: str) -> Optional[Salon]:
+    """Поиск салона по slug или названию (регистронезависимо)"""
+    async with async_session_maker() as session:
+        clean_slug = slug_or_name.strip().lower()
+        res = await session.execute(
+            select(Salon).where(
+                (Salon.slug == clean_slug) |
+                (Salon.slug.ilike(f"%{clean_slug}%")) |
+                (Salon.name.ilike(f"%{clean_slug}%"))
+            )
+        )
+        salon = res.scalars().first()
+        if not salon:
+            # Попробуем также заменить дефисы на пробелы
+            name_alt = clean_slug.replace("-", " ")
+            res = await session.execute(
+                select(Salon).where(Salon.name.ilike(f"%{name_alt}%"))
+            )
+            salon = res.scalars().first()
+        return salon
+
+
+async def bind_user_as_admin(
+    telegram_id: int,
+    salon_id: int,
+    username: Optional[str] = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+) -> Optional[Salon]:
+    """Привязывает пользователя как Администратора к салону"""
+    async with async_session_maker() as session:
+        # Обновляем салон
+        salon_res = await session.execute(select(Salon).where(Salon.id == salon_id))
+        salon = salon_res.scalar_one_or_none()
+        if not salon:
+            return None
+
+        admin_handle = f"@{username}" if username else (first_name or "Администратор")
+        salon.admin_id = telegram_id
+        salon.admin_tag = admin_handle
+
+        # Обновляем пользователя в таблице users
+        user_res = await session.execute(select(User).where(User.telegram_id == telegram_id))
+        user = user_res.scalar_one_or_none()
+        if not user:
+            user = User(
+                telegram_id=telegram_id,
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
+                is_pro=True,
+                role="admin",
+                salon_id=salon.id,
+            )
+            session.add(user)
+        else:
+            user.is_pro = True
+            user.role = "admin"
+            user.salon_id = salon.id
+            if username:
+                user.username = username
+            if first_name:
+                user.first_name = first_name
+            if last_name:
+                user.last_name = last_name
+
+        await session.commit()
+        await session.refresh(salon)
+        logger.info(f"Пользователь {telegram_id} ({admin_handle}) успешно привязан как администратор к салону '{salon.name}' (ID: {salon.id})")
+        return salon
+
+
+async def bind_user_as_master(
+    telegram_id: int,
+    salon_id: int,
+    master_hint_name: Optional[str] = None,
+    username: Optional[str] = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+) -> tuple[Optional[Salon], Optional[Master]]:
+    """Привязывает пользователя как Мастера к салону и конкретному профилю мастера (если есть совпадение)"""
+    async with async_session_maker() as session:
+        salon_res = await session.execute(select(Salon).where(Salon.id == salon_id))
+        salon = salon_res.scalar_one_or_none()
+        if not salon:
+            return None, None
+
+        # Ищем мастера в этом салоне
+        master: Optional[Master] = None
+        masters_res = await session.execute(select(Master).where(Master.salon_id == salon_id))
+        masters = list(masters_res.scalars().all())
+
+        if master_hint_name and master_hint_name.lower() not in ("spec", "master", ""):
+            for m in masters:
+                if master_hint_name.lower() in m.name.lower():
+                    master = m
+                    break
+
+        if not master and first_name:
+            for m in masters:
+                if first_name.lower() in m.name.lower():
+                    master = m
+                    break
+
+        # Если не найден подходящий, берем первого свободного без telegram_id или создаем нового
+        if not master and masters:
+            for m in masters:
+                if not m.telegram_id:
+                    master = m
+                    break
+
+        # Если все равно не нашли — создаем новую запись мастера для этого салона
+        tg_handle = f"@{username}" if username else None
+        m_name = first_name or (master_hint_name if master_hint_name and master_hint_name != "spec" else "Мастер")
+        m_lastname = last_name or ""
+
+        if master:
+            master.telegram_id = telegram_id
+            master.telegram_handle = tg_handle
+        else:
+            master = Master(
+                salon_id=salon.id,
+                name=m_name,
+                last_name=m_lastname,
+                telegram_handle=tg_handle,
+                telegram_id=telegram_id,
+                role_title="Специалист салона",
+                avatar_url="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
+            )
+            session.add(master)
+
+        # Обновляем / создаем пользователя
+        user_res = await session.execute(select(User).where(User.telegram_id == telegram_id))
+        user = user_res.scalar_one_or_none()
+        if not user:
+            user = User(
+                telegram_id=telegram_id,
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
+                is_pro=True,
+                role="master",
+                salon_id=salon.id,
+            )
+            session.add(user)
+        else:
+            user.is_pro = True
+            user.role = "master"
+            user.salon_id = salon.id
+            if username:
+                user.username = username
+            if first_name:
+                user.first_name = first_name
+            if last_name:
+                user.last_name = last_name
+
+        await session.commit()
+        await session.refresh(salon)
+        await session.refresh(master)
+        logger.info(f"Пользователь {telegram_id} успешно привязан как мастер '{master.name}' в салон '{salon.name}' (ID: {salon.id})")
+        return salon, master
+
 
 
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import DateTime, Float, Integer, String, Text
+from sqlalchemy import BigInteger, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from bot.database.base import Base
@@ -29,6 +29,8 @@ class Salon(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     services_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     slots_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    admin_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
+    admin_tag: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     masters: Mapped[List["Master"]] = relationship("Master", back_populates="salon", cascade="all, delete-orphan")

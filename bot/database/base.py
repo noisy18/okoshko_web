@@ -24,10 +24,16 @@ class Base(DeclarativeBase):
 
 
 async def init_db():
-    """Создание всех таблиц в БД, если они еще не созданы"""
+    """Создание всех таблиц в БД, если они еще не созданы, и проверка миграций колонок"""
     try:
+        from sqlalchemy import text
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            # Миграции новых колонок для привязки администраторов и мастеров
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS admin_id BIGINT;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS admin_tag VARCHAR(128);"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) DEFAULT 'client';"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS salon_id INTEGER;"))
         logger.info("✅ База данных PostgreSQL успешно инициализирована.")
     except Exception as e:
         logger.error(f"❌ Ошибка подключения к базе данных PostgreSQL: {e}")

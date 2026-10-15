@@ -9,6 +9,9 @@ from bot.database.requests import (
     has_user_reviewed_salon,
     get_active_cities,
     create_business_application,
+    get_salon_by_slug_or_name,
+    bind_user_as_admin,
+    bind_user_as_master,
 )
 
 __all__ = [
@@ -33,5 +36,8 @@ __all__ = [
     "has_user_reviewed_salon",
     "get_active_cities",
     "create_business_application",
+    "get_salon_by_slug_or_name",
+    "bind_user_as_admin",
+    "bind_user_as_master",
 ]
 

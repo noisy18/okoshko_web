@@ -16,6 +16,8 @@ class User(Base):
     last_name: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     is_pro: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[str] = mapped_column(String(32), default="client")
+    salon_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
