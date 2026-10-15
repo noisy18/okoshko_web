@@ -270,10 +270,20 @@ function initProCloudSync() {
       data.name = urlSalonName;
       needSave = true;
     }
-    if (urlAddress && data.address !== urlAddress) {
+    // Защита адреса: если в localStorage уже сохранен актуальный адрес,
+    // а из URL пришел пустой адрес или тот же самый, не перезаписываем его старыми данными.
+    if (urlAddress && urlAddress.trim() && (!data.address || data.address === 'Не указан')) {
       data.address = urlAddress;
       needSave = true;
+    } else if (urlAddress && urlAddress.trim() && data.address !== urlAddress) {
+      // Если адрес в URL явно отличается, проверяем: возможно пользователь только что обновил адрес локально
+      // Если в CloudStorage / localStorage есть свежий адрес, сохраняем его
+      if (!data.address) {
+        data.address = urlAddress;
+        needSave = true;
+      }
     }
+
     if (urlPhone && data.phone !== urlPhone) {
       data.phone = urlPhone;
       needSave = true;
@@ -375,7 +385,7 @@ function initProCloudSync() {
     }
   } catch (e) { }
 
-  // 2. Синхронизация из CloudStorage Telegram с аккуратным слиянием (не затирая свежие URL параметры)
+  // 2. Синхронизация из CloudStorage Telegram с аккуратным слиянием
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.getItems) {
       window.Telegram.WebApp.CloudStorage.getItems([PRO_DATA_STORAGE_KEY, PRO_APPOINTMENTS_STORAGE_KEY], (err, values) => {
@@ -387,14 +397,14 @@ function initProCloudSync() {
               if (cloudSalon && typeof cloudSalon === 'object') {
                 const currentData = getProSalonData();
                 const merged = Object.assign({}, currentData, cloudSalon);
-                // Если в URL были явные параметры, они имеют наивысший приоритет
+                // Сохраняем значения
                 if (urlAdminTag) merged.adminTag = urlAdminTag;
                 if (urlSalonName) merged.name = urlSalonName;
-                if (urlAddress) merged.address = urlAddress;
-                if (urlPhone) merged.phone = urlPhone;
-                if (urlCity) merged.city = urlCity;
-                if (urlLat) merged.latitude = parseFloat(urlLat);
-                if (urlLon) merged.longitude = parseFloat(urlLon);
+                if (urlAddress && (!merged.address || merged.address === 'Не указан')) merged.address = urlAddress;
+                if (urlPhone && !merged.phone) merged.phone = urlPhone;
+                if (urlCity && !merged.city) merged.city = urlCity;
+                if (urlLat && !merged.latitude) merged.latitude = parseFloat(urlLat);
+                if (urlLon && !merged.longitude) merged.longitude = parseFloat(urlLon);
 
                 localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
                 updated = true;
@@ -420,6 +430,7 @@ function initProCloudSync() {
       });
     }
   } catch (e) { }
+
   // 3. Автоматический вход в бизнес-аккаунт, если перешли по кнопке «Войти в бизнес-аккаунт»
   try {
     const urlParams = new URLSearchParams(window.location.search);
@@ -429,6 +440,12 @@ function initProCloudSync() {
           enterProMode();
         }
       }, 250);
+    }
+    // Очищаем URL-параметры в адресной строке браузера без перезагрузки страницы,
+    // чтобы при обновлении страницы (F5 / pull-to-refresh) не применялись старые параметры
+    if (window.history && window.history.replaceState && window.location.search) {
+      const cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, cleanUrl);
     }
   } catch (e) { }
 }
@@ -1787,7 +1804,7 @@ function renderProMapCityDropdown() {
   const dropdown = document.getElementById('proMapCityDropdown');
   if (!dropdown || typeof CITY_CONFIG === 'undefined') return;
 
-  const cityKeys = Object.keys(CITY_CONFIG).filter(k => k !== 'all');
+  const cityKeys = Object.keys(CITY_CONFIG);
 
   dropdown.innerHTML = cityKeys.map(k => {
     const c = CITY_CONFIG[k];
@@ -1896,36 +1913,101 @@ function fetchProMapSuggestions(query) {
     suggestionsBox.classList.add('flex');
   };
 
+  // Формируем поисковый запрос с учетом выбранного города
+  const isCityScoped = currentPickedCityKey && currentPickedCityKey !== 'all';
+  const cityName = isCityScoped && typeof CITY_CONFIG !== 'undefined' && CITY_CONFIG[currentPickedCityKey]
+    ? CITY_CONFIG[currentPickedCityKey].name
+    : '';
+
+  // Если выбран конкретный город и пользователь еще не набрал название города, добавляем префикс для точности
+  let searchQuery = query;
+  if (isCityScoped && cityName && !query.toLowerCase().includes(cityName.toLowerCase())) {
+    searchQuery = `${cityName}, ${query}`;
+  }
+
   // 1. Попытка через ymaps.suggest
   if (typeof ymaps !== 'undefined' && ymaps.suggest) {
-    const bounds = proAddressPickerMap ? proAddressPickerMap.getBounds() : null;
     const opts = { results: 5 };
-    if (bounds) opts.boundedBy = bounds;
 
-    ymaps.suggest(query, opts).then((res) => {
+    // Если выбран конкретный город, ограничиваем поиск границами этого региона
+    if (isCityScoped && typeof REGION_CENTERS !== 'undefined' && REGION_CENTERS[currentPickedCityKey]) {
+      const rc = REGION_CENTERS[currentPickedCityKey].center;
+      const d = 0.25; // Примерно 25-30 км вокруг центра города
+      opts.boundedBy = [
+        [rc[0] - d, rc[1] - d],
+        [rc[0] + d, rc[1] + d]
+      ];
+      opts.strictBounds = true;
+    } else if (proAddressPickerMap) {
+      opts.boundedBy = proAddressPickerMap.getBounds();
+    }
+
+    ymaps.suggest(searchQuery, opts).then((res) => {
       if (res && res.length > 0) {
-        const formatted = res.map(i => ({
+        // Фильтруем результаты, чтобы они соответствовали выбранному городу
+        let filtered = res;
+        if (isCityScoped && cityName) {
+          const cityLower = cityName.toLowerCase();
+          const strictMatches = res.filter(i => {
+            const desc = (i.description || '').toLowerCase();
+            const val = (i.value || i.displayName || '').toLowerCase();
+            return desc.includes(cityLower) || val.includes(cityLower);
+          });
+          if (strictMatches.length > 0) {
+            filtered = strictMatches;
+          }
+        }
+
+        const formatted = filtered.map(i => ({
           title: i.displayName || i.value,
           value: i.value,
           subtitle: i.description || ''
         }));
         renderSuggestions(formatted);
       } else {
-        fallbackSearchGeocode(query, renderSuggestions);
+        fallbackSearchGeocode(searchQuery, renderSuggestions);
       }
     }).catch(() => {
-      fallbackSearchGeocode(query, renderSuggestions);
+      fallbackSearchGeocode(searchQuery, renderSuggestions);
     });
   } else {
-    fallbackSearchGeocode(query, renderSuggestions);
+    fallbackSearchGeocode(searchQuery, renderSuggestions);
   }
 }
 
 function fallbackSearchGeocode(query, callback) {
+  const isCityScoped = currentPickedCityKey && currentPickedCityKey !== 'all';
+  const cityName = isCityScoped && typeof CITY_CONFIG !== 'undefined' && CITY_CONFIG[currentPickedCityKey]
+    ? CITY_CONFIG[currentPickedCityKey].name
+    : '';
+
   // Попытка через ymaps.geocode
   if (typeof ymaps !== 'undefined' && ymaps.geocode) {
-    ymaps.geocode(query, { results: 5 }).then((res) => {
-      const geoObjects = res.geoObjects.toArray();
+    const geoOpts = { results: 5 };
+    if (isCityScoped && typeof REGION_CENTERS !== 'undefined' && REGION_CENTERS[currentPickedCityKey]) {
+      const rc = REGION_CENTERS[currentPickedCityKey].center;
+      const d = 0.3;
+      geoOpts.boundedBy = [
+        [rc[0] - d, rc[1] - d],
+        [rc[0] + d, rc[1] + d]
+      ];
+      geoOpts.strictBounds = true;
+    }
+
+    ymaps.geocode(query, geoOpts).then((res) => {
+      let geoObjects = res.geoObjects.toArray();
+      if (isCityScoped && cityName && geoObjects.length > 0) {
+        const cityLower = cityName.toLowerCase();
+        const cityFiltered = geoObjects.filter(obj => {
+          const line = (obj.getAddressLine() || '').toLowerCase();
+          const desc = (obj.properties.get('description') || '').toLowerCase();
+          return line.includes(cityLower) || desc.includes(cityLower);
+        });
+        if (cityFiltered.length > 0) {
+          geoObjects = cityFiltered;
+        }
+      }
+
       if (geoObjects && geoObjects.length > 0) {
         const formatted = geoObjects.map(obj => {
           const coords = obj.geometry.getCoordinates();
@@ -1949,7 +2031,16 @@ function fallbackSearchGeocode(query, callback) {
 }
 
 function nominatimSearch(query, callback) {
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&accept-language=ru&countrycodes=ru`)
+  const isCityScoped = currentPickedCityKey && currentPickedCityKey !== 'all';
+  let viewboxParam = '';
+  if (isCityScoped && typeof REGION_CENTERS !== 'undefined' && REGION_CENTERS[currentPickedCityKey]) {
+    const rc = REGION_CENTERS[currentPickedCityKey].center;
+    const d = 0.3;
+    // Nominatim viewbox format: left,top,right,bottom (lon1,lat1,lon2,lat2)
+    viewboxParam = `&viewbox=${rc[1] - d},${rc[0] + d},${rc[1] + d},${rc[0] - d}&bounded=1`;
+  }
+
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&accept-language=ru&countrycodes=ru${viewboxParam}`)
     .then(r => r.json())
     .then(items => {
       if (!items || !items.length) {

@@ -301,7 +301,7 @@ async def handle_web_app_data(message: Message):
                         await session.commit()
                         logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', адрес '{salon.address}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id}")
 
-                        # Обновляем кнопку меню чата для пользователя со свежими параметрами салона
+                        # Обновляем кнопку меню чата и клавиатуру для пользователя со свежими параметрами салона
                         try:
                             fresh_url = await get_user_app_url(user_id)
                             from aiogram.types import MenuButtonWebApp, WebAppInfo
@@ -312,8 +312,16 @@ async def handle_web_app_data(message: Message):
                                     web_app=WebAppInfo(url=fresh_url),
                                 ),
                             )
+                            # Также обновляем Reply-кнопки внизу чата
+                            from bot.keyboards import get_reply_keyboard
+                            fresh_pro_url = await get_user_app_url(user_id, is_pro_entry=True)
+                            await message.bot.send_message(
+                                chat_id=user_id,
+                                text="✅ Данные салона успешно обновлены и синхронизированы!",
+                                reply_markup=get_reply_keyboard(fresh_url, pro_app_url=fresh_pro_url),
+                            )
                         except Exception as m_err:
-                            logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
+                            logger.warning(f"Не удалось обновить MenuButton/клавиатуру для {user_id}: {m_err}")
                 return
         elif data.get("action") == "user_phone_updated":
             from bot.database import User
@@ -430,9 +438,9 @@ async def handle_direct_json_data(message: Message):
                             user.phone = s_phone
 
                     await session.commit()
-                    logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id} через прямой канал")
+                    logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', адрес '{salon.address}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id} через прямой канал")
 
-                    # Обновляем кнопку меню чата для пользователя со свежими параметрами салона
+                    # Обновляем кнопку меню чата и клавиатуру для пользователя со свежими параметрами салона
                     try:
                         fresh_url = await get_user_app_url(user_id)
                         from aiogram.types import MenuButtonWebApp, WebAppInfo
@@ -443,8 +451,16 @@ async def handle_direct_json_data(message: Message):
                                 web_app=WebAppInfo(url=fresh_url),
                             ),
                         )
+                        # Также обновляем Reply-кнопки внизу чата
+                        from bot.keyboards import get_reply_keyboard
+                        fresh_pro_url = await get_user_app_url(user_id, is_pro_entry=True)
+                        await message.bot.send_message(
+                            chat_id=user_id,
+                            text="✅ Данные салона успешно обновлены и синхронизированы!",
+                            reply_markup=get_reply_keyboard(fresh_url, pro_app_url=fresh_pro_url),
+                        )
                     except Exception as m_err:
-                        logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
+                        logger.warning(f"Не удалось обновить MenuButton/клавиатуру для {user_id}: {m_err}")
         
         elif data.get("action") == "user_phone_updated" and user_id:
             from bot.database import User
