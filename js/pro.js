@@ -260,6 +260,7 @@ function initProCloudSync() {
         }
       });
     }
+  } catch (e) { }
   // 3. Автоматический вход в бизнес-аккаунт, если перешли по кнопке «Войти в бизнес-аккаунт»
   try {
     const urlParams = new URLSearchParams(window.location.search);
