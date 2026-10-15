@@ -469,6 +469,18 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
     salon_id = int(salon_id_raw) if salon_id_raw.isdigit() else 1
     user = callback.from_user
 
+    # Автоматически пробуем извлечь аватарку пользователя из профиля Telegram
+    avatar_url = None
+    try:
+        user_photos = await bot.get_user_profile_photos(user.id, limit=1)
+        if user_photos.total_count > 0:
+            file_id = user_photos.photos[0][-1].file_id
+            file_info = await bot.get_file(file_id)
+            if file_info.file_path:
+                avatar_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
+    except Exception as e:
+        logger.warning(f"Не удалось получить фото профиля Telegram для {user.id}: {e}")
+
     salon, master = await bind_user_as_master(
         telegram_id=user.id,
         salon_id=salon_id,
@@ -476,6 +488,7 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
         username=user.username,
         first_name=user.first_name,
         last_name=user.last_name,
+        avatar_url=avatar_url,
     )
 
     salon_name = salon.name if salon else "Beauty Studio"
@@ -857,13 +870,49 @@ async def handle_master_setup_photo_prompt(callback: CallbackQuery):
     master_id = int(callback.data.split(":")[1])
     text = (
         "📸 <b>Загрузка фотографии мастера:</b>\n\n"
-        "Вы можете отправить фото прямо в этот чат, или нажать <b>«⚡ Использовать имя и фото из Telegram»</b>, "
-        "чтобы бот автоматически загрузил аватарку вашего Telegram аккаунта."
+        "Отправьте фотографию прямо в этот чат (как картинку), и бот моментально установит её в ваш профиль мастера!"
     )
     await callback.message.edit_text(
         text=text,
         reply_markup=get_master_setup_keyboard(master_id),
     )
+
+
+@user_router.message(F.photo)
+async def handle_master_photo_message(message: Message, bot: Bot):
+    """Прием фотографии от мастера и установка её в качестве аватарки."""
+    if not message.from_user:
+        return
+    
+    user_id = message.from_user.id
+    from bot.database.base import async_session_maker
+    from bot.database.models import Master
+    from sqlalchemy import select
+
+    async with async_session_maker() as session:
+        res = await session.execute(
+            select(Master).where(Master.telegram_id == user_id).order_by(Master.id.desc())
+        )
+        master = res.scalars().first()
+        if not master:
+            return
+
+        try:
+            # Берем фото в наилучшем разрешении
+            file_id = message.photo[-1].file_id
+            file_info = await bot.get_file(file_id)
+            if file_info.file_path:
+                avatar_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
+                master.avatar_url = avatar_url
+                await session.commit()
+                await message.reply(
+                    f"✅ <b>Фото успешно установлено!</b>\n"
+                    f"Ваш профиль мастера <b>{master.name}</b> обновлен 📸",
+                    reply_markup=get_master_setup_keyboard(master.id)
+                )
+        except Exception as e:
+            logger.error(f"Ошибка сохранения фото мастера {user_id}: {e}")
+            await message.reply("Не удалось сохранить фото. Пожалуйста, попробуйте еще раз.")
 
 
 @user_router.callback_query(F.data.startswith("msetup_done:"))

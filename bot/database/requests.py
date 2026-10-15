@@ -333,6 +333,7 @@ async def bind_user_as_master(
     username: Optional[str] = None,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
+    avatar_url: Optional[str] = None,
 ) -> tuple[Optional[Salon], Optional[Master]]:
     """Привязывает пользователя как Мастера к салону и конкретному профилю мастера (если есть совпадение)"""
     async with async_session_maker() as session:
@@ -355,6 +356,8 @@ async def bind_user_as_master(
                 master.name = first_name
             if last_name and not master.last_name:
                 master.last_name = last_name
+            if avatar_url:
+                master.avatar_url = avatar_url
         else:
             # 2. Если пользователь еще не привязан, проверяем: может в текущем салоне есть свободная карточка мастера
             masters_res = await session.execute(select(Master).where(Master.salon_id == salon_id))
@@ -370,6 +373,7 @@ async def bind_user_as_master(
             tg_handle = f"@{username}" if username else None
             m_name = first_name or (master_hint_name if master_hint_name and master_hint_name not in ("spec", "master") else "Мастер")
             m_lastname = last_name or ""
+            default_avatar = avatar_url or "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80"
 
             if master:
                 # Привязываем свободную карточку мастера к Telegram пользователя
@@ -379,6 +383,8 @@ async def bind_user_as_master(
                     master.name = first_name
                 if last_name and not master.last_name:
                     master.last_name = last_name
+                if avatar_url:
+                    master.avatar_url = avatar_url
             else:
                 # Создаем новую единственную карточку мастера, жестко привязанную к этому Telegram аккаунту
                 master = Master(
@@ -390,7 +396,7 @@ async def bind_user_as_master(
                     role_title="Специалист салона",
                     grade_badge="PRO",
                     experience="3 года",
-                    avatar_url="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
+                    avatar_url=default_avatar,
                 )
                 session.add(master)
 

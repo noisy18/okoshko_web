@@ -1169,9 +1169,9 @@ function renderProMastersList() {
           class="w-8 h-8 rounded-xl bg-indigo-50 text-primary hover:bg-indigo-100 flex items-center justify-center active:scale-90 transition-transform">
           <span class="material-symbols-outlined text-[16px]">share</span>
         </button>
-        <button onclick="openProMasterEditModal(${idx})" title="Редактировать"
-          class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center active:scale-90 transition-transform">
-          <span class="material-symbols-outlined text-[16px]">edit</span>
+        <button onclick="openProMasterEditModal(${idx})" title="Закрепить услуги за мастером"
+          class="w-8 h-8 rounded-xl bg-indigo-50 text-primary hover:bg-indigo-100 flex items-center justify-center active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[16px]">design_services</span>
         </button>
         <button onclick="confirmProAction('Удалить мастера?', 'Вы уверены, что хотите удалить этого мастера из команды салона?', () => deleteProMaster(${idx}))" title="Удалить"
           class="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center active:scale-90 transition-transform">
@@ -1235,7 +1235,7 @@ function deleteProMaster(idx) {
 }
 
 // ------------------------------------------
-// PRO MASTER EDIT MODAL
+// PRO MASTER SERVICES ASSIGNMENT MODAL
 // ------------------------------------------
 function openProMasterEditModal(idx) {
   const data = getProSalonData();
@@ -1244,16 +1244,42 @@ function openProMasterEditModal(idx) {
 
   const modal = document.getElementById('proMasterEditModal');
   const idxInput = document.getElementById('editMasterIdxInput');
-  const firstInput = document.getElementById('editMasterFirstNameInput');
-  const lastInput = document.getElementById('editMasterLastNameInput');
-  const roleInput = document.getElementById('editMasterRoleInput');
-  const expInput = document.getElementById('editMasterExpInput');
+  const avatarEl = document.getElementById('editMasterCardAvatar');
+  const nameEl = document.getElementById('editMasterCardName');
+  const roleEl = document.getElementById('editMasterCardRole');
+  const expEl = document.getElementById('editMasterCardExp');
+  const tgEl = document.getElementById('editMasterCardTg');
+  const servicesList = document.getElementById('editMasterServicesList');
 
   if (idxInput) idxInput.value = idx;
-  if (firstInput) firstInput.value = master.name;
-  if (lastInput) lastInput.value = master.lastName || '';
-  if (roleInput) roleInput.value = master.role_title;
-  if (expInput) expInput.value = master.experience || '2 года';
+  if (avatarEl) avatarEl.src = master.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+  if (nameEl) nameEl.textContent = `${master.name} ${master.lastName || ''}`.trim();
+  if (roleEl) roleEl.textContent = master.role_title || 'Специалист салона';
+  if (expEl) expEl.textContent = `Опыт: ${master.experience || '3 года'}`;
+  if (tgEl) tgEl.textContent = master.telegram_handle ? master.telegram_handle : (master.telegram_id ? `ID: ${master.telegram_id}` : 'Не привязан');
+
+  // Render list of salon services with checkboxes
+  if (servicesList) {
+    if (!data.services || data.services.length === 0) {
+      servicesList.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">В салоне пока нет добавленных услуг. Добавьте услуги во вкладке «Услуги».</div>';
+    } else {
+      servicesList.innerHTML = data.services.map((svc) => {
+        const isAssigned = Array.isArray(svc.masterIds) && (svc.masterIds.includes(master.id) || (master.name && svc.masterIds.includes(master.name)));
+        return `
+          <label class="p-2.5 rounded-xl bg-surface-container-low border border-slate-200/80 hover:border-primary/50 flex items-center justify-between gap-2 cursor-pointer transition-all">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <input type="checkbox" name="assignServiceIds" value="${svc.id}" ${isAssigned ? 'checked' : ''} class="w-4 h-4 rounded text-primary accent-primary cursor-pointer shrink-0" />
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-semibold text-on-surface truncate">${svc.name}</span>
+                <span class="text-[10px] text-slate-400 truncate">${svc.category || 'Услуга'} • ${svc.duration || 60} мин</span>
+              </div>
+            </div>
+            <span class="text-xs font-bold text-primary shrink-0">${(svc.price || 0).toLocaleString('ru-RU')} ₽</span>
+          </label>
+        `;
+      }).join('');
+    }
+  }
 
   if (modal) {
     modal.classList.remove('hidden');
@@ -1270,41 +1296,50 @@ function closeProMasterEditModal() {
 }
 
 function sendMasterInviteLinkFromModal() {
-  const firstInput = document.getElementById('editMasterFirstNameInput');
-  sendMasterInviteLink(firstInput?.value || '');
+  const idxInput = document.getElementById('editMasterIdxInput');
+  const idx = parseInt(idxInput?.value || '-1', 10);
+  const data = getProSalonData();
+  const master = data.masters[idx];
+  sendMasterInviteLink(master ? master.name : '');
 }
 
 function saveProMasterEdit() {
   const idxInput = document.getElementById('editMasterIdxInput');
-  const firstInput = document.getElementById('editMasterFirstNameInput');
-  const lastInput = document.getElementById('editMasterLastNameInput');
-  const roleInput = document.getElementById('editMasterRoleInput');
-  const expInput = document.getElementById('editMasterExpInput');
-
   const idx = parseInt(idxInput?.value || '-1', 10);
-  const firstName = firstInput?.value?.trim();
-  const lastName = lastInput?.value?.trim();
-  const role = roleInput?.value?.trim();
-  const exp = expInput?.value?.trim();
+  const data = getProSalonData();
+  const master = data.masters[idx];
 
-  if (!firstName || !role) {
-    showToast('Заполните имя и специализацию');
+  if (!master) {
+    showToast('Мастер не найден');
     return;
   }
 
-  confirmProAction('Сохранить данные мастера?', 'Обновить профиль специалиста в системе?', () => {
-    const data = getProSalonData();
-    if (data.masters[idx]) {
-      data.masters[idx].name = firstName;
-      data.masters[idx].lastName = lastName;
-      data.masters[idx].role_title = role;
-      data.masters[idx].experience = exp;
-      saveProSalonData(data);
-      renderProMastersList();
-      closeProMasterEditModal();
-      showToast('Данные мастера сохранены ✓');
+  // Получаем отмеченные чекбоксы услуг
+  const checkedBoxes = document.querySelectorAll('input[name="assignServiceIds"]:checked');
+  const selectedServiceIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+  // Обновляем привязку во всех услугах салона
+  data.services.forEach(svc => {
+    if (!Array.isArray(svc.masterIds)) {
+      svc.masterIds = [];
+    }
+    const shouldHave = selectedServiceIds.includes(svc.id);
+    const hasId = svc.masterIds.includes(master.id);
+    const hasName = master.name && svc.masterIds.includes(master.name);
+
+    if (shouldHave) {
+      if (!hasId) {
+        svc.masterIds.push(master.id);
+      }
+    } else {
+      svc.masterIds = svc.masterIds.filter(id => id !== master.id && id !== master.name);
     }
   });
+
+  saveProSalonData(data);
+  syncProSalonUI();
+  closeProMasterEditModal();
+  showToast(`Услуги для мастера ${master.name} закреплены ✓`);
 }
 
 // ------------------------------------------
