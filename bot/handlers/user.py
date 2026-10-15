@@ -229,8 +229,9 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                         params.append(f"address={urllib.parse.quote(user_salon.address)}")
                     if user_salon.region_name:
                         params.append(f"city={urllib.parse.quote(user_salon.region_name)}")
-                    if user_salon.phone:
-                        params.append(f"phone={urllib.parse.quote(user_salon.phone)}")
+                    salon_phone = getattr(user_salon, "phone", None)
+                    if salon_phone:
+                        params.append(f"phone={urllib.parse.quote(salon_phone)}")
                     if user_salon.id:
                         params.append(f"salon_id={user_salon.id}")
 
