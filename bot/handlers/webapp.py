@@ -265,12 +265,12 @@ async def handle_web_app_data(message: Message):
                             )
                             if not slug_check.scalar_one_or_none():
                                 salon.slug = new_slug
-                        if s_addr: salon.address = s_addr
-                        if s_city: salon.region_name = s_city
-                        if s_phone: salon.phone = s_phone
-                        if s_avatar: salon.logo_url = s_avatar
-                        if s_cover: salon.cover_image_url = s_cover
-                        if s_admin_tag: salon.admin_tag = s_admin_tag
+                        if s_addr is not None: salon.address = s_addr
+                        if s_city is not None: salon.region_name = s_city
+                        if s_phone is not None: salon.phone = s_phone
+                        if s_avatar is not None: salon.logo_url = s_avatar
+                        if s_cover is not None: salon.cover_image_url = s_cover
+                        if s_admin_tag is not None: salon.admin_tag = s_admin_tag
                         if s_lat is not None:
                             try:
                                 salon.latitude = float(s_lat)
@@ -286,7 +286,7 @@ async def handle_web_app_data(message: Message):
                         if user:
                             user.is_pro = True
                             user.salon_id = salon.id
-                            if s_phone:
+                            if s_phone is not None:
                                 user.phone = s_phone
 
                         await session.commit()
@@ -305,7 +305,7 @@ async def handle_web_app_data(message: Message):
                             )
                             await message.bot.send_message(
                                 chat_id=user_id,
-                                text="✅ Данные салона успешно обновлены и синхронизированы!",
+                                text=f"✅ Данные салона «{s_name}» успешно сохранены в базе данных!\n📍 Адрес: {salon.address or 'не указан'}\n📞 Телефон: {salon.phone or 'не указан'}",
                             )
                         except Exception as m_err:
                             logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
@@ -400,8 +400,8 @@ async def handle_direct_json_data(message: Message):
                             salon.slug = new_slug
                     s_lat = data.get("latitude")
                     s_lon = data.get("longitude")
-                    if s_addr: salon.address = s_addr
-                    if s_city: salon.region_name = s_city
+                    if s_addr is not None: salon.address = s_addr
+                    if s_city is not None: salon.region_name = s_city
                     if s_lat is not None:
                         try:
                             salon.latitude = float(s_lat)
@@ -412,15 +412,15 @@ async def handle_direct_json_data(message: Message):
                             salon.longitude = float(s_lon)
                         except (ValueError, TypeError):
                             pass
-                    if s_phone: salon.phone = s_phone
-                    if s_avatar: salon.logo_url = s_avatar
-                    if s_cover: salon.cover_image_url = s_cover
-                    if s_admin_tag: salon.admin_tag = s_admin_tag
+                    if s_phone is not None: salon.phone = s_phone
+                    if s_avatar is not None: salon.logo_url = s_avatar
+                    if s_cover is not None: salon.cover_image_url = s_cover
+                    if s_admin_tag is not None: salon.admin_tag = s_admin_tag
 
                     if user:
                         user.is_pro = True
                         user.salon_id = salon.id
-                        if s_phone:
+                        if s_phone is not None:
                             user.phone = s_phone
 
                     await session.commit()
@@ -439,7 +439,7 @@ async def handle_direct_json_data(message: Message):
                         )
                         await message.bot.send_message(
                             chat_id=user_id,
-                            text="✅ Данные салона успешно обновлены и синхронизированы!",
+                            text=f"✅ Данные салона «{s_name}» успешно сохранены в базе данных!\n📍 Адрес: {salon.address or 'не указан'}\n📞 Телефон: {salon.phone or 'не указан'}",
                         )
                     except Exception as m_err:
                         logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")

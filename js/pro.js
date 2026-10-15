@@ -6,23 +6,24 @@ const PRO_DATA_STORAGE_KEY = 'okoshko_pro_salon_data_v1';
 const PRO_APPOINTMENTS_STORAGE_KEY = 'okoshko_pro_clients_appointments_v1';
 const BOT_LINK = 'https://t.me/okooshko_bot';
 
-// Default initial state for PRO Salon (Beauty Studio as baseline partner)
+// Default initial state for PRO Salon (Clean baseline partner)
 const DEFAULT_PRO_SALON = {
-  name: 'Beauty Studio',
+  name: 'Мой салон',
   city: 'Москва',
   cityKey: 'moscow',
   address: '',
   latitude: 55.767500,
   longitude: 37.607800,
-  phone: '+7 (999) 123-45-67',
-  creatorTag: '@maximtepin',
+  phone: '',
+  creatorTag: '',
   adminTag: '', // Не назначен по умолчанию
   notificationsEnabled: true,
   categoryText: 'Маникюр · Брови · Педикюр',
-  rating: '4.9',
-  reviewsCount: 148,
+  rating: '5.0',
+  reviewsCount: 0,
   avatarUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=300&q=80',
   coverUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
+  updatedAt: 0,
   services: [
     {
       id: 'bs_s1',
@@ -145,15 +146,37 @@ const DEFAULT_PRO_APPOINTMENTS = [
 
 function getProSalonData() {
   try {
-    const raw = localStorage.getItem(PRO_DATA_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    const raw = localStorage.getItem(PRO_DATA_STORAGE_KEY) || sessionStorage.getItem(PRO_DATA_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return Object.assign({}, DEFAULT_PRO_SALON, parsed);
+      }
+    }
   } catch (e) { }
   return JSON.parse(JSON.stringify(DEFAULT_PRO_SALON));
 }
 
+function syncVenuesWithProSalon(data) {
+  if (!data) return;
+  if (typeof venues !== 'undefined' && Array.isArray(venues) && venues.length > 0) {
+    const v0 = venues[0];
+    if (data.name) v0.name = data.name;
+    if (data.address !== undefined) v0.address = data.address;
+    if (data.phone !== undefined) v0.phone = data.phone;
+    if (data.city) v0.regionName = data.city;
+    if (data.latitude && data.longitude) {
+      v0.coords = [Number(data.latitude), Number(data.longitude)];
+    }
+    if (data.avatarUrl) v0.img = data.avatarUrl;
+  }
+}
+
 function saveProSalonData(data) {
+  data.updatedAt = Date.now();
   try {
     localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
+    sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
   } catch (e) { }
 
   // Sync to Telegram CloudStorage across devices (PC <-> Mobile)
@@ -172,15 +195,15 @@ function saveProSalonData(data) {
     action: 'pro_salon_updated',
     salon_id: data.id || 1,
     salon_name: data.name,
-    address: data.address,
-    phone: data.phone,
-    city: data.city,
+    address: data.address || '',
+    phone: data.phone || '',
+    city: data.city || 'Москва',
     latitude: data.latitude,
     longitude: data.longitude,
-    avatar_url: data.avatarUrl,
-    cover_url: data.coverUrl,
-    admin_tag: data.adminTag,
-    creator_tag: data.creatorTag
+    avatar_url: data.avatarUrl || '',
+    cover_url: data.coverUrl || '',
+    admin_tag: data.adminTag || '',
+    creator_tag: data.creatorTag || ''
   };
 
   try {
@@ -208,6 +231,7 @@ function saveProSalonData(data) {
   } catch (e) { }
 
   syncProSalonUI();
+  syncVenuesWithProSalon(data);
 }
 
 function getProAppointments() {
@@ -245,53 +269,56 @@ function initProCloudSync() {
   let urlAddress = null;
   let urlPhone = null;
   let urlCity = null;
+  let urlLat = null;
+  let urlLon = null;
+  let urlMastersJson = null;
+  let hasUrlParams = false;
 
-  // 1. Проверяем URL параметры (если WebApp открыт по кнопке от бота с параметрами салона)
+  // 1. Проверяем URL параметры (если WebApp открыт по кнопке от бота с актуальными данными из PostgreSQL)
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    urlAdminTag = urlParams.get('admin_tag');
-    urlSalonName = urlParams.get('salon_name');
-    urlAddress = urlParams.get('address');
-    urlPhone = urlParams.get('phone');
-    urlCity = urlParams.get('city');
-    const urlLat = urlParams.get('lat');
-    const urlLon = urlParams.get('lon');
+    if (urlParams.has('salon_name') || urlParams.has('address') || urlParams.has('phone') || urlParams.has('admin_tag') || urlParams.has('masters_json')) {
+      hasUrlParams = true;
+      urlAdminTag = urlParams.get('admin_tag');
+      urlSalonName = urlParams.get('salon_name');
+      urlAddress = urlParams.get('address');
+      urlPhone = urlParams.get('phone');
+      urlCity = urlParams.get('city');
+      urlLat = urlParams.get('lat');
+      urlLon = urlParams.get('lon');
+      urlMastersJson = urlParams.get('masters_json');
 
-    let urlMastersJson = urlParams.get('masters_json');
+      try {
+        sessionStorage.setItem('okoshko_url_params', window.location.search);
+      } catch (e) { }
+    } else {
+      const savedSearch = sessionStorage.getItem('okoshko_url_params');
+      if (savedSearch) {
+        const savedParams = new URLSearchParams(savedSearch);
+        urlAdminTag = savedParams.get('admin_tag');
+        urlSalonName = savedParams.get('salon_name');
+        urlAddress = savedParams.get('address');
+        urlPhone = savedParams.get('phone');
+        urlCity = savedParams.get('city');
+        urlLat = savedParams.get('lat');
+        urlLon = savedParams.get('lon');
+        urlMastersJson = savedParams.get('masters_json');
+        hasUrlParams = true;
+      }
+    }
+  } catch (e) { }
 
-    let needSave = false;
-    const data = getProSalonData();
+  const data = getProSalonData();
 
-    if (urlAdminTag) {
-      data.adminTag = urlAdminTag;
-      needSave = true;
-    }
-    if (urlSalonName) {
-      data.name = urlSalonName;
-      needSave = true;
-    }
-    if (urlAddress) {
-      data.address = urlAddress;
-      needSave = true;
-    }
-    if (urlPhone) {
-      data.phone = urlPhone;
-      needSave = true;
-    }
-    if (urlCity) {
-      data.city = urlCity;
-      needSave = true;
-    }
-    if (urlLat) {
-      data.latitude = parseFloat(urlLat);
-      needSave = true;
-    }
-    if (urlLon) {
-      data.longitude = parseFloat(urlLon);
-      needSave = true;
-    }
+  if (hasUrlParams) {
+    if (urlAdminTag !== null) data.adminTag = urlAdminTag;
+    if (urlSalonName) data.name = urlSalonName;
+    if (urlAddress !== null && urlAddress !== undefined) data.address = urlAddress;
+    if (urlPhone !== null && urlPhone !== undefined) data.phone = urlPhone;
+    if (urlCity) data.city = urlCity;
+    if (urlLat) data.latitude = parseFloat(urlLat);
+    if (urlLon) data.longitude = parseFloat(urlLon);
 
-    // Синхронизация списка мастеров из БД
     if (urlMastersJson) {
       try {
         const dbMasters = JSON.parse(urlMastersJson);
@@ -299,13 +326,10 @@ function initProCloudSync() {
           if (!Array.isArray(data.masters)) {
             data.masters = [];
           }
-          let mastersChanged = false;
-
           dbMasters.forEach(dbm => {
             const normName = (dbm.name || '').trim().toLowerCase();
             const normLast = (dbm.lastName || '').trim().toLowerCase();
 
-            // Проверяем, есть ли уже такой мастер в локальном списке
             const existingIdx = data.masters.findIndex(m => {
               if (dbm.telegram_id && m.telegram_id && Number(m.telegram_id) === Number(dbm.telegram_id)) return true;
               if (m.id && m.id === dbm.id) return true;
@@ -315,32 +339,15 @@ function initProCloudSync() {
             });
 
             if (existingIdx >= 0) {
-              // Обновляем данные мастера из БД
               const current = data.masters[existingIdx];
-              let itemUpdated = false;
-              if (dbm.role_title && current.role_title !== dbm.role_title) {
-                current.role_title = dbm.role_title;
-                itemUpdated = true;
-              }
-              if (dbm.experience && current.experience !== dbm.experience) {
-                current.experience = dbm.experience;
-                itemUpdated = true;
-              }
-              if (dbm.telegram_handle && current.telegram_handle !== dbm.telegram_handle) {
-                current.telegram_handle = dbm.telegram_handle;
-                itemUpdated = true;
-              }
-              if (dbm.telegram_id && current.telegram_id !== dbm.telegram_id) {
-                current.telegram_id = dbm.telegram_id;
-                itemUpdated = true;
-              }
+              if (dbm.role_title) current.role_title = dbm.role_title;
+              if (dbm.experience) current.experience = dbm.experience;
+              if (dbm.telegram_handle) current.telegram_handle = dbm.telegram_handle;
+              if (dbm.telegram_id) current.telegram_id = dbm.telegram_id;
               if (dbm.avatar_url && (!current.avatar_url || current.avatar_url.includes('images.unsplash.com/photo-1534528741775'))) {
                 current.avatar_url = dbm.avatar_url;
-                itemUpdated = true;
               }
-              if (itemUpdated) mastersChanged = true;
             } else {
-              // Новый мастер из базы данных — добавляем в команду!
               data.masters.push({
                 id: dbm.id || ('master_' + Date.now()),
                 name: dbm.name,
@@ -352,31 +359,29 @@ function initProCloudSync() {
                 telegram_id: dbm.telegram_id || null,
                 portfolio_photos: []
               });
-              mastersChanged = true;
             }
           });
-
-          if (mastersChanged) {
-            needSave = true;
-            console.log('[PRO] Masters list updated from DB URL parameters:', data.masters.length);
-          }
         }
       } catch (parseErr) {
         console.warn('[PRO] Error parsing masters_json:', parseErr);
       }
     }
 
-    if (needSave) {
-      saveProSalonData(data);
-      syncProSalonUI();
-      if (typeof renderProMastersList === 'function') {
-        renderProMastersList();
-      }
-    }
-  } catch (e) { }
+    // Сохраняем локально БЕЗ сетевого вызова saveProSalonData!
+    try {
+      localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
+      sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
+    } catch (e) { }
+  }
 
-  // 2. Синхронизация из CloudStorage Telegram с аккуратным слиянием
-  // Важно: если в URL пришли актуальные данные из БД PostgreSQL, они ВСЕГДА главнее устаревшего CloudStorage
+  // Обновляем интерфейс текущими данными
+  syncProSalonUI();
+  syncVenuesWithProSalon(data);
+  if (typeof renderProMastersList === 'function') {
+    renderProMastersList();
+  }
+
+  // 2. Синхронизация из CloudStorage Telegram с корректным слиянием
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.getItems) {
       window.Telegram.WebApp.CloudStorage.getItems([PRO_DATA_STORAGE_KEY, PRO_APPOINTMENTS_STORAGE_KEY], (err, values) => {
@@ -387,17 +392,32 @@ function initProCloudSync() {
               const cloudSalon = JSON.parse(values[PRO_DATA_STORAGE_KEY]);
               if (cloudSalon && typeof cloudSalon === 'object') {
                 const currentData = getProSalonData();
-                // Заполняем только недостающие поля из Cloud, не затирая БД значения
-                const merged = Object.assign({}, cloudSalon, currentData);
-                if (urlAdminTag) merged.adminTag = urlAdminTag;
-                if (urlSalonName) merged.name = urlSalonName;
-                if (urlAddress) merged.address = urlAddress;
-                if (urlPhone) merged.phone = urlPhone;
-                if (urlCity) merged.city = urlCity;
-                if (urlLat) merged.latitude = parseFloat(urlLat);
-                if (urlLon) merged.longitude = parseFloat(urlLon);
+                const cloudTime = Number(cloudSalon.updatedAt) || 0;
+                const localTime = Number(currentData.updatedAt) || 0;
+
+                let merged;
+                // Если данные в CloudStorage новее, они имеют приоритет над устаревшим локальным кэшем
+                if (cloudTime >= localTime || !currentData.address) {
+                  merged = Object.assign({}, DEFAULT_PRO_SALON, currentData, cloudSalon);
+                } else {
+                  merged = Object.assign({}, DEFAULT_PRO_SALON, cloudSalon, currentData);
+                }
+
+                // Однако если в этой сессии пришли свежие URL параметры из PostgreSQL, они абсолютный авторитет!
+                if (hasUrlParams) {
+                  if (urlAdminTag !== null) merged.adminTag = urlAdminTag;
+                  if (urlSalonName) merged.name = urlSalonName;
+                  if (urlAddress !== null && urlAddress !== undefined) merged.address = urlAddress;
+                  if (urlPhone !== null && urlPhone !== undefined) merged.phone = urlPhone;
+                  if (urlCity) merged.city = urlCity;
+                  if (urlLat) merged.latitude = parseFloat(urlLat);
+                  if (urlLon) merged.longitude = parseFloat(urlLon);
+                }
 
                 localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
+                sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
+                syncProSalonUI();
+                syncVenuesWithProSalon(merged);
                 updated = true;
               }
             } catch (e) { }
@@ -431,12 +451,6 @@ function initProCloudSync() {
           enterProMode();
         }
       }, 250);
-    }
-    // Очищаем URL-параметры в адресной строке браузера без перезагрузки страницы,
-    // чтобы при обновлении страницы (F5 / pull-to-refresh) не применялись старые параметры
-    if (window.history && window.history.replaceState && window.location.search) {
-      const cleanUrl = window.location.pathname + window.location.hash;
-      window.history.replaceState({}, document.title, cleanUrl);
     }
   } catch (e) { }
 }

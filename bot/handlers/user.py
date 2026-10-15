@@ -221,23 +221,25 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                     import json
                     from bot.database.models import Master
 
-                    if user_salon.admin_tag:
+                    if user_salon.admin_tag is not None:
                         params.append(f"admin_tag={urllib.parse.quote(user_salon.admin_tag)}")
                     if user_salon.name:
                         params.append(f"salon_name={urllib.parse.quote(user_salon.name)}")
-                    if user_salon.address:
+                    if user_salon.address is not None:
                         params.append(f"address={urllib.parse.quote(user_salon.address)}")
-                    if user_salon.region_name:
+                    if user_salon.region_name is not None:
                         params.append(f"city={urllib.parse.quote(user_salon.region_name)}")
                     if user_salon.latitude is not None:
                         params.append(f"lat={user_salon.latitude}")
                     if user_salon.longitude is not None:
                         params.append(f"lon={user_salon.longitude}")
                     salon_phone = getattr(user_salon, "phone", None)
-                    if salon_phone:
+                    if salon_phone is not None:
                         params.append(f"phone={urllib.parse.quote(salon_phone)}")
                     if user_salon.id:
                         params.append(f"salon_id={user_salon.id}")
+                    import time
+                    params.append(f"v={int(time.time())}")
 
                     # Передаем актуальный список мастеров салона из БД в Mini App
                     try:
