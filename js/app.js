@@ -690,13 +690,39 @@
         const globalHeader = document.getElementById('globalHeader');
         const globalNav = document.getElementById('globalNav');
 
-        // On verification screen, hide header and bottom navigation
+        // Navigation dock switching between Client and PRO
+        const proNav = document.getElementById('proNav');
+        const isProScreen = screen.startsWith('pro-') || !!state.isProMode;
+
         if (screen === 'verify') {
           globalHeader.classList.add('hidden');
-          globalNav.classList.add('hidden');
+          if (globalNav) { globalNav.classList.add('hidden'); globalNav.style.display = 'none'; }
+          if (proNav) { proNav.classList.add('hidden'); proNav.style.display = 'none'; }
           return;
         } else {
           globalHeader.classList.remove('hidden');
+        }
+
+        if (isProScreen) {
+          document.body.classList.add('pro-mode-active');
+          if (globalNav) {
+            globalNav.classList.add('hidden');
+            globalNav.style.display = 'none';
+          }
+          if (proNav) {
+            proNav.classList.remove('hidden');
+            proNav.style.display = 'block';
+          }
+        } else {
+          document.body.classList.remove('pro-mode-active');
+          if (proNav) {
+            proNav.classList.add('hidden');
+            proNav.style.display = 'none';
+          }
+          if (globalNav) {
+            globalNav.classList.remove('hidden');
+            globalNav.style.display = '';
+          }
         }
 
         // Update Nav button active states & sliding glass bubble indicator
@@ -721,10 +747,7 @@
           const tabPositions = {
             'map': '0%',
             'appointments': '100%',
-            'profile': '200%',
-            'pro-stats': '0%',
-            'pro-appointments': '100%',
-            'pro-profile': '200%'
+            'profile': '200%'
           };
           if (tabPositions[screen] !== undefined) {
             indicator.style.transform = `translateX(${tabPositions[screen]})`;
@@ -779,7 +802,6 @@
         if (screen === 'map') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Окошко';
-          globalNav.classList.remove('hidden');
           if (yandexMapInstance && yandexMapInstance.container) {
             setTimeout(() => yandexMapInstance.container.fitToViewport(), 150);
           }
@@ -787,21 +809,19 @@
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           const currentVenue = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) : null;
           headerTitle.textContent = currentVenue ? currentVenue.name : 'Салон красоты';
-          globalNav.classList.add('hidden');
+          if (globalNav) { globalNav.classList.add('hidden'); globalNav.style.display = 'none'; }
         } else if (screen === 'master') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           const activeMaster = (typeof getMasterById === 'function') ? getMasterById(state.activeMaster) : null;
           headerTitle.textContent = activeMaster ? activeMaster.name : 'Мастер';
-          globalNav.classList.add('hidden');
+          if (globalNav) { globalNav.classList.add('hidden'); globalNav.style.display = 'none'; }
         } else if (screen === 'appointments') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Окошко';
-          globalNav.classList.remove('hidden');
           renderAppointments();
         } else if (screen === 'favorites') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Избранное';
-          globalNav.classList.remove('hidden');
           renderFavorites();
         } else if (screen === 'reviews') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
@@ -814,25 +834,21 @@
             headerTitle.textContent = 'Отзывы клиентов';
             renderSalonReviewsScreen(state.activeSalon);
           }
-          globalNav.classList.add('hidden');
+          if (globalNav) { globalNav.classList.add('hidden'); globalNav.style.display = 'none'; }
         } else if (screen === 'profile') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Окошко';
-          globalNav.classList.remove('hidden');
         } else if (screen === 'pro-stats') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Панель PRO';
-          globalNav.classList.remove('hidden');
           if (typeof renderProStats === 'function') renderProStats();
         } else if (screen === 'pro-appointments') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Панель PRO';
-          globalNav.classList.remove('hidden');
           if (typeof renderProAppointments === 'function') renderProAppointments();
         } else if (screen === 'pro-profile') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Панель PRO';
-          globalNav.classList.remove('hidden');
           if (typeof syncProSalonUI === 'function') syncProSalonUI();
         }
       }

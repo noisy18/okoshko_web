@@ -327,7 +327,18 @@
     } catch (e) { }
 
     state.verified = isAlreadyVerified;
-    if (isAlreadyVerified) {
+    const initialUrlParams = new URLSearchParams(window.location.search);
+    const isProEntry = (initialUrlParams.get('pro_entry') === '1');
+
+    if (isProEntry) {
+      if (typeof enterProMode === 'function') {
+        enterProMode();
+      } else {
+        state.isProMode = true;
+        document.body.classList.add('pro-mode-active');
+        router.navigate('pro-stats', false);
+      }
+    } else if (isAlreadyVerified) {
       state.screenHistory = ['map'];
       applyCombinedFilters();
       router.navigate('map', false);

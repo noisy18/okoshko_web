@@ -5,21 +5,11 @@
 
     function openBusinessModal() {
       if (state.user?.is_pro) {
-        if (typeof confirmProAction === 'function') {
-          confirmProAction(
-            'Войти в бизнес-аккаунт?',
-            'Перейти в панель управления салоном и записями Okoshko PRO?',
-            () => {
-              if (typeof enterProMode === 'function') {
-                enterProMode();
-              } else {
-                router.navigate('pro-stats');
-              }
-            }
-          );
-        } else if (typeof enterProMode === 'function') {
+        if (typeof enterProMode === 'function') {
           enterProMode();
         } else {
+          state.isProMode = true;
+          document.body.classList.add('pro-mode-active');
           router.navigate('pro-stats');
         }
         return;
