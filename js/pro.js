@@ -1640,37 +1640,13 @@ function onProMapMoved(immediate = false) {
 }
 
 function reverseGeocodeProMapCoords(coords) {
-  if (typeof ymaps === 'undefined' || !ymaps.geocode) return;
+  if (!coords || !Array.isArray(coords) || coords.length < 2) return;
+  const lat = Number(coords[0]);
+  const lon = Number(coords[1]);
 
-  ymaps.geocode(coords, { results: 1 }).then((res) => {
-    const firstGeoObject = res.geoObjects.get(0);
-    if (!firstGeoObject) return;
-
-    // Extract human-readable address
-    const fullAddress = firstGeoObject.getAddressLine() || '';
-    // Extract premise / street or city
-    const localName = firstGeoObject.getLocalities();
-    const premise = firstGeoObject.getPremiseNumber();
-    const thoroughfare = firstGeoObject.getThoroughfare();
-
-    let displayAddress = fullAddress;
-    if (thoroughfare) {
-      displayAddress = thoroughfare + (premise ? `, ${premise}` : '');
-    }
-
-    // Attempt to extract city name
-    let detectedCity = '';
-    const adminArea = firstGeoObject.getAdministrativeAreas();
-    if (localName && localName.length > 0) {
-      detectedCity = localName[0];
-    } else if (adminArea && adminArea.length > 0) {
-      detectedCity = adminArea[0];
-    }
-
+  const updateUIWithAddress = (fullAddress, shortAddress, city) => {
     currentPickedAddress = fullAddress;
-    if (detectedCity) {
-      currentPickedCity = detectedCity;
-    }
+    if (city) currentPickedCity = city;
 
     const selAddrEl = document.getElementById('proMapSelectedAddressText');
     if (selAddrEl) {
@@ -1679,11 +1655,97 @@ function reverseGeocodeProMapCoords(coords) {
 
     const badgeTextEl = document.getElementById('proMapPinBadgeText');
     if (badgeTextEl) {
-      badgeTextEl.textContent = displayAddress || fullAddress;
+      badgeTextEl.textContent = shortAddress || fullAddress;
     }
-  }).catch((err) => {
-    console.warn('[PRO Map] Reverse geocoding error:', err);
-  });
+  };
+
+  // 1. Попытка через Yandex Maps API 2.1
+  if (typeof ymaps !== 'undefined' && ymaps.geocode) {
+    ymaps.geocode([lat, lon], { results: 1, json: false }).then((res) => {
+      const firstGeoObject = res.geoObjects.get(0);
+      if (firstGeoObject) {
+        let fullAddress = '';
+        if (typeof firstGeoObject.getAddressLine === 'function') {
+          fullAddress = firstGeoObject.getAddressLine();
+        }
+        if (!fullAddress && firstGeoObject.properties) {
+          fullAddress = firstGeoObject.properties.get('text') || firstGeoObject.properties.get('name') || '';
+        }
+
+        // Краткое название (улица + дом или имя объекта)
+        let shortAddress = '';
+        if (firstGeoObject.properties) {
+          shortAddress = firstGeoObject.properties.get('name') || '';
+        }
+        if (!shortAddress && typeof firstGeoObject.getThoroughfare === 'function') {
+          const street = firstGeoObject.getThoroughfare();
+          const house = typeof firstGeoObject.getPremiseNumber === 'function' ? firstGeoObject.getPremiseNumber() : '';
+          if (street) shortAddress = street + (house ? `, ${house}` : '');
+        }
+
+        // Город
+        let detectedCity = '';
+        if (typeof firstGeoObject.getLocalities === 'function') {
+          const locs = firstGeoObject.getLocalities();
+          if (locs && locs.length) detectedCity = locs[0];
+        }
+        if (!detectedCity && firstGeoObject.properties) {
+          const meta = firstGeoObject.properties.get('metaDataProperty')?.GeocoderMetaData?.AddressDetails;
+          detectedCity = meta?.Country?.AdministrativeArea?.SubAdministrativeArea?.Locality?.LocalityName || '';
+        }
+
+        if (fullAddress) {
+          updateUIWithAddress(fullAddress, shortAddress || fullAddress, detectedCity);
+          return;
+        }
+      }
+
+      // Если Яндекс вернул пустой результат, пробуем запасной быстрый геокодер
+      fallbackReverseGeocode(lat, lon, updateUIWithAddress);
+    }).catch((err) => {
+      console.warn('[PRO Map] Yandex geocode error, switching to fallback:', err);
+      fallbackReverseGeocode(lat, lon, updateUIWithAddress);
+    });
+  } else {
+    fallbackReverseGeocode(lat, lon, updateUIWithAddress);
+  }
+}
+
+// Запасной быстрый реверс-геокодинг по координатам (OpenStreetMap / Nominatim)
+function fallbackReverseGeocode(lat, lon, callback) {
+  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=ru`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data || !data.display_name) return;
+      const addr = data.address || {};
+      const city = addr.city || addr.town || addr.village || addr.state || '';
+      const street = addr.road || addr.street || '';
+      const house = addr.house_number || '';
+
+      let short = '';
+      if (street) {
+        short = street + (house ? `, ${house}` : '');
+      } else {
+        short = data.name || data.display_name.split(',')[0];
+      }
+
+      // Формируем чистый российский адрес (Город, Улица, Дом)
+      let full = '';
+      if (city && short) {
+        full = `${city}, ${short}`;
+      } else {
+        full = data.display_name;
+      }
+
+      callback(full, short, city);
+    })
+    .catch(err => {
+      console.warn('[PRO Map] Fallback geocode error:', err);
+      const selAddrEl = document.getElementById('proMapSelectedAddressText');
+      if (selAddrEl && (!currentPickedAddress || currentPickedAddress === 'Перемещайте карту для выбора адреса...')) {
+        selAddrEl.textContent = `Точка: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+      }
+    });
 }
 
 // Top-left City Selector
