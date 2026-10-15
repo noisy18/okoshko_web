@@ -48,6 +48,21 @@ async def get_or_create_user(
                 await session.commit()
                 await session.refresh(user)
 
+        # Автоматическая привязка салона для PRO-пользователя (владельца)
+        if user.is_pro:
+            # Проверяем, есть ли уже салон у этого владельца
+            salon_res = await session.execute(select(Salon).where((Salon.owner_id == telegram_id) | (Salon.id == user.salon_id if user.salon_id else False)))
+            salon = salon_res.scalar_one_or_none()
+            if not salon:
+                # Если у PRO пользователя еще нет салона с owner_id, связываем его с Beauty Studio (ID 1)
+                bs_res = await session.execute(select(Salon).where(Salon.id == 1))
+                salon = bs_res.scalar_one_or_none()
+                if salon:
+                    salon.owner_id = telegram_id
+                    user.salon_id = salon.id
+                    await session.commit()
+                    logger.info(f"Салон '{salon.name}' (ID {salon.id}) автоматически закреплен за владельцем {telegram_id}")
+
         return user
 
 

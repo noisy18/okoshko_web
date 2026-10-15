@@ -164,20 +164,26 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandObje
         f"👇 Нажмите <b>«Открыть Окошко»</b>, чтобы выбрать услугу и время:"
     )
 
+    user_tg_id = message.from_user.id if message.from_user else None
+    pro_app_url = await get_user_app_url(user_tg_id, is_pro_entry=True)
+
     await message.answer(
         text=welcome_text,
-        reply_markup=get_inline_keyboard(app_url),
+        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
     await message.answer(
         text="💡 Вы также можете открыть сервис в любой момент кнопкой внизу чата ⬇️",
-        reply_markup=get_reply_keyboard(app_url),
+        reply_markup=get_reply_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
-async def get_user_app_url(telegram_id: Optional[int]) -> str:
+async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = False) -> str:
     """Генерирует ссылку на WebApp с параметрами даты регистрации, PRO статуса, роли и администратора салона из БД"""
     if not telegram_id:
+        if is_pro_entry:
+            delimiter = "&" if "?" in MINI_APP_URL else "?"
+            return f"{MINI_APP_URL}{delimiter}pro_entry=1"
         return MINI_APP_URL
     try:
         from bot.database.base import async_session_maker
@@ -198,27 +204,44 @@ async def get_user_app_url(telegram_id: Optional[int]) -> str:
                 if user.salon_id:
                     params.append(f"salon_id={user.salon_id}")
 
-                # Ищем салон пользователя или салон, где он создатель / администратор
+                # Ищем салон пользователя: владелец -> администратор -> привязка к salon_id
                 salon_res = await session.execute(
-                    select(Salon).where((Salon.admin_id == telegram_id) | (Salon.id == user.salon_id if user.salon_id else False))
+                    select(Salon).where(
+                        (Salon.owner_id == telegram_id) |
+                        (Salon.admin_id == telegram_id) |
+                        (Salon.id == user.salon_id if user.salon_id else False)
+                    )
                 )
                 user_salon = salon_res.scalar_one_or_none()
 
                 # Если салон по привязке не найден, проверим главный салон Beauty Studio (id 1)
-                if not user_salon and (user.is_pro or user.role == "admin"):
+                if not user_salon and (user.is_pro or user.role == "admin" or is_pro_entry):
                     bs_res = await session.execute(select(Salon).where(Salon.id == 1))
                     user_salon = bs_res.scalar_one_or_none()
 
-                if user_salon and user_salon.admin_tag:
+                if user_salon:
                     import urllib.parse
-                    params.append(f"admin_tag={urllib.parse.quote(user_salon.admin_tag)}")
+                    if user_salon.admin_tag:
+                        params.append(f"admin_tag={urllib.parse.quote(user_salon.admin_tag)}")
+                    if user_salon.name:
+                        params.append(f"salon_name={urllib.parse.quote(user_salon.name)}")
+                    if user_salon.id:
+                        params.append(f"salon_id={user_salon.id}")
+
+                if is_pro_entry:
+                    params.append("pro_entry=1")
 
                 if params:
                     delimiter = "&" if "?" in MINI_APP_URL else "?"
                     return f"{MINI_APP_URL}{delimiter}{'&'.join(params)}"
     except Exception as e:
         logger.warning(f"Ошибка получения параметров пользователя для {telegram_id}: {e}")
+
+    if is_pro_entry:
+        delimiter = "&" if "?" in MINI_APP_URL else "?"
+        return f"{MINI_APP_URL}{delimiter}pro_entry=1"
     return MINI_APP_URL
+
 
 
 

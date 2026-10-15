@@ -1,3 +1,4 @@
+from typing import Optional
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -8,14 +9,21 @@ from aiogram.types import (
 from bot.config import MINI_APP_URL
 
 
-def get_inline_keyboard(app_url: str = MINI_APP_URL) -> InlineKeyboardMarkup:
-    """Инлайн-клавиатура с кнопкой запуска Mini App."""
+def get_inline_keyboard(app_url: str = MINI_APP_URL, pro_app_url: Optional[str] = None) -> InlineKeyboardMarkup:
+    """Инлайн-клавиатура с кнопкой запуска Mini App и входом в бизнес-аккаунт."""
+    biz_url = pro_app_url or (f"{app_url}&pro_entry=1" if "?" in app_url else f"{app_url}?pro_entry=1")
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
                     text="💅 Открыть «Окошко»",
                     web_app=WebAppInfo(url=app_url),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="💼 Войти в бизнес-аккаунт",
+                    web_app=WebAppInfo(url=biz_url),
                 )
             ],
             [
@@ -32,14 +40,21 @@ def get_inline_keyboard(app_url: str = MINI_APP_URL) -> InlineKeyboardMarkup:
     )
 
 
-def get_reply_keyboard(app_url: str = MINI_APP_URL) -> ReplyKeyboardMarkup:
-    """Постоянная нижняя клавиатура с кнопкой быстрого вызова Mini App."""
+def get_reply_keyboard(app_url: str = MINI_APP_URL, pro_app_url: Optional[str] = None) -> ReplyKeyboardMarkup:
+    """Постоянная нижняя клавиатура с кнопкой быстрого вызова Mini App и бизнес-кабинета."""
+    biz_url = pro_app_url or (f"{app_url}&pro_entry=1" if "?" in app_url else f"{app_url}?pro_entry=1")
     return ReplyKeyboardMarkup(
         keyboard=[
             [
                 KeyboardButton(
                     text="✨ Записаться онлайн",
                     web_app=WebAppInfo(url=app_url),
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="💼 Бизнес-кабинет",
+                    web_app=WebAppInfo(url=biz_url),
                 )
             ],
             [
