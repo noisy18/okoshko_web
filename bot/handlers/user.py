@@ -239,6 +239,10 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                     if user_salon.id:
                         params.append(f"salon_id={user_salon.id}")
 
+                user_phone = getattr(user, "phone", None) or (user_salon and getattr(user_salon, "phone", None))
+                if user_phone:
+                    params.append(f"user_phone={urllib.parse.quote(user_phone)}")
+
                 if is_pro_entry:
                     params.append("pro_entry=1")
 
@@ -553,10 +557,11 @@ async def handle_master_setup_from_tg(callback: CallbackQuery, bot: Bot):
 
 
 @user_router.callback_query(F.data.startswith("msetup_back:"))
-async def handle_master_setup_back(callback: CallbackQuery):
+async def handle_master_setup_back(callback: CallbackQuery, master_id: Optional[int] = None):
     """Возврат к основной анкете мастера."""
     await callback.answer()
-    master_id = int(callback.data.split(":")[1])
+    if master_id is None:
+        master_id = int(callback.data.split(":")[1])
 
     from bot.database.base import async_session_maker
     from bot.database.models import Master, Salon
@@ -626,8 +631,7 @@ async def handle_master_role_set(callback: CallbackQuery):
     
     await callback.answer(f"✓ Должность: {new_role}")
     # Возвращаемся в главное меню анкеты
-    callback.data = f"msetup_back:{master_id}"
-    await handle_master_setup_back(callback)
+    await handle_master_setup_back(callback, master_id=master_id)
 
 
 @user_router.callback_query(F.data.startswith("msetup_exp:"))
@@ -664,8 +668,7 @@ async def handle_master_exp_set(callback: CallbackQuery):
             await session.commit()
     
     await callback.answer(f"✓ Опыт: {new_exp}")
-    callback.data = f"msetup_back:{master_id}"
-    await handle_master_setup_back(callback)
+    await handle_master_setup_back(callback, master_id=master_id)
 
 
 # Временный кэш выбранных услуг для мастера (master_id -> set of indices)
@@ -800,8 +803,7 @@ async def handle_master_svc_save(callback: CallbackQuery):
             await session.commit()
 
     await callback.answer(f"✓ Выбрано услуг: {len(saved_names)}")
-    callback.data = f"msetup_back:{master_id}"
-    await handle_master_setup_back(callback)
+    await handle_master_setup_back(callback, master_id=master_id)
 
 
 @user_router.callback_query(F.data.startswith("msetup_name:"))

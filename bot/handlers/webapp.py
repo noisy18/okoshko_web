@@ -260,6 +260,7 @@ async def handle_web_app_data(message: Message):
                                 salon.slug = new_slug
                         if s_addr: salon.address = s_addr
                         if s_city: salon.region_name = s_city
+                        if s_phone: salon.phone = s_phone
                         if s_avatar: salon.logo_url = s_avatar
                         if s_cover: salon.cover_image_url = s_cover
                         if s_admin_tag: salon.admin_tag = s_admin_tag
@@ -268,9 +269,26 @@ async def handle_web_app_data(message: Message):
                         if user:
                             user.is_pro = True
                             user.salon_id = salon.id
+                            if s_phone:
+                                user.phone = s_phone
 
                         await session.commit()
-                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}') успешно обновлены в БД для пользователя {user_id}")
+                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id}")
+        elif data.get("action") == "user_phone_updated":
+            from bot.database import User
+            from bot.database.base import async_session_maker
+            from sqlalchemy import select
+
+            new_phone = data.get("phone")
+            user_id = message.from_user.id if message.from_user else None
+            if user_id and new_phone:
+                async with async_session_maker() as session:
+                    u_res = await session.execute(select(User).where(User.telegram_id == user_id))
+                    user = u_res.scalar_one_or_none()
+                    if user:
+                        user.phone = new_phone
+                        await session.commit()
+                        logger.info(f"Телефон пользователя {user_id} успешно обновлен в БД: {new_phone}")
             return
 
     except Exception as e:
@@ -338,6 +356,7 @@ async def handle_direct_json_data(message: Message):
                             salon.slug = new_slug
                     if s_addr: salon.address = s_addr
                     if s_city: salon.region_name = s_city
+                    if s_phone: salon.phone = s_phone
                     if s_avatar: salon.logo_url = s_avatar
                     if s_cover: salon.cover_image_url = s_cover
                     if s_admin_tag: salon.admin_tag = s_admin_tag
@@ -345,16 +364,33 @@ async def handle_direct_json_data(message: Message):
                     if user:
                         user.is_pro = True
                         user.salon_id = salon.id
+                        if s_phone:
+                            user.phone = s_phone
 
                     await session.commit()
-                    logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}') успешно обновлены в БД для пользователя {user_id} через прямой канал")
-            
-            # Удаляем системное JSON сообщение из чата, чтобы не засорять переписку
-            try:
-                await message.delete()
-            except Exception:
-                pass
-            return
+                    logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id} через прямой канал")
+        
+        elif data.get("action") == "user_phone_updated" and user_id:
+            from bot.database import User
+            from bot.database.base import async_session_maker
+            from sqlalchemy import select
+
+            new_phone = data.get("phone")
+            if new_phone:
+                async with async_session_maker() as session:
+                    u_res = await session.execute(select(User).where(User.telegram_id == user_id))
+                    user = u_res.scalar_one_or_none()
+                    if user:
+                        user.phone = new_phone
+                        await session.commit()
+                        logger.info(f"Телефон пользователя {user_id} успешно обновлен в БД через прямой канал: {new_phone}")
+
+        # Удаляем системное JSON сообщение из чата, чтобы не засорять переписку
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        return
     except Exception as e:
         logger.error(f"Ошибка обработки прямого JSON: {e}")
 

@@ -341,48 +341,58 @@ async def bind_user_as_master(
         if not salon:
             return None, None
 
-        # Ищем мастера в этом салоне
-        master: Optional[Master] = None
-        masters_res = await session.execute(select(Master).where(Master.salon_id == salon_id))
-        masters = list(masters_res.scalars().all())
-
-        # 1. Если пользователь уже привязан к мастеру этого салона, используем его
-        for m in masters:
-            if m.telegram_id == telegram_id:
-                master = m
-                break
-
-        # 2. Если в ссылке было конкретное имя мастера (не общее 'spec'/'master') и оно совпадает
-        if not master and master_hint_name and master_hint_name.lower() not in ("spec", "master", "", "none"):
-            for m in masters:
-                if (master_hint_name.lower() in m.name.lower() or (m.last_name and master_hint_name.lower() in m.last_name.lower())) and not m.telegram_id:
-                    master = m
-                    break
-
-        # 3. Если совпадений нет, создаем персональный профиль мастера с данными Telegram пользователя
-        tg_handle = f"@{username}" if username else None
-        m_name = first_name or (master_hint_name if master_hint_name and master_hint_name not in ("spec", "master") else "Мастер")
-        m_lastname = last_name or ""
+        # 1. Сначала проверяем глобально: привязан ли этот пользователь (telegram_id) к профилю мастера
+        existing_master_res = await session.execute(select(Master).where(Master.telegram_id == telegram_id))
+        master: Optional[Master] = existing_master_res.scalar_one_or_none()
 
         if master:
-            master.telegram_id = telegram_id
-            master.telegram_handle = tg_handle
+            # Мастер уже существует в базе и жестко привязан к этому Telegram аккаунту
+            # Переносим мастера в текущий салон, если он переходит по инвайту
+            master.salon_id = salon.id
+            if username:
+                master.telegram_handle = f"@{username}"
             if first_name and not master.name:
                 master.name = first_name
             if last_name and not master.last_name:
                 master.last_name = last_name
         else:
-            master = Master(
-                salon_id=salon.id,
-                name=m_name,
-                last_name=m_lastname,
-                telegram_handle=tg_handle,
-                telegram_id=telegram_id,
-                role_title="Специалист салона",
-                experience="3 года",
-                avatar_url="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
-            )
-            session.add(master)
+            # 2. Если пользователь еще не привязан, проверяем: может в текущем салоне есть свободная карточка мастера
+            masters_res = await session.execute(select(Master).where(Master.salon_id == salon_id))
+            masters = list(masters_res.scalars().all())
+
+            # Если в ссылке было конкретное имя мастера (не общее 'spec'/'master') и карточка не занята
+            if master_hint_name and master_hint_name.lower() not in ("spec", "master", "", "none"):
+                for m in masters:
+                    if (master_hint_name.lower() in m.name.lower() or (m.last_name and master_hint_name.lower() in m.last_name.lower())) and not m.telegram_id:
+                        master = m
+                        break
+
+            tg_handle = f"@{username}" if username else None
+            m_name = first_name or (master_hint_name if master_hint_name and master_hint_name not in ("spec", "master") else "Мастер")
+            m_lastname = last_name or ""
+
+            if master:
+                # Привязываем свободную карточку мастера к Telegram пользователя
+                master.telegram_id = telegram_id
+                master.telegram_handle = tg_handle
+                if first_name and not master.name:
+                    master.name = first_name
+                if last_name and not master.last_name:
+                    master.last_name = last_name
+            else:
+                # Создаем новую единственную карточку мастера, жестко привязанную к этому Telegram аккаунту
+                master = Master(
+                    salon_id=salon.id,
+                    name=m_name,
+                    last_name=m_lastname,
+                    telegram_handle=tg_handle,
+                    telegram_id=telegram_id,
+                    role_title="Специалист салона",
+                    grade_badge="PRO",
+                    experience="3 года",
+                    avatar_url="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
+                )
+                session.add(master)
 
         # Обновляем / создаем пользователя
         user_res = await session.execute(select(User).where(User.telegram_id == telegram_id))

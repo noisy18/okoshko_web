@@ -32,6 +32,7 @@ class Salon(Base):
     owner_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
     admin_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
     admin_tag: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     masters: Mapped[List["Master"]] = relationship("Master", back_populates="salon", cascade="all, delete-orphan")

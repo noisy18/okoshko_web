@@ -234,7 +234,29 @@
     function updateProfilePhoneUI() {
       let savedPhone = '';
       try {
-        savedPhone = localStorage.getItem('okoshko_user_phone') || '';
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlPhone = urlParams.get('user_phone') || urlParams.get('phone');
+        if (urlPhone) {
+          savedPhone = urlPhone;
+          localStorage.setItem('okoshko_user_phone', urlPhone);
+        } else {
+          savedPhone = localStorage.getItem('okoshko_user_phone') || '';
+        }
+      } catch (e) { }
+
+      // Sync from CloudStorage if available
+      try {
+        if (!savedPhone && window.Telegram?.WebApp?.CloudStorage?.getItem) {
+          window.Telegram.WebApp.CloudStorage.getItem('okoshko_user_phone', (err, val) => {
+            if (!err && val) {
+              localStorage.setItem('okoshko_user_phone', val);
+              const pSub = document.getElementById('profilePhoneSub');
+              const pBadge = document.getElementById('profilePhoneBadge');
+              if (pSub) pSub.textContent = val;
+              if (pBadge) pBadge.textContent = 'Изменить';
+            }
+          });
+        }
       } catch (e) { }
 
       const pSub = document.getElementById('profilePhoneSub');
@@ -321,6 +343,40 @@
         localStorage.setItem('okoshko_user_phone', formatted);
       } catch (e) { }
 
+      // 1. Sync to Telegram CloudStorage for cross-device support (Desktop <-> Mobile)
+      try {
+        if (window.Telegram?.WebApp?.CloudStorage?.setItem) {
+          window.Telegram.WebApp.CloudStorage.setItem('okoshko_user_phone', formatted, (err, ok) => {
+            if (!err) console.log('[App] Phone synced to CloudStorage:', formatted);
+          });
+        }
+      } catch (e) { }
+
+      // 2. Sync to Backend DB via Telegram sendData or Direct Bot API
+      const phonePayload = {
+        action: 'user_phone_updated',
+        phone: formatted
+      };
+      try {
+        if (window.Telegram?.WebApp?.sendData) {
+          window.Telegram.WebApp.sendData(JSON.stringify(phonePayload));
+        }
+      } catch (e) { }
+      try {
+        const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+        const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+        if (userTgId && botToken) {
+          fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: userTgId,
+              text: JSON.stringify(phonePayload)
+            })
+          }).catch(err => console.warn('Direct Bot API sync error for phone:', err));
+        }
+      } catch (e) { }
+
       updateProfilePhoneUI();
       closePhoneModal();
       showToast('Номер сохранен 📱');
@@ -335,6 +391,37 @@
       try {
         localStorage.removeItem('okoshko_user_phone');
       } catch (e) { }
+
+      try {
+        if (window.Telegram?.WebApp?.CloudStorage?.removeItem) {
+          window.Telegram.WebApp.CloudStorage.removeItem('okoshko_user_phone');
+        }
+      } catch (e) { }
+
+      const phonePayload = {
+        action: 'user_phone_updated',
+        phone: ''
+      };
+      try {
+        if (window.Telegram?.WebApp?.sendData) {
+          window.Telegram.WebApp.sendData(JSON.stringify(phonePayload));
+        }
+      } catch (e) { }
+      try {
+        const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+        const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+        if (userTgId && botToken) {
+          fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: userTgId,
+              text: JSON.stringify(phonePayload)
+            })
+          }).catch(err => console.warn('Direct Bot API sync error for phone:', err));
+        }
+      } catch (e) { }
+
       updateProfilePhoneUI();
       closePhoneModal();
       showToast('Номер удален');
