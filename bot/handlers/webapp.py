@@ -224,6 +224,8 @@ async def handle_web_app_data(message: Message):
             s_avatar = data.get("avatar_url")
             s_cover = data.get("cover_url")
             s_admin_tag = data.get("admin_tag")
+            s_lat = data.get("latitude")
+            s_lon = data.get("longitude")
             target_salon_id = data.get("salon_id")
             user_id = message.from_user.id if message.from_user else None
 
@@ -264,6 +266,16 @@ async def handle_web_app_data(message: Message):
                         if s_avatar: salon.logo_url = s_avatar
                         if s_cover: salon.cover_image_url = s_cover
                         if s_admin_tag: salon.admin_tag = s_admin_tag
+                        if s_lat is not None:
+                            try:
+                                salon.latitude = float(s_lat)
+                            except (ValueError, TypeError):
+                                pass
+                        if s_lon is not None:
+                            try:
+                                salon.longitude = float(s_lon)
+                            except (ValueError, TypeError):
+                                pass
 
                         # Также обновляем пользователя как владельца/PRO
                         if user:
@@ -273,7 +285,7 @@ async def handle_web_app_data(message: Message):
                                 user.phone = s_phone
 
                         await session.commit()
-                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id}")
+                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', адрес '{salon.address}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id}")
         elif data.get("action") == "user_phone_updated":
             from bot.database import User
             from bot.database.base import async_session_maker
@@ -354,8 +366,20 @@ async def handle_direct_json_data(message: Message):
                         )
                         if not slug_check.scalar_one_or_none():
                             salon.slug = new_slug
+                    s_lat = data.get("latitude")
+                    s_lon = data.get("longitude")
                     if s_addr: salon.address = s_addr
                     if s_city: salon.region_name = s_city
+                    if s_lat is not None:
+                        try:
+                            salon.latitude = float(s_lat)
+                        except (ValueError, TypeError):
+                            pass
+                    if s_lon is not None:
+                        try:
+                            salon.longitude = float(s_lon)
+                        except (ValueError, TypeError):
+                            pass
                     if s_phone: salon.phone = s_phone
                     if s_avatar: salon.logo_url = s_avatar
                     if s_cover: salon.cover_image_url = s_cover

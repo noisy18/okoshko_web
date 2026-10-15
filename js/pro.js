@@ -11,7 +11,9 @@ const DEFAULT_PRO_SALON = {
   name: 'Beauty Studio',
   city: 'Москва',
   cityKey: 'moscow',
-  address: 'ул. Большая Садовая, 42 • м. Маяковская',
+  address: '',
+  latitude: 55.767500,
+  longitude: 37.607800,
   phone: '+7 (999) 123-45-67',
   creatorTag: '@maximtepin',
   adminTag: '', // Не назначен по умолчанию
@@ -173,6 +175,8 @@ function saveProSalonData(data) {
     address: data.address,
     phone: data.phone,
     city: data.city,
+    latitude: data.latitude,
+    longitude: data.longitude,
     avatar_url: data.avatarUrl,
     cover_url: data.coverUrl,
     admin_tag: data.adminTag,
@@ -474,8 +478,18 @@ function syncProSalonUI() {
   // Address
   const addrEl = document.getElementById('proSalonAddress');
   const addrSubEl = document.getElementById('proProfileAddressSub');
-  if (addrEl) addrEl.textContent = data.address;
-  if (addrSubEl) addrSubEl.textContent = data.address;
+  if (addrEl) addrEl.textContent = data.address || 'Не указан';
+  if (addrSubEl) {
+    if (data.address) {
+      addrSubEl.textContent = data.address;
+      addrSubEl.classList.remove('text-slate-400');
+      addrSubEl.classList.add('text-slate-700');
+    } else {
+      addrSubEl.textContent = 'Не указан (выберите на карте)';
+      addrSubEl.classList.remove('text-slate-700');
+      addrSubEl.classList.add('text-slate-400');
+    }
+  }
 
   // Phone
   const phoneEl = document.getElementById('proProfilePhoneSub');
@@ -1479,4 +1493,403 @@ function renderProStats() {
   if (bookingsEl) bookingsEl.textContent = totalBookingsCount;
   if (viewsEl) viewsEl.textContent = viewsCount;
   if (avgCheckEl) avgCheckEl.textContent = `${avgCheck.toLocaleString('ru-RU')} ₽`;
+}
+
+// ------------------------------------------
+// PRO SALON ADDRESS PICKER MAP LOGIC
+// ------------------------------------------
+let proAddressPickerMap = null;
+let currentPickedAddress = '';
+let currentPickedCoords = [55.767500, 37.607800];
+let currentPickedCity = '';
+let currentPickedCityKey = 'moscow';
+let geocodeDebounceTimer = null;
+let proMapSearchDebounceTimer = null;
+
+function openProAddressPickerModal() {
+  const modal = document.getElementById('proAddressPickerModal');
+  if (!modal) return;
+
+  const data = getProSalonData();
+  
+  // Set initial coordinates
+  if (data.latitude && data.longitude) {
+    currentPickedCoords = [Number(data.latitude), Number(data.longitude)];
+  } else if (data.cityKey && typeof REGION_CENTERS !== 'undefined' && REGION_CENTERS[data.cityKey]) {
+    currentPickedCoords = [...REGION_CENTERS[data.cityKey].center];
+    currentPickedCityKey = data.cityKey;
+  } else {
+    currentPickedCoords = [55.767500, 37.607800];
+    currentPickedCityKey = 'moscow';
+  }
+
+  currentPickedAddress = data.address || '';
+  currentPickedCity = data.city || '';
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+
+  // Render city dropdown items
+  renderProMapCityDropdown();
+  updateProMapCityButtonUI();
+
+  // Update initial labels
+  const selAddrEl = document.getElementById('proMapSelectedAddressText');
+  const selCoordsEl = document.getElementById('proMapSelectedCoordsText');
+  const badgeTextEl = document.getElementById('proMapPinBadgeText');
+
+  if (selAddrEl) {
+    selAddrEl.textContent = currentPickedAddress || 'Перемещайте карту для выбора адреса...';
+  }
+  if (selCoordsEl) {
+    selCoordsEl.textContent = `Координаты: ${currentPickedCoords[0].toFixed(6)}, ${currentPickedCoords[1].toFixed(6)}`;
+  }
+  if (badgeTextEl) {
+    badgeTextEl.textContent = currentPickedAddress || 'Определяем адрес...';
+  }
+
+  // Clear search input
+  const searchInput = document.getElementById('proMapSearchInput');
+  if (searchInput) searchInput.value = '';
+  const searchClearBtn = document.getElementById('proMapSearchClearBtn');
+  if (searchClearBtn) searchClearBtn.classList.add('hidden');
+  const suggestionsBox = document.getElementById('proMapSearchSuggestions');
+  if (suggestionsBox) {
+    suggestionsBox.classList.add('hidden');
+    suggestionsBox.innerHTML = '';
+  }
+
+  // Init or resize map
+  setTimeout(() => {
+    initProAddressPickerMap();
+  }, 100);
+}
+
+function closeProAddressPickerModal() {
+  const modal = document.getElementById('proAddressPickerModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  closeProMapCityDropdown();
+  const suggestionsBox = document.getElementById('proMapSearchSuggestions');
+  if (suggestionsBox) suggestionsBox.classList.add('hidden');
+}
+
+function initProAddressPickerMap() {
+  if (typeof ymaps === 'undefined') {
+    console.warn('[PRO Map] Yandex Maps API not loaded yet');
+    return;
+  }
+
+  ymaps.ready(() => {
+    const container = document.getElementById('proAddressPickerMap');
+    if (!container) return;
+
+    if (!proAddressPickerMap) {
+      proAddressPickerMap = new ymaps.Map('proAddressPickerMap', {
+        center: currentPickedCoords,
+        zoom: 16,
+        controls: ['zoomControl', 'geolocationControl']
+      }, {
+        suppressMapOpenBlock: true
+      });
+
+      // Listen to map bounds change / panning stop
+      proAddressPickerMap.events.add('actionend', () => {
+        onProMapMoved();
+      });
+
+      proAddressPickerMap.events.add('boundschange', () => {
+        onProMapMoved();
+      });
+    } else {
+      proAddressPickerMap.container.fitToViewport();
+      proAddressPickerMap.setCenter(currentPickedCoords, 16, { checkZoomRange: true });
+    }
+
+    // Trigger initial reverse geocode
+    onProMapMoved(true);
+  });
+}
+
+function onProMapMoved(immediate = false) {
+  if (!proAddressPickerMap) return;
+
+  const center = proAddressPickerMap.getCenter();
+  currentPickedCoords = [center[0], center[1]];
+
+  const selCoordsEl = document.getElementById('proMapSelectedCoordsText');
+  if (selCoordsEl) {
+    selCoordsEl.textContent = `Координаты: ${center[0].toFixed(6)}, ${center[1].toFixed(6)}`;
+  }
+
+  const badgeTextEl = document.getElementById('proMapPinBadgeText');
+  if (badgeTextEl && !immediate) {
+    badgeTextEl.textContent = 'Определяем адрес...';
+  }
+
+  if (geocodeDebounceTimer) {
+    clearTimeout(geocodeDebounceTimer);
+  }
+
+  const delay = immediate ? 0 : 300;
+  geocodeDebounceTimer = setTimeout(() => {
+    reverseGeocodeProMapCoords(center);
+  }, delay);
+}
+
+function reverseGeocodeProMapCoords(coords) {
+  if (typeof ymaps === 'undefined' || !ymaps.geocode) return;
+
+  ymaps.geocode(coords, { results: 1 }).then((res) => {
+    const firstGeoObject = res.geoObjects.get(0);
+    if (!firstGeoObject) return;
+
+    // Extract human-readable address
+    const fullAddress = firstGeoObject.getAddressLine() || '';
+    // Extract premise / street or city
+    const localName = firstGeoObject.getLocalities();
+    const premise = firstGeoObject.getPremiseNumber();
+    const thoroughfare = firstGeoObject.getThoroughfare();
+
+    let displayAddress = fullAddress;
+    if (thoroughfare) {
+      displayAddress = thoroughfare + (premise ? `, ${premise}` : '');
+    }
+
+    // Attempt to extract city name
+    let detectedCity = '';
+    const adminArea = firstGeoObject.getAdministrativeAreas();
+    if (localName && localName.length > 0) {
+      detectedCity = localName[0];
+    } else if (adminArea && adminArea.length > 0) {
+      detectedCity = adminArea[0];
+    }
+
+    currentPickedAddress = fullAddress;
+    if (detectedCity) {
+      currentPickedCity = detectedCity;
+    }
+
+    const selAddrEl = document.getElementById('proMapSelectedAddressText');
+    if (selAddrEl) {
+      selAddrEl.textContent = fullAddress;
+    }
+
+    const badgeTextEl = document.getElementById('proMapPinBadgeText');
+    if (badgeTextEl) {
+      badgeTextEl.textContent = displayAddress || fullAddress;
+    }
+  }).catch((err) => {
+    console.warn('[PRO Map] Reverse geocoding error:', err);
+  });
+}
+
+// Top-left City Selector
+function toggleProMapCityDropdown(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('proMapCityDropdown');
+  if (!dropdown) return;
+  const isHidden = dropdown.classList.contains('hidden');
+  if (isHidden) {
+    dropdown.classList.remove('hidden');
+    dropdown.classList.add('flex');
+  } else {
+    dropdown.classList.add('hidden');
+    dropdown.classList.remove('flex');
+  }
+}
+
+function closeProMapCityDropdown() {
+  const dropdown = document.getElementById('proMapCityDropdown');
+  if (dropdown) {
+    dropdown.classList.add('hidden');
+    dropdown.classList.remove('flex');
+  }
+}
+
+function renderProMapCityDropdown() {
+  const dropdown = document.getElementById('proMapCityDropdown');
+  if (!dropdown || typeof CITY_CONFIG === 'undefined') return;
+
+  const cityKeys = Object.keys(CITY_CONFIG).filter(k => k !== 'all');
+
+  dropdown.innerHTML = cityKeys.map(k => {
+    const c = CITY_CONFIG[k];
+    const isSelected = k === currentPickedCityKey;
+    return `
+      <button type="button" onclick="selectProMapCity('${k}')"
+        class="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between transition-all ${isSelected ? 'bg-primary/10 text-primary font-bold' : 'text-slate-700 hover:bg-slate-50 font-medium'} text-xs">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-sm shrink-0">${c.icon || '📍'}</span>
+          <span class="truncate">${c.name}</span>
+        </div>
+        ${isSelected ? '<span class="material-symbols-outlined text-[16px] text-primary">check</span>' : ''}
+      </button>
+    `;
+  }).join('');
+}
+
+function updateProMapCityButtonUI() {
+  const nameEl = document.getElementById('proMapCityName');
+  const iconEl = document.getElementById('proMapCityIcon');
+  if (typeof CITY_CONFIG !== 'undefined' && CITY_CONFIG[currentPickedCityKey]) {
+    const c = CITY_CONFIG[currentPickedCityKey];
+    if (nameEl) nameEl.textContent = c.short || c.name;
+    if (iconEl) iconEl.textContent = c.icon || '📍';
+  }
+}
+
+function selectProMapCity(cityKey) {
+  currentPickedCityKey = cityKey;
+  closeProMapCityDropdown();
+  updateProMapCityButtonUI();
+
+  if (typeof CITY_CONFIG !== 'undefined' && CITY_CONFIG[cityKey]) {
+    currentPickedCity = CITY_CONFIG[cityKey].name;
+  }
+
+  if (typeof REGION_CENTERS !== 'undefined' && REGION_CENTERS[cityKey] && proAddressPickerMap) {
+    const target = REGION_CENTERS[cityKey];
+    proAddressPickerMap.setCenter(target.center, target.zoom || 13, {
+      duration: 500,
+      timingFunction: 'ease-in-out'
+    });
+  }
+}
+
+// Search & Autocomplete
+function handleProMapSearchInput(query) {
+  const clearBtn = document.getElementById('proMapSearchClearBtn');
+  const suggestionsBox = document.getElementById('proMapSearchSuggestions');
+  const cleanQ = (query || '').trim();
+
+  if (clearBtn) {
+    clearBtn.classList.toggle('hidden', !cleanQ);
+  }
+
+  if (!cleanQ) {
+    if (suggestionsBox) {
+      suggestionsBox.classList.add('hidden');
+      suggestionsBox.innerHTML = '';
+    }
+    return;
+  }
+
+  if (proMapSearchDebounceTimer) clearTimeout(proMapSearchDebounceTimer);
+
+  proMapSearchDebounceTimer = setTimeout(() => {
+    fetchProMapSuggestions(cleanQ);
+  }, 300);
+}
+
+function clearProMapSearch() {
+  const input = document.getElementById('proMapSearchInput');
+  if (input) input.value = '';
+  handleProMapSearchInput('');
+}
+
+function fetchProMapSuggestions(query) {
+  const suggestionsBox = document.getElementById('proMapSearchSuggestions');
+  if (!suggestionsBox || typeof ymaps === 'undefined') return;
+
+  // Use ymaps.suggest with bounds of current map view
+  const bounds = proAddressPickerMap ? proAddressPickerMap.getBounds() : null;
+  const options = { results: 5 };
+  if (bounds) {
+    options.boundedBy = bounds;
+  }
+
+  ymaps.suggest(query, options).then((items) => {
+    if (!items || items.length === 0) {
+      suggestionsBox.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">Ничего не найдено</div>';
+      suggestionsBox.classList.remove('hidden');
+      return;
+    }
+
+    suggestionsBox.innerHTML = items.map((item, idx) => {
+      const escapedVal = (item.value || '').replace(/'/g, "\\'");
+      return `
+        <button type="button" onclick="selectProMapSuggestion('${escapedVal}')"
+          class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-50 active:bg-primary/10 transition-colors flex items-center gap-2 border-b border-slate-100 last:border-b-0 text-xs">
+          <span class="material-symbols-outlined text-[16px] text-primary shrink-0">location_on</span>
+          <span class="truncate text-slate-700">${item.displayName || item.value}</span>
+        </button>
+      `;
+    }).join('');
+    suggestionsBox.classList.remove('hidden');
+  }).catch(() => {
+    // Fallback: ymaps.geocode
+    ymaps.geocode(query, { results: 5 }).then((res) => {
+      const geoObjects = res.geoObjects.toArray();
+      if (geoObjects.length === 0) {
+        suggestionsBox.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">Ничего не найдено</div>';
+        suggestionsBox.classList.remove('hidden');
+        return;
+      }
+
+      suggestionsBox.innerHTML = geoObjects.map(obj => {
+        const addr = obj.getAddressLine();
+        const escapedAddr = addr.replace(/'/g, "\\'");
+        return `
+          <button type="button" onclick="selectProMapSuggestion('${escapedAddr}')"
+            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-50 active:bg-primary/10 transition-colors flex items-center gap-2 border-b border-slate-100 last:border-b-0 text-xs">
+            <span class="material-symbols-outlined text-[16px] text-primary shrink-0">location_on</span>
+            <span class="truncate text-slate-700">${addr}</span>
+          </button>
+        `;
+      }).join('');
+      suggestionsBox.classList.remove('hidden');
+    }).catch(err => console.warn('[PRO Map] Suggest error:', err));
+  });
+}
+
+function selectProMapSuggestion(address) {
+  const input = document.getElementById('proMapSearchInput');
+  if (input) input.value = address;
+  const suggestionsBox = document.getElementById('proMapSearchSuggestions');
+  if (suggestionsBox) suggestionsBox.classList.add('hidden');
+
+  if (typeof ymaps === 'undefined' || !ymaps.geocode || !proAddressPickerMap) return;
+
+  ymaps.geocode(address, { results: 1 }).then((res) => {
+    const firstGeoObject = res.geoObjects.get(0);
+    if (!firstGeoObject) return;
+
+    const coords = firstGeoObject.geometry.getCoordinates();
+    proAddressPickerMap.setCenter(coords, 16, {
+      duration: 600,
+      flying: true
+    });
+  }).catch(err => console.warn('[PRO Map] Geocode suggestion error:', err));
+}
+
+// Confirmation
+function confirmProMapSelectedAddress() {
+  if (!currentPickedAddress) {
+    showToast('Пожалуйста, выберите корректный адрес на карте');
+    return;
+  }
+
+  const data = getProSalonData();
+  data.address = currentPickedAddress;
+  data.latitude = currentPickedCoords[0];
+  data.longitude = currentPickedCoords[1];
+  if (currentPickedCity) {
+    data.city = currentPickedCity;
+  }
+  if (currentPickedCityKey) {
+    data.cityKey = currentPickedCityKey;
+  }
+
+  saveProSalonData(data);
+  closeProAddressPickerModal();
+  showToast('Адрес салона успешно сохранен ✓');
+
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+  } catch (e) { }
 }

@@ -1470,34 +1470,17 @@
         <div class="flex flex-col gap-1.5">
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Основные данные бизнеса</span>
           <div class="rounded-2xl bg-white shadow-xs border border-slate-200/60 overflow-hidden flex flex-col text-xs">
-            <!-- Город салона (выше адреса) -->
-            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProCityModal()">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-primary text-[18px]">location_city</span>
-                <div class="flex flex-col">
-                  <span class="font-semibold text-on-surface">Город</span>
-                  <span id="proProfileCitySub" class="text-[11px] text-slate-500">Москва</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-1 text-slate-400 text-xs">
-                <span id="proProfileCityBadge" class="font-semibold text-primary text-[11px]">Изменить</span>
-                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-              </div>
-            </div>
-
-            <div class="h-px bg-slate-100 mx-3"></div>
-
-            <!-- Адрес -->
-            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProFieldModal('address')">
+            <!-- Адрес салона (выбор на интерактивной карте) -->
+            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProAddressPickerModal()">
               <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-primary text-[18px]">location_on</span>
                 <div class="flex flex-col">
-                  <span class="font-semibold text-on-surface">Адрес</span>
-                  <span id="proProfileAddressSub" class="text-[11px] text-slate-500 truncate max-w-[190px]">ул. Большая Садовая, 42</span>
+                  <span class="font-semibold text-on-surface">Адрес салона</span>
+                  <span id="proProfileAddressSub" class="text-[11px] text-slate-400 truncate max-w-[210px]">Не указан (выберите на карте)</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 text-slate-400 text-xs">
-                <span class="font-semibold text-primary text-[11px]">Изменить</span>
+                <span class="font-semibold text-primary text-[11px]">На карте</span>
                 <span class="material-symbols-outlined text-[16px]">chevron_right</span>
               </div>
             </div>
@@ -2428,6 +2411,108 @@
         <span class="material-symbols-outlined text-[18px]">check</span>
         <span>Сохранить закрепленные услуги</span>
       </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PRO SALON ADDRESS PICKER MAP (Выбор адреса на карте) -->
+  <!-- ======================================================== -->
+  <div id="proAddressPickerModal" class="fixed inset-0 z-50 bg-black/60 hidden flex-col select-none animate-in fade-in duration-200">
+    <!-- Map Container Fullscreen -->
+    <div class="relative w-full h-full overflow-hidden bg-[#EAE7F0]">
+      <!-- Yandex Map Mount Point -->
+      <div id="proAddressPickerMap" class="w-full h-full"></div>
+
+      <!-- Top Overlay Bar -->
+      <div class="absolute top-0 left-0 right-0 z-40 p-3 pt-4 bg-gradient-to-b from-black/60 via-black/30 to-transparent flex flex-col gap-2 pointer-events-none">
+        <div class="flex items-center justify-between gap-2 pointer-events-auto">
+          <!-- Left: City Selector Dropdown Button -->
+          <div class="relative">
+            <button type="button" id="proMapCitySelectBtn" onclick="toggleProMapCityDropdown(event)"
+              class="telegram-glass-pill flex items-center gap-1.5 px-3 py-2 rounded-full text-on-surface text-xs font-semibold active:scale-95 transition-all shadow-md bg-white/95 backdrop-blur-xl border border-white">
+              <span id="proMapCityIcon" class="text-[14px] leading-none">🏙️</span>
+              <span id="proMapCityName" class="max-w-[95px] truncate text-[11px] font-bold text-on-surface">Москва</span>
+              <span class="material-symbols-outlined text-[16px] text-slate-500">expand_more</span>
+            </button>
+
+            <!-- Dropdown Menu of Cities -->
+            <div id="proMapCityDropdown"
+              class="hidden absolute left-0 top-11 w-56 max-h-72 overflow-y-auto custom-scrollbar bg-white rounded-2xl p-1.5 shadow-2xl border border-slate-200/90 z-50 flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-150">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Center: Address Search Bar with Autocomplete Suggestions -->
+          <div class="flex-1 relative max-w-[280px]">
+            <div class="flex items-center bg-white/95 backdrop-blur-xl rounded-full px-3 py-1.5 shadow-md border border-white">
+              <span class="material-symbols-outlined text-primary text-[18px] mr-1.5 shrink-0">search</span>
+              <input id="proMapSearchInput" type="text" placeholder="Поиск улицы, дома..."
+                oninput="handleProMapSearchInput(this.value)"
+                class="w-full bg-transparent border-none outline-none text-xs text-on-surface placeholder:text-slate-400 p-0" />
+              <button id="proMapSearchClearBtn" onclick="clearProMapSearch()"
+                class="hidden text-slate-400 hover:text-slate-600 active:scale-90 transition-transform ml-1">
+                <span class="material-symbols-outlined text-[16px]">cancel</span>
+              </button>
+            </div>
+
+            <!-- Autocomplete suggestions dropdown -->
+            <div id="proMapSearchSuggestions"
+              class="hidden absolute left-0 right-0 top-10 bg-white rounded-2xl p-1 shadow-2xl border border-slate-200 z-50 flex-col max-h-56 overflow-y-auto custom-scrollbar">
+              <!-- Dynamic suggestions -->
+            </div>
+          </div>
+
+          <!-- Right: Close Button -->
+          <button type="button" onclick="closeProAddressPickerModal()"
+            class="w-10 h-10 rounded-full bg-white/95 backdrop-blur-xl shadow-md flex items-center justify-center text-slate-700 hover:text-primary active:scale-90 transition-all border border-white shrink-0">
+            <span class="material-symbols-outlined text-[20px] font-bold">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Center Fixed Purple Pin (фиолетовая геометка, зафиксированная по центру) -->
+      <div id="proMapCenterPin" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full z-30 pointer-events-none flex flex-col items-center">
+        <!-- Floating prompt pill over pin -->
+        <div id="proMapPinAddressBadge"
+          class="mb-1.5 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-primary/20 flex items-center gap-1.5 text-xs font-semibold text-on-surface max-w-[260px] truncate animate-in zoom-in-90 duration-150">
+          <span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+          <span id="proMapPinBadgeText" class="truncate">Определяем адрес...</span>
+        </div>
+        <!-- Purple Pin Icon with Drop Shadow & Pulse -->
+        <div class="relative flex items-center justify-center text-primary drop-shadow-[0_8px_16px_rgba(95,58,221,0.45)]">
+          <svg class="w-11 h-11" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+        </div>
+        <!-- Pin point shadow on ground -->
+        <div class="w-3.5 h-1.5 rounded-full bg-black/30 blur-[1px] -mt-1"></div>
+      </div>
+
+      <!-- Bottom Card: Current Address & Confirmation Button -->
+      <div class="absolute bottom-4 left-4 right-4 z-40">
+        <div class="w-full bg-white/95 backdrop-blur-xl rounded-3xl p-4 shadow-[0_16px_40px_rgba(0,0,0,0.2)] border border-white flex flex-col gap-3">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-primary flex items-center justify-center shrink-0 mt-0.5">
+              <span class="material-symbols-outlined text-[22px]">storefront</span>
+            </div>
+            <div class="flex flex-col min-w-0 flex-1">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Выбранный адрес салона</span>
+              <span id="proMapSelectedAddressText" class="font-bold text-sm text-on-surface leading-snug line-clamp-2 mt-0.5">
+                Перемещайте карту для выбора адреса...
+              </span>
+              <span id="proMapSelectedCoordsText" class="text-[10px] text-slate-400 mt-0.5 truncate">
+                Координаты: 55.767500, 37.607800
+              </span>
+            </div>
+          </div>
+
+          <button type="button" id="proMapConfirmAddressBtn" onclick="confirmProMapSelectedAddress()"
+            class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-sm shadow-[0_8px_20px_rgba(95,58,221,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+            <span>Выбрать этот адрес</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
