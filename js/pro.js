@@ -262,41 +262,31 @@ function initProCloudSync() {
     let needSave = false;
     const data = getProSalonData();
 
-    if (urlAdminTag && data.adminTag !== urlAdminTag) {
+    if (urlAdminTag) {
       data.adminTag = urlAdminTag;
       needSave = true;
     }
-    if (urlSalonName && data.name !== urlSalonName) {
+    if (urlSalonName) {
       data.name = urlSalonName;
       needSave = true;
     }
-    // Защита адреса: если в localStorage уже сохранен актуальный адрес,
-    // а из URL пришел пустой адрес или тот же самый, не перезаписываем его старыми данными.
-    if (urlAddress && urlAddress.trim() && (!data.address || data.address === 'Не указан')) {
+    if (urlAddress) {
       data.address = urlAddress;
       needSave = true;
-    } else if (urlAddress && urlAddress.trim() && data.address !== urlAddress) {
-      // Если адрес в URL явно отличается, проверяем: возможно пользователь только что обновил адрес локально
-      // Если в CloudStorage / localStorage есть свежий адрес, сохраняем его
-      if (!data.address) {
-        data.address = urlAddress;
-        needSave = true;
-      }
     }
-
-    if (urlPhone && data.phone !== urlPhone) {
+    if (urlPhone) {
       data.phone = urlPhone;
       needSave = true;
     }
-    if (urlCity && data.city !== urlCity) {
+    if (urlCity) {
       data.city = urlCity;
       needSave = true;
     }
-    if (urlLat && (!data.latitude || Math.abs(Number(data.latitude) - Number(urlLat)) > 0.0001)) {
+    if (urlLat) {
       data.latitude = parseFloat(urlLat);
       needSave = true;
     }
-    if (urlLon && (!data.longitude || Math.abs(Number(data.longitude) - Number(urlLon)) > 0.0001)) {
+    if (urlLon) {
       data.longitude = parseFloat(urlLon);
       needSave = true;
     }
@@ -386,6 +376,7 @@ function initProCloudSync() {
   } catch (e) { }
 
   // 2. Синхронизация из CloudStorage Telegram с аккуратным слиянием
+  // Важно: если в URL пришли актуальные данные из БД PostgreSQL, они ВСЕГДА главнее устаревшего CloudStorage
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.getItems) {
       window.Telegram.WebApp.CloudStorage.getItems([PRO_DATA_STORAGE_KEY, PRO_APPOINTMENTS_STORAGE_KEY], (err, values) => {
@@ -396,15 +387,15 @@ function initProCloudSync() {
               const cloudSalon = JSON.parse(values[PRO_DATA_STORAGE_KEY]);
               if (cloudSalon && typeof cloudSalon === 'object') {
                 const currentData = getProSalonData();
-                const merged = Object.assign({}, currentData, cloudSalon);
-                // Сохраняем значения
+                // Заполняем только недостающие поля из Cloud, не затирая БД значения
+                const merged = Object.assign({}, cloudSalon, currentData);
                 if (urlAdminTag) merged.adminTag = urlAdminTag;
                 if (urlSalonName) merged.name = urlSalonName;
-                if (urlAddress && (!merged.address || merged.address === 'Не указан')) merged.address = urlAddress;
-                if (urlPhone && !merged.phone) merged.phone = urlPhone;
-                if (urlCity && !merged.city) merged.city = urlCity;
-                if (urlLat && !merged.latitude) merged.latitude = parseFloat(urlLat);
-                if (urlLon && !merged.longitude) merged.longitude = parseFloat(urlLon);
+                if (urlAddress) merged.address = urlAddress;
+                if (urlPhone) merged.phone = urlPhone;
+                if (urlCity) merged.city = urlCity;
+                if (urlLat) merged.latitude = parseFloat(urlLat);
+                if (urlLon) merged.longitude = parseFloat(urlLon);
 
                 localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
                 updated = true;
