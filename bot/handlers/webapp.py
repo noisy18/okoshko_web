@@ -4,7 +4,6 @@ from aiogram import F, Router
 from aiogram.types import Message
 
 from bot.database import create_booking, get_or_create_user
-from bot.keyboards import get_inline_keyboard
 from bot.handlers.user import get_user_app_url
 
 logger = logging.getLogger(__name__)
@@ -71,7 +70,6 @@ async def handle_web_app_data(message: Message):
             user_pro_url = await get_user_app_url(message.from_user.id if message.from_user else None, is_pro_entry=True)
             await message.answer(
                 text=response,
-                reply_markup=get_inline_keyboard(user_app_url, pro_app_url=user_pro_url),
             )
             return
 
@@ -122,11 +120,8 @@ async def handle_web_app_data(message: Message):
                 f"💬 <b>Отзыв:</b> «{text}»\n\n"
                 f"Ваша обратная связь помогает мастерам становиться лучше, а другим клиентам — выбирать лучших!"
             )
-            user_app_url = await get_user_app_url(message.from_user.id if message.from_user else None)
-            user_pro_url = await get_user_app_url(message.from_user.id if message.from_user else None, is_pro_entry=True)
             await message.answer(
                 text=response,
-                reply_markup=get_inline_keyboard(user_app_url, pro_app_url=user_pro_url),
             )
             return
 
@@ -204,11 +199,8 @@ async def handle_web_app_data(message: Message):
                 f"📞 <b>Контакт:</b> {contact}\n\n"
                 f"Менеджер Okoshko уже получил вашу заявку и свяжется с вами в Telegram в ближайшее время для подтверждения данных."
             )
-            user_app_url = await get_user_app_url(message.from_user.id if message.from_user else None)
-            user_pro_url = await get_user_app_url(message.from_user.id if message.from_user else None, is_pro_entry=True)
             await message.answer(
                 text=user_response,
-                reply_markup=get_inline_keyboard(user_app_url, pro_app_url=user_pro_url),
             )
             return
 
@@ -243,7 +235,6 @@ async def handle_web_app_data(message: Message):
                     # 3. По явному target_salon_id
                     # 4. Лишь при их отсутствии — салон по умолчанию (ID 1)
                     salon = None
-                    # Сначала личный салон пользователя
                     owner_res = await session.execute(
                         select(Salon).where((Salon.owner_id == user_id) | (Salon.admin_id == user_id))
                     )
@@ -301,7 +292,7 @@ async def handle_web_app_data(message: Message):
                         await session.commit()
                         logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', адрес '{salon.address}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id}")
 
-                        # Обновляем кнопку меню чата и клавиатуру для пользователя со свежими параметрами салона
+                        # Обновляем кнопку меню чата для пользователя со свежими параметрами салона
                         try:
                             fresh_url = await get_user_app_url(user_id)
                             from aiogram.types import MenuButtonWebApp, WebAppInfo
@@ -312,16 +303,12 @@ async def handle_web_app_data(message: Message):
                                     web_app=WebAppInfo(url=fresh_url),
                                 ),
                             )
-                            # Также обновляем Reply-кнопки внизу чата
-                            from bot.keyboards import get_reply_keyboard
-                            fresh_pro_url = await get_user_app_url(user_id, is_pro_entry=True)
                             await message.bot.send_message(
                                 chat_id=user_id,
                                 text="✅ Данные салона успешно обновлены и синхронизированы!",
-                                reply_markup=get_reply_keyboard(fresh_url, pro_app_url=fresh_pro_url),
                             )
                         except Exception as m_err:
-                            logger.warning(f"Не удалось обновить MenuButton/клавиатуру для {user_id}: {m_err}")
+                            logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
                 return
         elif data.get("action") == "user_phone_updated":
             from bot.database import User
@@ -347,7 +334,6 @@ async def handle_web_app_data(message: Message):
     user_pro_url = await get_user_app_url(message.from_user.id if message.from_user else None, is_pro_entry=True)
     await message.answer(
         f"✅ Данные из приложения получены:\n<code>{raw_data}</code>",
-        reply_markup=get_inline_keyboard(user_app_url, pro_app_url=user_pro_url),
     )
 
 
@@ -440,7 +426,7 @@ async def handle_direct_json_data(message: Message):
                     await session.commit()
                     logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}', адрес '{salon.address}', телефон '{salon.phone}') успешно обновлены в БД для пользователя {user_id} через прямой канал")
 
-                    # Обновляем кнопку меню чата и клавиатуру для пользователя со свежими параметрами салона
+                    # Обновляем кнопку меню чата для пользователя со свежими параметрами салона
                     try:
                         fresh_url = await get_user_app_url(user_id)
                         from aiogram.types import MenuButtonWebApp, WebAppInfo
@@ -451,16 +437,12 @@ async def handle_direct_json_data(message: Message):
                                 web_app=WebAppInfo(url=fresh_url),
                             ),
                         )
-                        # Также обновляем Reply-кнопки внизу чата
-                        from bot.keyboards import get_reply_keyboard
-                        fresh_pro_url = await get_user_app_url(user_id, is_pro_entry=True)
                         await message.bot.send_message(
                             chat_id=user_id,
                             text="✅ Данные салона успешно обновлены и синхронизированы!",
-                            reply_markup=get_reply_keyboard(fresh_url, pro_app_url=fresh_pro_url),
                         )
                     except Exception as m_err:
-                        logger.warning(f"Не удалось обновить MenuButton/клавиатуру для {user_id}: {m_err}")
+                        logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
         
         elif data.get("action") == "user_phone_updated" and user_id:
             from bot.database import User

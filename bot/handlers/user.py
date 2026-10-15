@@ -12,8 +12,6 @@ from bot.database import (
     bind_user_as_master,
 )
 from bot.keyboards import (
-    get_inline_keyboard,
-    get_reply_keyboard,
     get_admin_invite_keyboard,
     get_master_invite_keyboard,
     get_role_choice_keyboard,
@@ -156,7 +154,6 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandObje
             )
             return
 
-    # Обычное приветственное сообщение для клиентов
     welcome_text = (
         f"Привет, <b>{user_name}</b>! 👋✨\n\n"
         f"Добро пожаловать в <b>«Окошко»</b> — сервис быстрой записи "
@@ -165,20 +162,13 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandObje
         f"✨ <b>Топ-мастера:</b> реальные портфолио, отзывы и прайс-листы\n"
         f"💅 <b>Запись в 2 клика:</b> без звонков, ожидания и переписок\n"
         f"👤 <b>Telegram-профиль:</b> ваши данные автоматически синхронизированы\n\n"
-        f"👇 Нажмите <b>«Открыть Окошко»</b>, чтобы выбрать услугу и время:"
+        f"💅 Открывайте сервис в любой момент через синюю кнопку <b>«Меню»</b> внизу экрана слева!"
     )
 
-    user_tg_id = message.from_user.id if message.from_user else None
-    pro_app_url = await get_user_app_url(user_tg_id, is_pro_entry=True)
-
+    from aiogram.types import ReplyKeyboardRemove
     await message.answer(
         text=welcome_text,
-        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
-    )
-
-    await message.answer(
-        text="💡 Вы также можете открыть сервис в любой момент кнопкой внизу чата ⬇️",
-        reply_markup=get_reply_keyboard(app_url, pro_app_url=pro_app_url),
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 
@@ -317,19 +307,14 @@ async def handle_help(message: Message):
     )
     await message.answer(
         text=help_text,
-        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
 @user_router.message(Command("app"))
 async def handle_app_command(message: Message):
     """Быстрый запуск Mini App."""
-    user_id = message.from_user.id if message.from_user else None
-    app_url = await get_user_app_url(user_id)
-    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     await message.answer(
-        text="💅 Запустите приложение <b>«Окошко»</b> по кнопке ниже:",
-        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
+        text="💅 Вы можете открыть приложение <b>«Окошко»</b> в любой момент через синюю кнопку <b>«Меню»</b> внизу экрана слева!",
     )
 
 
@@ -337,9 +322,6 @@ async def handle_app_command(message: Message):
 @user_router.message(F.text == "ℹ️ О сервисе")
 async def handle_about(event: Message | CallbackQuery):
     """Информация о сервисе «Окошко»."""
-    user_id = event.from_user.id if event.from_user else None
-    app_url = await get_user_app_url(user_id)
-    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     about_text = (
         "✨ <b>О сервисе «Окошко»</b>\n\n"
         "«Окошко» создано для того, чтобы поиск бьюти-мастера был лёгким, "
@@ -356,24 +338,15 @@ async def handle_about(event: Message | CallbackQuery):
 
     if isinstance(event, CallbackQuery):
         await event.answer()
-        await event.message.answer(
-            text=about_text,
-            reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
-        )
+        await event.message.answer(text=about_text)
     else:
-        await event.answer(
-            text=about_text,
-            reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
-        )
+        await event.answer(text=about_text)
 
 
 @user_router.callback_query(F.data == "my_bookings")
 async def handle_my_bookings(callback: CallbackQuery):
     """Переход в раздел записей."""
     await callback.answer()
-    user_id = callback.from_user.id if callback.from_user else None
-    app_url = await get_user_app_url(user_id)
-    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     text = (
         "📅 <b>Управление вашими записями</b>\n\n"
         "Все активные и прошедшие визиты хранятся во вкладке <b>«Записи»</b> "
@@ -382,12 +355,9 @@ async def handle_my_bookings(callback: CallbackQuery):
         "• Посмотреть точный адрес и построить маршрут на Яндекс.Картах\n"
         "• Перенести запись на другое свободное время\n"
         "• Отменить визит или связаться с мастером в Telegram\n\n"
-        "Откройте приложение, чтобы просмотреть записи 👇"
+        "Откройте приложение через кнопку меню внизу слева, чтобы просмотреть записи!"
     )
-    await callback.message.answer(
-        text=text,
-        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
-    )
+    await callback.message.answer(text=text)
 
 
 @user_router.callback_query(F.data.startswith("confirm_bind_admin:"))
@@ -441,9 +411,8 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
                     f"🎉 <b>Администратор успешно привязан!</b>\n\n"
                     f"🏢 Салон: <b>{salon_name}</b>\n"
                     f"👤 Администратор: <b>{admin_mention}</b> (ID: <code>{user.id}</code>)\n\n"
-                    f"Ваш профиль салона синхронизирован. Нажмите кнопку ниже для перехода в бизнес-кабинет 👇"
+                    f"Ваш профиль салона синхронизирован. Вы можете открыть бизнес-кабинет через синюю кнопку меню внизу слева."
                 ),
-                reply_markup=get_inline_keyboard(owner_app_url, pro_app_url=owner_pro_url),
             )
         except Exception as e:
             logger.warning(f"Не удалось отправить уведомление владельцу салона {salon.owner_id}: {e}")
@@ -457,12 +426,11 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
         f"• Кабинет управления салоном и записями клиентов\n"
         f"• Настройка услуг, прайса и графиков работы мастеров\n"
         f"• Оповещения обо всех бронированиях в режиме реального времени\n\n"
-        f"Нажмите кнопку ниже, чтобы открыть кабинет управления 👇"
+        f"Открывайте сервис в любой момент через синюю кнопку <b>«Меню»</b> внизу экрана слева!"
     )
 
     await callback.message.edit_text(
         text=success_text,
-        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
@@ -529,7 +497,6 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
                     f"💇 Мастер: <b>{master_name}</b> ({m_mention}, ID: <code>{user.id}</code>)\n"
                     f"Специализация: <i>{master.role_title if master else 'Специалист'}</i>"
                 ),
-                reply_markup=get_inline_keyboard(owner_app_url, pro_app_url=owner_pro_url),
             )
         except Exception as e:
             logger.warning(f"Не удалось уведомить владельца салона: {e}")
@@ -969,12 +936,11 @@ async def handle_master_setup_done(callback: CallbackQuery):
         f"⏳ <b>Опыт:</b> {experience}\n"
         f"💅 <b>Активных услуг:</b> {services_count or 'Все услуги салона'}\n\n"
         f"Теперь клиенты могут записываться к вам через онлайн-расписание, а вам будут приходить мгновенные уведомления о бронированиях в этот чат!\n\n"
-        f"Нажмите кнопку ниже, чтобы открыть кабинет 👇"
+        f"Открывайте сервис в любой момент через синюю кнопку <b>«Меню»</b> внизу экрана слева!"
     )
 
     await callback.message.edit_text(
         text=done_text,
-        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
 
@@ -982,15 +948,11 @@ async def handle_master_setup_done(callback: CallbackQuery):
 async def handle_cancel_bind(callback: CallbackQuery):
     """Отклонение приглашения."""
     await callback.answer("Приглашение отклонено")
-    user_id = callback.from_user.id if callback.from_user else None
-    app_url = await get_user_app_url(user_id)
-    pro_app_url = await get_user_app_url(user_id, is_pro_entry=True)
     text = (
         "👌 Вы отклонили приглашение.\n\n"
         "Вы по-прежнему можете пользоваться сервисом «Окошко» для поиска и записи к лучшим мастерам города!"
     )
     await callback.message.edit_text(
         text=text,
-        reply_markup=get_inline_keyboard(app_url, pro_app_url=pro_app_url),
     )
 
