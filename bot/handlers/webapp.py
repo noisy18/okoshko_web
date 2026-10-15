@@ -220,6 +220,7 @@ async def handle_web_app_data(message: Message):
             user_id = message.from_user.id if message.from_user else None
 
             if user_id:
+                from bot.database.requests import transliterate_to_latin
                 async with async_session_maker() as session:
                     # Ищем салон по owner_id или по первому салону
                     res = await session.execute(
@@ -229,6 +230,15 @@ async def handle_web_app_data(message: Message):
                     if salon:
                         salon.owner_id = user_id
                         salon.name = s_name
+                        # Обновляем slug на основе транслитерации нового названия
+                        new_slug = transliterate_to_latin(s_name)
+                        if new_slug:
+                            # Проверяем уникальность slug перед обновлением
+                            slug_check = await session.execute(
+                                select(Salon).where((Salon.slug == new_slug) & (Salon.id != salon.id))
+                            )
+                            if not slug_check.scalar_one_or_none():
+                                salon.slug = new_slug
                         if s_addr: salon.address = s_addr
                         if s_city: salon.region_name = s_city
                         if s_avatar: salon.logo_url = s_avatar
@@ -243,7 +253,7 @@ async def handle_web_app_data(message: Message):
                             user.salon_id = salon.id
 
                         await session.commit()
-                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}) успешно обновлены в БД для владельца {user_id}")
+                        logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}') успешно обновлены в БД для владельца {user_id}")
             return
 
     except Exception as e:
@@ -253,3 +263,64 @@ async def handle_web_app_data(message: Message):
         f"✅ Данные из приложения получены:\n<code>{raw_data}</code>",
         reply_markup=get_inline_keyboard(),
     )
+
+
+@webapp_router.message(F.text.startswith('{"action":'))
+async def handle_direct_json_data(message: Message):
+    """
+    Обработка данных, если WebApp отправляет обновление профиля салона
+    напрямую через Telegram Bot API sendMessage при открытии не из inline-кнопки
+    """
+    raw_data = message.text
+    user_id = message.from_user.id if message.from_user else None
+    logger.info(f"Получены прямые JSON данные от {user_id}: {raw_data}")
+
+    try:
+        data = json.loads(raw_data)
+        if data.get("action") == "pro_salon_updated" and user_id:
+            from bot.database import Salon, User
+            from bot.database.base import async_session_maker
+            from bot.database.requests import transliterate_to_latin
+            from sqlalchemy import select
+
+            s_name = data.get("salon_name", "Beauty Studio")
+            s_addr = data.get("address")
+            s_phone = data.get("phone")
+            s_city = data.get("city")
+            s_avatar = data.get("avatar_url")
+            s_cover = data.get("cover_url")
+            s_admin_tag = data.get("admin_tag")
+
+            async with async_session_maker() as session:
+                res = await session.execute(
+                    select(Salon).where((Salon.owner_id == user_id) | (Salon.id == 1))
+                )
+                salon = res.scalars().first()
+                if salon:
+                    salon.owner_id = user_id
+                    salon.name = s_name
+                    new_slug = transliterate_to_latin(s_name)
+                    if new_slug:
+                        slug_check = await session.execute(
+                            select(Salon).where((Salon.slug == new_slug) & (Salon.id != salon.id))
+                        )
+                        if not slug_check.scalar_one_or_none():
+                            salon.slug = new_slug
+                    if s_addr: salon.address = s_addr
+                    if s_city: salon.region_name = s_city
+                    if s_avatar: salon.logo_url = s_avatar
+                    if s_cover: salon.cover_image_url = s_cover
+                    if s_admin_tag: salon.admin_tag = s_admin_tag
+
+                    u_res = await session.execute(select(User).where(User.telegram_id == user_id))
+                    user = u_res.scalar_one_or_none()
+                    if user:
+                        user.is_pro = True
+                        user.salon_id = salon.id
+
+                    await session.commit()
+                    logger.info(f"Данные салона '{s_name}' (ID {salon.id}, slug '{salon.slug}') успешно обновлены в БД для владельца {user_id} через прямой канал")
+            return
+    except Exception as e:
+        logger.error(f"Ошибка обработки прямого JSON: {e}")
+

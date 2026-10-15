@@ -102,7 +102,7 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandObje
             )
             await message.answer(
                 text=invite_text,
-                reply_markup=get_role_choice_keyboard(salon_id),
+                reply_markup=get_admin_invite_keyboard(salon_id),
             )
             return
 
@@ -129,7 +129,7 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandObje
             )
             await message.answer(
                 text=invite_text,
-                reply_markup=get_role_choice_keyboard(salon_id, master_hint),
+                reply_markup=get_master_invite_keyboard(salon_id, master_hint),
             )
             return
 

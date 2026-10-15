@@ -165,20 +165,40 @@ function saveProSalonData(data) {
     }
   } catch (e) { }
 
-  // Send update to Telegram bot backend if available
+  // Send update to Telegram bot backend (supports both sendData and direct Bot API for desktop/mobile clients)
+  const updatePayload = {
+    action: 'pro_salon_updated',
+    salon_name: data.name,
+    address: data.address,
+    phone: data.phone,
+    city: data.city,
+    avatar_url: data.avatarUrl,
+    cover_url: data.coverUrl,
+    admin_tag: data.adminTag,
+    creator_tag: data.creatorTag
+  };
+
   try {
     if (window.Telegram?.WebApp?.sendData) {
-      window.Telegram.WebApp.sendData(JSON.stringify({
-        action: 'pro_salon_updated',
-        salon_name: data.name,
-        address: data.address,
-        phone: data.phone,
-        city: data.city,
-        avatar_url: data.avatarUrl,
-        cover_url: data.coverUrl,
-        admin_tag: data.adminTag,
-        creator_tag: data.creatorTag
-      }));
+      window.Telegram.WebApp.sendData(JSON.stringify(updatePayload));
+    }
+  } catch (e) {
+    console.log('sendData not available or ignored by client:', e);
+  }
+
+  // Backup sync via Bot API for Telegram Desktop and Mobile when opened via MenuButton or direct URL
+  try {
+    const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+    const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+    if (userTgId && botToken) {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: userTgId,
+          text: JSON.stringify(updatePayload)
+        })
+      }).catch(err => console.warn('Direct Bot API sync error:', err));
     }
   } catch (e) { }
 
@@ -424,12 +444,28 @@ function handleProCitySelected(cityKey, cityName) {
   isProCitySelection = false;
 }
 
+function cyrillicToLatin(text) {
+  if (!text) return 'salon';
+  const map = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+    'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+    'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+    'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
+    'я': 'ya'
+  };
+  return text.toLowerCase().split('').map(ch => map[ch] !== undefined ? map[ch] : ch)
+    .join('')
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'salon';
+}
+
 // ------------------------------------------
 // ADMIN INVITE LINK HANDLERS
 // ------------------------------------------
 function getAdminInviteLink() {
   const data = getProSalonData();
-  const salonSlug = encodeURIComponent((data.name || 'salon').toLowerCase().replace(/\s+/g, '-'));
+  const salonSlug = cyrillicToLatin(data.name || 'salon');
   // Point to https://t.me/okooshko_bot
   return `${BOT_LINK}?start=bind_admin_${salonSlug}`;
 }
@@ -908,8 +944,9 @@ function closeProMastersModal() {
 
 function getMasterInviteLink(masterName = '') {
   const data = getProSalonData();
-  const salonSlug = encodeURIComponent((data.name || 'salon').toLowerCase().replace(/\s+/g, '-'));
-  return `${BOT_LINK}?start=bind_master_${salonSlug}_${encodeURIComponent(masterName || 'spec')}`;
+  const salonSlug = cyrillicToLatin(data.name || 'salon');
+  const masterSlug = cyrillicToLatin(masterName || 'spec');
+  return `${BOT_LINK}?start=bind_master_${salonSlug}_${masterSlug}`;
 }
 
 function sendMasterInviteLink(masterName = '') {

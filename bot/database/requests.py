@@ -207,8 +207,30 @@ async def create_business_application(
         return app
 
 
+def transliterate_to_latin(text: str) -> str:
+    """Транслитерация кириллицы в латиницу для slug ссылок Telegram"""
+    char_map = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+        'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+        'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+        'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
+        'я': 'ya'
+    }
+    result = []
+    for ch in text.lower():
+        if ch in char_map:
+            result.append(char_map[ch])
+        elif ch.isalnum() or ch in ('-', '_'):
+            result.append(ch)
+        elif ch.isspace():
+            result.append('-')
+    cleaned = ''.join(result)
+    import re
+    return re.sub(r'-+', '-', cleaned).strip('-_')
+
+
 async def get_salon_by_slug_or_name(slug_or_name: str, owner_id: Optional[int] = None) -> Optional[Salon]:
-    """Поиск салона по slug, названию или владельцу (регистронезависимо)"""
+    """Поиск салона по slug, названию, владельцу или транслитерированному slug"""
     async with async_session_maker() as session:
         clean_slug = slug_or_name.strip().lower()
 
@@ -219,7 +241,7 @@ async def get_salon_by_slug_or_name(slug_or_name: str, owner_id: Optional[int] =
             if salon:
                 return salon
 
-        # 2. Ищем по slug или имени
+        # 2. Ищем по точному совпадению или подстроке в slug или имени
         res = await session.execute(
             select(Salon).where(
                 (Salon.slug == clean_slug) |
@@ -235,7 +257,17 @@ async def get_salon_by_slug_or_name(slug_or_name: str, owner_id: Optional[int] =
             )
             salon = res.scalars().first()
 
-        # 3. Если салон все еще не найден, проверим первый главный салон (Beauty Studio)
+        # 3. Ищем по совпадению транслитерированного имени всех салонов
+        if not salon:
+            all_salons_res = await session.execute(select(Salon))
+            all_salons = all_salons_res.scalars().all()
+            for s in all_salons:
+                translit_name = transliterate_to_latin(s.name)
+                translit_slug = transliterate_to_latin(s.slug)
+                if clean_slug in (translit_name, translit_slug) or translit_name in clean_slug:
+                    return s
+
+        # 4. Если салон все еще не найден, проверим первый главный салон (Beauty Studio)
         if not salon:
             res = await session.execute(select(Salon).order_by(Salon.id.asc()))
             salon = res.scalars().first()
