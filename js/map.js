@@ -626,28 +626,24 @@
     // Dynamic rendering of Screen 3: Master Profile
     function renderMasterDetails(masterId) {
       const masterInfo = getMasterById(masterId) || {
-        id: 'master_beauty_alina',
-        name: 'Алина Романова',
-        role_title: 'Топ-мастер аппаратного маникюра',
-        grade_badge: 'PRO TOP',
+        id: 'master_1',
+        name: 'Мастер',
+        role_title: 'Специалист салона',
+        grade_badge: 'PRO',
         rating: '5.0',
-        reviews_count: 156,
-        experience: '5 лет',
+        reviews_count: 0,
+        experience: '3 года',
         retention_rate: '98%',
-        bio: 'Создаю эстетику на ваших руках. Стерильный инструмент по СанПиН в крафт-пакетах (вскрываю при вас), премиальные гели Luxio.',
-        avatar_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDk4gw1UO5MRK6ZgCmtBhgbzfykfvdMi22HxmB42TFZv43Ycfx-fGIgpdWlkDauw_wwkEdituuObvw2bYr3OWyoV7Rqd3KFJr3g1SQM8vQ9ejRqbfexejYKE6z1IcUAVFuonjPm6mZI6Wyfi3KUqpeR2pHxtJfueeBJ_aDmYd4TtueiDxgWXzAv7kB7okWv6LGjfOYzg5WbMcK7hUcST54m7JMjCxVmk0kjDtDoRw',
-        slots: ['14:00', '16:30', '18:30'],
-        salonId: 'beauty',
-        salonName: 'Beauty Studio',
-        salonAddress: 'ул. Большая Садовая, 42 • м. Маяковская',
-        services: [
-          { id: 'ms1', name: 'Аппаратный маникюр + Luxio', desc: 'Снятие, выравнивание, покрытие • 90 мин', price: 2500, duration: 90 },
-          { id: 'ms2', name: 'Smart-педикюр полный', desc: 'Обработка стоп, пальцев + гель • 75 мин', price: 2800, duration: 75 },
-          { id: 'ms3', name: 'Ремонт / Дизайн френч', desc: 'Укрепление акрилом или пудрой • 20 мин', price: 400, duration: 20 }
-        ]
+        bio: '',
+        avatar_url: '',
+        slots: ['12:00', '14:00', '16:00'],
+        salonId: 'salon_1',
+        salonName: 'Салон красоты',
+        salonAddress: '',
+        services: []
       };
 
-      state.activeMasterSalonId = masterInfo.salonId || state.activeSalon || 'beauty';
+      state.activeMasterSalonId = masterInfo.salonId || state.activeSalon || 'salon_1';
 
       // 1. Master Profile Header
       const avImg = document.getElementById('masterAvatarImg');

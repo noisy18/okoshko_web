@@ -296,6 +296,8 @@ async def bind_user_as_admin(
         salon_res = await session.execute(select(Salon).where(Salon.id == salon_id))
         salon = salon_res.scalar_one_or_none()
         if not salon:
+            salon = (await session.execute(select(Salon).where(Salon.id == 1))).scalar_one_or_none()
+        if not salon:
             return None
 
         admin_handle = f"@{username}" if username else (first_name or "Администратор")
@@ -334,6 +336,91 @@ async def bind_user_as_admin(
         return salon
 
 
+async def sync_salon_masters(session, salon_id: int, masters_data: list) -> None:
+    """Синхронизирует список мастеров салона из Mini App с базой данных PostgreSQL"""
+    if not isinstance(masters_data, list):
+        return
+
+    cur_masters_res = await session.execute(select(Master).where(Master.salon_id == salon_id))
+    cur_masters = list(cur_masters_res.scalars().all())
+    cur_masters_map = {m.id: m for m in cur_masters}
+    kept_db_ids = set()
+
+    for m_item in masters_data:
+        if not isinstance(m_item, dict):
+            continue
+        m_name = (m_item.get("name") or "").strip()
+        if not m_name:
+            continue
+
+        m_id_raw = m_item.get("id")
+        db_m = None
+        if isinstance(m_id_raw, int):
+            db_m = cur_masters_map.get(m_id_raw)
+        elif isinstance(m_id_raw, str) and m_id_raw.startswith("db_master_"):
+            try:
+                db_id = int(m_id_raw.replace("db_master_", ""))
+                db_m = cur_masters_map.get(db_id)
+            except ValueError:
+                pass
+
+        if not db_m:
+            m_name_low = m_name.lower()
+            m_last_low = (m_item.get("lastName") or "").strip().lower()
+            for existing in cur_masters:
+                if existing.id not in kept_db_ids:
+                    ex_name = (existing.name or "").strip().lower()
+                    ex_last = (existing.last_name or "").strip().lower()
+                    if ex_name == m_name_low and (not m_last_low or ex_last == m_last_low):
+                        db_m = existing
+                        break
+
+        m_lastname = (m_item.get("lastName") or "").strip()
+        m_role = (m_item.get("role_title") or m_item.get("role") or "Специалист салона").strip()
+        m_exp = (m_item.get("experience") or "3 года").strip()
+        m_avatar = m_item.get("avatar_url") or ""
+        m_handle = m_item.get("telegram_handle") or None
+        m_tg_id = m_item.get("telegram_id")
+
+        # Не сохраняем огромные base64 в БД
+        safe_avatar = m_avatar if not m_avatar.startswith("data:image") else ""
+
+        if db_m:
+            db_m.name = m_name
+            db_m.last_name = m_lastname
+            db_m.role_title = m_role
+            db_m.experience = m_exp
+            if safe_avatar:
+                db_m.avatar_url = safe_avatar
+            if m_handle:
+                db_m.telegram_handle = m_handle
+            if m_tg_id:
+                try:
+                    db_m.telegram_id = int(m_tg_id)
+                except (ValueError, TypeError):
+                    pass
+            kept_db_ids.add(db_m.id)
+        else:
+            new_m = Master(
+                salon_id=salon_id,
+                name=m_name,
+                last_name=m_lastname,
+                role_title=m_role,
+                experience=m_exp,
+                avatar_url=safe_avatar or "",
+                telegram_handle=m_handle,
+                telegram_id=int(m_tg_id) if m_tg_id else None,
+            )
+            session.add(new_m)
+            await session.flush()
+            kept_db_ids.add(new_m.id)
+
+    # Удаляем неиспользуемые карточки, которые не привязаны к реальному Telegram
+    for existing in cur_masters:
+        if existing.id not in kept_db_ids and not existing.telegram_id:
+            await session.delete(existing)
+
+
 async def bind_user_as_master(
     telegram_id: int,
     salon_id: int,
@@ -347,6 +434,8 @@ async def bind_user_as_master(
     async with async_session_maker() as session:
         salon_res = await session.execute(select(Salon).where(Salon.id == salon_id))
         salon = salon_res.scalar_one_or_none()
+        if not salon:
+            salon = (await session.execute(select(Salon).where(Salon.id == 1))).scalar_one_or_none()
         if not salon:
             return None, None
 
@@ -388,7 +477,7 @@ async def bind_user_as_master(
             tg_handle = f"@{username}" if username else None
             m_name = first_name or (master_hint_name if master_hint_name and master_hint_name not in ("spec", "master") else "Мастер")
             m_lastname = last_name or ""
-            default_avatar = avatar_url or "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80"
+            default_avatar = avatar_url or ""
 
             if master:
                 # Привязываем свободную карточку мастера к Telegram пользователя

@@ -12,6 +12,7 @@ from bot.database.requests import (
     get_salon_by_slug_or_name,
     bind_user_as_admin,
     bind_user_as_master,
+    sync_salon_masters,
 )
 
 __all__ = [

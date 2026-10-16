@@ -265,6 +265,8 @@ async def handle_web_app_data(message: Message):
                             )
                             if not slug_check.scalar_one_or_none():
                                 salon.slug = new_slug
+                        s_lat = data.get("latitude")
+                        s_lon = data.get("longitude")
                         if s_addr is not None: salon.address = s_addr
                         if s_city is not None: salon.region_name = s_city
                         if s_phone is not None: salon.phone = s_phone
@@ -274,6 +276,7 @@ async def handle_web_app_data(message: Message):
                             salon.admin_tag = s_admin_tag
                             if not s_admin_tag:
                                 salon.admin_id = None
+                        if s_lat is not None:
                             try:
                                 salon.latitude = float(s_lat)
                             except (ValueError, TypeError):
@@ -283,6 +286,17 @@ async def handle_web_app_data(message: Message):
                                 salon.longitude = float(s_lon)
                             except (ValueError, TypeError):
                                 pass
+
+                        # Синхронизация услуг салона в БД
+                        s_services = data.get("services")
+                        if s_services is not None and isinstance(s_services, list):
+                            salon.services_json = json.dumps(s_services, ensure_ascii=False)
+
+                        # Синхронизация мастеров салона в БД
+                        s_masters = data.get("masters")
+                        if s_masters is not None and isinstance(s_masters, list):
+                            from bot.database import sync_salon_masters
+                            await sync_salon_masters(session, salon.id, s_masters)
 
                         # Также обновляем пользователя как владельца/PRO
                         if user:
@@ -305,6 +319,15 @@ async def handle_web_app_data(message: Message):
                                     web_app=WebAppInfo(url=fresh_url),
                                 ),
                             )
+                            if salon.owner_id and salon.owner_id != user_id:
+                                owner_fresh_url = await get_user_app_url(salon.owner_id)
+                                await message.bot.set_chat_menu_button(
+                                    chat_id=salon.owner_id,
+                                    menu_button=MenuButtonWebApp(
+                                        text="💅 Окошко",
+                                        web_app=WebAppInfo(url=owner_fresh_url),
+                                    ),
+                                )
                             await message.bot.send_message(
                                 chat_id=user_id,
                                 text=f"✅ Данные салона «{s_name}» успешно сохранены в базе данных!\n📍 Адрес: {salon.address or 'не указан'}\n📞 Телефон: {salon.phone or 'не указан'}",
@@ -422,6 +445,17 @@ async def handle_direct_json_data(message: Message):
                         if not s_admin_tag:
                             salon.admin_id = None
 
+                    # Синхронизация услуг салона в БД
+                    s_services = data.get("services")
+                    if s_services is not None and isinstance(s_services, list):
+                        salon.services_json = json.dumps(s_services, ensure_ascii=False)
+
+                    # Синхронизация мастеров салона в БД
+                    s_masters = data.get("masters")
+                    if s_masters is not None and isinstance(s_masters, list):
+                        from bot.database import sync_salon_masters
+                        await sync_salon_masters(session, salon.id, s_masters)
+
                     if user:
                         user.is_pro = True
                         user.salon_id = salon.id
@@ -442,6 +476,15 @@ async def handle_direct_json_data(message: Message):
                                 web_app=WebAppInfo(url=fresh_url),
                             ),
                         )
+                        if salon.owner_id and salon.owner_id != user_id:
+                            owner_fresh_url = await get_user_app_url(salon.owner_id)
+                            await message.bot.set_chat_menu_button(
+                                chat_id=salon.owner_id,
+                                menu_button=MenuButtonWebApp(
+                                    text="💅 Окошко",
+                                    web_app=WebAppInfo(url=owner_fresh_url),
+                                ),
+                            )
                         await message.bot.send_message(
                             chat_id=user_id,
                             text=f"✅ Данные салона «{s_name}» успешно сохранены в базе данных!\n📍 Адрес: {salon.address or 'не указан'}\n📞 Телефон: {salon.phone or 'не указан'}",

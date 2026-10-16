@@ -56,6 +56,22 @@ async def main():
     except Exception as e:
         logger.warning(f"Не удалось настроить глобальную MenuButton: {e}")
 
+    # Персонально настраиваем кнопку меню для владельца салона со свежими данными из PostgreSQL
+    try:
+        from bot.handlers.user import get_user_app_url
+        owner_id = 1205557089
+        owner_url = await get_user_app_url(owner_id)
+        await bot.set_chat_menu_button(
+            chat_id=owner_id,
+            menu_button=MenuButtonWebApp(
+                text="💅 Окошко",
+                web_app=WebAppInfo(url=owner_url),
+            ),
+        )
+        logger.info(f"Персональная MenuButton для владельца {owner_id} настроена: {owner_url}")
+    except Exception as e:
+        logger.warning(f"Не удалось настроить персональную MenuButton для владельца: {e}")
+
     bot_info = await bot.get_me()
     print("\n" + "=" * 55)
     print(f"🚀 Бот «Окошко» успешно запущен!")

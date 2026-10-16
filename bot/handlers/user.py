@@ -239,7 +239,11 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                     if user_salon.id:
                         params.append(f"salon_id={user_salon.id}")
                     import time
-                    params.append(f"v={int(time.time())}")
+                    params.append(f"v={int(time.time() * 1000)}")
+
+                    # Передаем список услуг салона из БД в Mini App
+                    if getattr(user_salon, "services_json", None):
+                        params.append(f"services_json={urllib.parse.quote(user_salon.services_json)}")
 
                     # Передаем актуальный список мастеров салона из БД в Mini App
                     try:
@@ -255,7 +259,7 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                                     "lastName": m.last_name or "",
                                     "role_title": m.role_title,
                                     "experience": m.experience or "3 года",
-                                    "avatar_url": m.avatar_url or "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+                                    "avatar_url": m.avatar_url or "",
                                     "telegram_handle": m.telegram_handle or "",
                                     "telegram_id": m.telegram_id,
                                 }
@@ -378,10 +382,29 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
     async with async_session_maker() as session:
         s_res = await session.execute(select(Salon).where(Salon.id == salon_id))
         cur_salon = s_res.scalar_one_or_none()
+        if not cur_salon:
+            cur_salon = (await session.execute(select(Salon).where(Salon.id == 1))).scalar_one_or_none()
         if cur_salon and cur_salon.owner_id == user.id:
+            admin_handle = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
+            cur_salon.admin_id = user.id
+            cur_salon.admin_tag = admin_handle
+            await session.commit()
+            owner_app_url = await get_user_app_url(user.id)
+            try:
+                await bot.set_chat_menu_button(
+                    chat_id=user.id,
+                    menu_button=MenuButtonWebApp(
+                        text="💅 Окошко",
+                        web_app=WebAppInfo(url=owner_app_url),
+                    ),
+                )
+            except Exception:
+                pass
             await callback.message.edit_text(
-                f"👑 <b>Вы уже являетесь Владельцем салона «{cur_salon.name}»!</b>\n\n"
-                f"Ваш статус владельца сохранен. Чтобы подключить другого пользователя как администратора, перешлите ему эту ссылку."
+                f"👑 <b>Вы являетесь Владельцем салона «{cur_salon.name or 'Мой салон'}»!</b>\n\n"
+                f"👤 Вы успешно назначили себя Администратором: <b>{admin_handle}</b>.\n"
+                f"Ваш статус владельца сохранен, а тег администратора теперь привязан к салону.\n\n"
+                f"💡 Чтобы привязать другого сотрудника, перешлите ему эту ссылку."
             )
             return
 

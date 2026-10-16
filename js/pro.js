@@ -6,143 +6,31 @@ const PRO_DATA_STORAGE_KEY = 'okoshko_pro_salon_data_v1';
 const PRO_APPOINTMENTS_STORAGE_KEY = 'okoshko_pro_clients_appointments_v1';
 const BOT_LINK = 'https://t.me/okooshko_bot';
 
-// Default initial state for PRO Salon (Clean baseline partner)
+// Default initial state for PRO Salon (Clean baseline partner, no mock data)
 const DEFAULT_PRO_SALON = {
-  name: 'Мой салон',
+  name: '',
   city: 'Москва',
   cityKey: 'moscow',
   address: '',
-  latitude: 55.767500,
-  longitude: 37.607800,
+  latitude: 55.755800,
+  longitude: 37.617300,
   phone: '',
-  creatorTag: '',
+  creatorTag: '@maximtepin',
   adminTag: '', // Не назначен по умолчанию
   notificationsEnabled: true,
-  categoryText: 'Маникюр · Брови · Педикюр',
+  categoryText: '',
   rating: '5.0',
   reviewsCount: 0,
-  avatarUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=300&q=80',
-  coverUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
+  avatarUrl: '',
+  coverUrl: '',
   updatedAt: 0,
-  services: [
-    {
-      id: 'bs_s1',
-      name: 'Маникюр с покрытием гель-лак Luxio',
-      category: 'Маникюр',
-      desc: 'Снятие старого покрытия, аппаратный маникюр, выравнивание базой, цветное покрытие Luxio',
-      price: 2500,
-      duration: 90,
-      masterIds: ['master_beauty_alina'],
-      photos: ['https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=400&q=80']
-    },
-    {
-      id: 'bs_s2',
-      name: 'Архитектура и окрашивание бровей',
-      category: 'Ресницы & Брови',
-      desc: 'Построение правильной формы, коррекция пинцетом/воском, стойкое окрашивание Levissime',
-      price: 1800,
-      duration: 60,
-      masterIds: ['master_beauty_daria'],
-      photos: ['https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=400&q=80']
-    },
-    {
-      id: 'bs_s3',
-      name: 'Smart-педикюр эстетический',
-      category: 'Педикюр',
-      desc: 'Аппаратная обработка стопы smart-дисками, пальчики, покрытие лечебным лаком',
-      price: 2800,
-      duration: 75,
-      masterIds: ['master_beauty_alina'],
-      photos: []
-    },
-    {
-      id: 'bs_s4',
-      name: 'Ремонт / Дизайн френч',
-      category: 'Маникюр',
-      desc: 'Укрепление акрилом или пудрой одного ногтя / французский дизайн',
-      price: 400,
-      duration: 20,
-      masterIds: ['master_beauty_alina'],
-      photos: []
-    }
-  ],
-  masters: [
-    {
-      id: 'master_beauty_alina',
-      name: 'Алина',
-      lastName: 'Романова',
-      role_title: 'Мастер аппаратного маникюра',
-      experience: '5 лет',
-      avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80',
-      portfolio_photos: [
-        'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=400&q=80'
-      ]
-    },
-    {
-      id: 'master_beauty_daria',
-      name: 'Дарья',
-      lastName: 'Мельникова',
-      role_title: 'Бровист-лэшмейкер',
-      experience: '3 года',
-      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-      portfolio_photos: [
-        'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=400&q=80'
-      ]
-    }
-  ]
+  services: [],
+  masters: [],
+  photos: []
 };
 
-// Default initial client appointments for PRO partner
-const DEFAULT_PRO_APPOINTMENTS = [
-  {
-    id: 'pro_app_1',
-    clientName: 'Анна Смирнова',
-    clientPhone: '+7 (916) 450-22-11',
-    clientHandle: '@anna_smirnova',
-    service: 'Маникюр с покрытием гель-лак Luxio',
-    master: 'Алина Романова',
-    date: 'Сегодня, 10 октября',
-    time: '15:30',
-    price: 2500,
-    status: 'active'
-  },
-  {
-    id: 'pro_app_2',
-    clientName: 'Екатерина Власова',
-    clientPhone: '+7 (925) 789-01-23',
-    clientHandle: '@katya_vlasova',
-    service: 'Архитектура и окрашивание бровей',
-    master: 'Дарья Мельникова',
-    date: 'Сегодня, 10 октября',
-    time: '17:00',
-    price: 1800,
-    status: 'active'
-  },
-  {
-    id: 'pro_app_3',
-    clientName: 'Мария Лебедева',
-    clientPhone: '+7 (903) 111-44-55',
-    clientHandle: '@maria_lebedeva',
-    service: 'Smart-педикюр эстетический',
-    master: 'Алина Романова',
-    date: 'Завтра, 11 октября',
-    time: '12:00',
-    price: 2800,
-    status: 'active'
-  },
-  {
-    id: 'pro_app_4',
-    clientName: 'Ольга Кузнецова',
-    clientPhone: '+7 (915) 333-88-99',
-    clientHandle: '@olga_kuz',
-    service: 'Маникюр с покрытием гель-лак Luxio',
-    master: 'Алина Романова',
-    date: '8 октября 2026',
-    time: '14:00',
-    price: 2500,
-    status: 'completed'
-  }
-];
+// Default initial client appointments for PRO partner (Clean baseline)
+const DEFAULT_PRO_APPOINTMENTS = [];
 
 function getProSalonData() {
   try {
@@ -159,16 +47,42 @@ function getProSalonData() {
 
 function syncVenuesWithProSalon(data) {
   if (!data) return;
-  if (typeof venues !== 'undefined' && Array.isArray(venues) && venues.length > 0) {
-    const v0 = venues[0];
-    if (data.name) v0.name = data.name;
-    if (data.address !== undefined) v0.address = data.address;
-    if (data.phone !== undefined) v0.phone = data.phone;
-    if (data.city) v0.regionName = data.city;
-    if (data.latitude && data.longitude) {
-      v0.coords = [Number(data.latitude), Number(data.longitude)];
+  if (typeof venues !== 'undefined' && Array.isArray(venues)) {
+    if (data.name || data.address) {
+      const salonObj = {
+        id: 'salon_1',
+        name: data.name || 'Салон красоты',
+        type: 'Салон красоты',
+        region: data.cityKey || 'moscow',
+        regionName: data.city || 'Москва',
+        categoryTags: ['nails', 'hair', 'brows', 'pedicure'],
+        categoryText: data.categoryText || '',
+        rating: data.rating || '5.0',
+        reviewsCount: data.reviewsCount || 0,
+        address: data.address || '',
+        distance: 'рядом',
+        hotSlot: 'Окно сегодня',
+        slots: ['10:00', '12:00', '14:00', '16:00', '18:00'],
+        priceFrom: 'от 1 500 ₽',
+        target: 'salon',
+        photoCount: 1,
+        img: data.avatarUrl || '',
+        coords: [Number(data.latitude || 55.7558), Number(data.longitude || 37.6173)],
+        description: data.description || '',
+        services: data.services || [],
+        masters: data.masters || []
+      };
+      if (venues.length === 0) {
+        venues.push(salonObj);
+      } else {
+        venues[0] = Object.assign(venues[0], salonObj);
+      }
+    } else {
+      venues.length = 0;
     }
-    if (data.avatarUrl) v0.img = data.avatarUrl;
+    if (typeof applyCombinedFilters === 'function') {
+      applyCombinedFilters();
+    }
   }
 }
 
@@ -192,7 +106,6 @@ function saveProSalonData(data) {
       if (data.adminTag !== undefined) curUrl.searchParams.set('admin_tag', data.adminTag);
       curUrl.searchParams.set('v', String(data.updatedAt));
       window.history.replaceState(null, '', curUrl.toString());
-      sessionStorage.setItem('okoshko_url_params', curUrl.search);
     }
   } catch (e) { }
 
@@ -220,7 +133,9 @@ function saveProSalonData(data) {
     avatar_url: data.avatarUrl || '',
     cover_url: data.coverUrl || '',
     admin_tag: data.adminTag || '',
-    creator_tag: data.creatorTag || ''
+    creator_tag: data.creatorTag || '',
+    masters: data.masters || [],
+    services: data.services || []
   };
 
   try {
@@ -279,126 +194,114 @@ function saveProAppointments(appts) {
   renderProStats();
 }
 
+function applyUrlParamsToData(data, urlParams, timestamp) {
+  if (!data || !urlParams) return;
+  if (urlParams.has('admin_tag')) data.adminTag = urlParams.get('admin_tag');
+  if (urlParams.has('salon_name')) data.name = urlParams.get('salon_name');
+  if (urlParams.has('address')) data.address = urlParams.get('address');
+  if (urlParams.has('phone')) data.phone = urlParams.get('phone');
+  if (urlParams.has('city')) data.city = urlParams.get('city');
+  if (urlParams.has('lat')) data.latitude = parseFloat(urlParams.get('lat'));
+  if (urlParams.has('lon')) data.longitude = parseFloat(urlParams.get('lon'));
+  if (timestamp) data.updatedAt = timestamp;
+
+  if (urlParams.has('services_json')) {
+    try {
+      const sv = JSON.parse(urlParams.get('services_json'));
+      if (Array.isArray(sv)) {
+        data.services = sv;
+      }
+    } catch (e) {
+      console.warn('[PRO] Error parsing services_json:', e);
+    }
+  }
+
+  if (urlParams.has('masters_json')) {
+    try {
+      const dbMasters = JSON.parse(urlParams.get('masters_json'));
+      if (Array.isArray(dbMasters)) {
+        if (!Array.isArray(data.masters)) {
+          data.masters = [];
+        }
+        dbMasters.forEach(dbm => {
+          const normName = (dbm.name || '').trim().toLowerCase();
+          const normLast = (dbm.lastName || '').trim().toLowerCase();
+
+          const existingIdx = data.masters.findIndex(m => {
+            if (dbm.telegram_id && m.telegram_id && Number(m.telegram_id) === Number(dbm.telegram_id)) return true;
+            if (m.id && m.id === dbm.id) return true;
+            const mName = (m.name || '').trim().toLowerCase();
+            const mLast = (m.lastName || '').trim().toLowerCase();
+            return normName && normName === mName && normLast === mLast;
+          });
+
+          if (existingIdx >= 0) {
+            const current = data.masters[existingIdx];
+            if (dbm.role_title) current.role_title = dbm.role_title;
+            if (dbm.experience) current.experience = dbm.experience;
+            if (dbm.telegram_handle) current.telegram_handle = dbm.telegram_handle;
+            if (dbm.telegram_id) current.telegram_id = dbm.telegram_id;
+            if (dbm.avatar_url) current.avatar_url = dbm.avatar_url;
+          } else {
+            data.masters.push({
+              id: dbm.id || ('master_' + Date.now()),
+              name: dbm.name,
+              lastName: dbm.lastName || '',
+              role_title: dbm.role_title || 'Специалист салона',
+              experience: dbm.experience || '3 года',
+              avatar_url: dbm.avatar_url || '',
+              telegram_handle: dbm.telegram_handle || '',
+              telegram_id: dbm.telegram_id || null,
+              portfolio_photos: []
+            });
+          }
+        });
+      }
+    } catch (parseErr) {
+      console.warn('[PRO] Error parsing masters_json:', parseErr);
+    }
+  }
+}
+
 // Cross-device synchronization on launch from Telegram CloudStorage and URL params
 function initProCloudSync() {
-  let urlAdminTag = null;
-  let urlSalonName = null;
-  let urlAddress = null;
-  let urlPhone = null;
-  let urlCity = null;
-  let urlLat = null;
-  let urlLon = null;
-  let urlMastersJson = null;
+  let urlParams = null;
+  let urlTime = 0;
   let hasUrlParams = false;
 
-  // 1. Проверяем URL параметры (если WebApp открыт по кнопке от бота с актуальными данными из PostgreSQL)
+  // 1. Считываем свежие URL параметры (если WebApp открыт по MenuButton со свежими данными из PostgreSQL)
   try {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('salon_name') || urlParams.has('address') || urlParams.has('phone') || urlParams.has('admin_tag') || urlParams.has('masters_json')) {
-      hasUrlParams = true;
-      urlAdminTag = urlParams.get('admin_tag');
-      urlSalonName = urlParams.get('salon_name');
-      urlAddress = urlParams.get('address');
-      urlPhone = urlParams.get('phone');
-      urlCity = urlParams.get('city');
-      urlLat = urlParams.get('lat');
-      urlLon = urlParams.get('lon');
-      urlMastersJson = urlParams.get('masters_json');
-
-      try {
-        sessionStorage.setItem('okoshko_url_params', window.location.search);
-      } catch (e) { }
-    } else {
-      const savedSearch = sessionStorage.getItem('okoshko_url_params');
-      if (savedSearch) {
-        const savedParams = new URLSearchParams(savedSearch);
-        urlAdminTag = savedParams.get('admin_tag');
-        urlSalonName = savedParams.get('salon_name');
-        urlAddress = savedParams.get('address');
-        urlPhone = savedParams.get('phone');
-        urlCity = savedParams.get('city');
-        urlLat = savedParams.get('lat');
-        urlLon = savedParams.get('lon');
-        urlMastersJson = savedParams.get('masters_json');
+    if (window.location.search) {
+      urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('v')) {
+        urlTime = Number(urlParams.get('v')) || 0;
+        if (urlTime > 0 && urlTime < 1e11) urlTime *= 1000;
+      }
+      if (urlParams.has('salon_name') || urlParams.has('address') || urlParams.has('phone') || urlParams.has('admin_tag') || urlParams.has('masters_json') || urlParams.has('services_json')) {
         hasUrlParams = true;
       }
     }
   } catch (e) { }
 
-  const data = getProSalonData();
+  let localData = getProSalonData();
+  const localTime = Number(localData.updatedAt) || 0;
 
-  if (hasUrlParams) {
-    if (urlAdminTag !== null) data.adminTag = urlAdminTag;
-    if (urlSalonName) data.name = urlSalonName;
-    if (urlAddress !== null && urlAddress !== undefined) data.address = urlAddress;
-    if (urlPhone !== null && urlPhone !== undefined) data.phone = urlPhone;
-    if (urlCity) data.city = urlCity;
-    if (urlLat) data.latitude = parseFloat(urlLat);
-    if (urlLon) data.longitude = parseFloat(urlLon);
-
-    if (urlMastersJson) {
-      try {
-        const dbMasters = JSON.parse(urlMastersJson);
-        if (Array.isArray(dbMasters) && dbMasters.length > 0) {
-          if (!Array.isArray(data.masters)) {
-            data.masters = [];
-          }
-          dbMasters.forEach(dbm => {
-            const normName = (dbm.name || '').trim().toLowerCase();
-            const normLast = (dbm.lastName || '').trim().toLowerCase();
-
-            const existingIdx = data.masters.findIndex(m => {
-              if (dbm.telegram_id && m.telegram_id && Number(m.telegram_id) === Number(dbm.telegram_id)) return true;
-              if (m.id && m.id === dbm.id) return true;
-              const mName = (m.name || '').trim().toLowerCase();
-              const mLast = (m.lastName || '').trim().toLowerCase();
-              return normName && normName === mName && normLast === mLast;
-            });
-
-            if (existingIdx >= 0) {
-              const current = data.masters[existingIdx];
-              if (dbm.role_title) current.role_title = dbm.role_title;
-              if (dbm.experience) current.experience = dbm.experience;
-              if (dbm.telegram_handle) current.telegram_handle = dbm.telegram_handle;
-              if (dbm.telegram_id) current.telegram_id = dbm.telegram_id;
-              if (dbm.avatar_url && (!current.avatar_url || current.avatar_url.includes('images.unsplash.com/photo-1534528741775'))) {
-                current.avatar_url = dbm.avatar_url;
-              }
-            } else {
-              data.masters.push({
-                id: dbm.id || ('master_' + Date.now()),
-                name: dbm.name,
-                lastName: dbm.lastName || '',
-                role_title: dbm.role_title || 'Специалист салона',
-                experience: dbm.experience || '3 года',
-                avatar_url: dbm.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-                telegram_handle: dbm.telegram_handle || '',
-                telegram_id: dbm.telegram_id || null,
-                portfolio_photos: []
-              });
-            }
-          });
-        }
-      } catch (parseErr) {
-        console.warn('[PRO] Error parsing masters_json:', parseErr);
-      }
-    }
-
-    // Сохраняем локально БЕЗ сетевого вызова saveProSalonData!
+  // Если в URL пришли параметры и они новее локального кеша (или локальный профиль пуст)
+  if (hasUrlParams && urlParams && (urlTime >= localTime || !localData.name)) {
+    applyUrlParamsToData(localData, urlParams, urlTime);
     try {
-      localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
-      sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(localData));
+      sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(localData));
     } catch (e) { }
   }
 
-  // Обновляем интерфейс текущими данными
+  // Обновляем интерфейс текущими данными синхронно
   syncProSalonUI();
-  syncVenuesWithProSalon(data);
-  if (typeof renderProMastersList === 'function') {
-    renderProMastersList();
-  }
+  syncVenuesWithProSalon(localData);
+  if (typeof renderProMastersList === 'function') renderProMastersList();
+  if (typeof renderProServicesList === 'function') renderProServicesList();
 
-  // 2. Синхронизация из CloudStorage Telegram с корректным слиянием
+  // 2. Синхронизация из CloudStorage Telegram с правильным сравнением временных меток
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.getItems) {
       window.Telegram.WebApp.CloudStorage.getItems([PRO_DATA_STORAGE_KEY, PRO_APPOINTMENTS_STORAGE_KEY], (err, values) => {
@@ -409,26 +312,23 @@ function initProCloudSync() {
               const cloudSalon = JSON.parse(values[PRO_DATA_STORAGE_KEY]);
               if (cloudSalon && typeof cloudSalon === 'object') {
                 const currentData = getProSalonData();
+                const curTime = Number(currentData.updatedAt) || 0;
                 const cloudTime = Number(cloudSalon.updatedAt) || 0;
-                const localTime = Number(currentData.updatedAt) || 0;
 
                 let merged;
-                // Если данные в CloudStorage новее, они имеют приоритет над устаревшим локальным кэшем
-                if (cloudTime >= localTime || !currentData.address) {
+                // Сравниваем метки времени между устройствами:
+                if (cloudTime > curTime && cloudTime > urlTime) {
+                  // Данные в CloudStorage новее текущего устройства
                   merged = Object.assign({}, DEFAULT_PRO_SALON, currentData, cloudSalon);
-                } else {
+                } else if (urlTime > cloudTime && hasUrlParams && urlParams) {
+                  // Параметры из URL свежее данных в CloudStorage
                   merged = Object.assign({}, DEFAULT_PRO_SALON, cloudSalon, currentData);
-                }
-
-                // Однако если в этой сессии пришли свежие URL параметры из PostgreSQL, они абсолютный авторитет!
-                if (hasUrlParams) {
-                  if (urlAdminTag !== null) merged.adminTag = urlAdminTag;
-                  if (urlSalonName) merged.name = urlSalonName;
-                  if (urlAddress !== null && urlAddress !== undefined) merged.address = urlAddress;
-                  if (urlPhone !== null && urlPhone !== undefined) merged.phone = urlPhone;
-                  if (urlCity) merged.city = urlCity;
-                  if (urlLat) merged.latitude = parseFloat(urlLat);
-                  if (urlLon) merged.longitude = parseFloat(urlLon);
+                  applyUrlParamsToData(merged, urlParams, urlTime);
+                } else if (!currentData.name && (cloudSalon.name || cloudSalon.address || (cloudSalon.masters && cloudSalon.masters.length))) {
+                  // Локальный кеш был очищен, восстанавливаем из CloudStorage
+                  merged = Object.assign({}, DEFAULT_PRO_SALON, cloudSalon);
+                } else {
+                  merged = currentData;
                 }
 
                 localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
@@ -453,6 +353,7 @@ function initProCloudSync() {
             if (typeof renderProAppointments === 'function') renderProAppointments();
             if (typeof renderProStats === 'function') renderProStats();
             if (typeof renderProMastersList === 'function') renderProMastersList();
+            if (typeof renderProServicesList === 'function') renderProServicesList();
           }
         }
       });
@@ -517,8 +418,8 @@ function syncProSalonUI() {
   // Name
   const nameEl = document.getElementById('proSalonName');
   const nameSubEl = document.getElementById('proProfileNameSub');
-  if (nameEl) nameEl.textContent = data.name;
-  if (nameSubEl) nameSubEl.textContent = data.name;
+  if (nameEl) nameEl.textContent = data.name || 'Название салона';
+  if (nameSubEl) nameSubEl.textContent = data.name || 'Не указано';
 
   // City
   const citySubEl = document.getElementById('proProfileCitySub');
@@ -529,7 +430,7 @@ function syncProSalonUI() {
   // Address
   const addrEl = document.getElementById('proSalonAddress');
   const addrSubEl = document.getElementById('proProfileAddressSub');
-  if (addrEl) addrEl.textContent = data.address || 'Не указан';
+  if (addrEl) addrEl.textContent = data.address || 'Не указан (выберите на карте)';
   if (addrSubEl) {
     if (data.address) {
       addrSubEl.textContent = data.address;
@@ -571,21 +472,43 @@ function syncProSalonUI() {
 
   // Counts
   const svcCountEl = document.getElementById('proServicesCountBadge');
-  if (svcCountEl) svcCountEl.textContent = `${data.services.length} услуг`;
+  if (svcCountEl) svcCountEl.textContent = `${(data.services || []).length} услуг`;
 
   const mastersCountEl = document.getElementById('proMastersCountBadge');
-  if (mastersCountEl) mastersCountEl.textContent = `${data.masters.length} мастеров`;
+  if (mastersCountEl) mastersCountEl.textContent = `${(data.masters || []).length} мастеров`;
 
   // Notifications switch
   const notifToggle = document.getElementById('proTgNotificationsToggle');
   if (notifToggle) notifToggle.checked = !!data.notificationsEnabled;
 
-  // Avatar & Cover
+  // Avatar & Cover Fallbacks
   const avatarImg = document.getElementById('proSalonAvatarImg');
-  if (avatarImg && data.avatarUrl) avatarImg.src = data.avatarUrl;
+  const avatarFallback = document.getElementById('proSalonAvatarFallback');
+  if (avatarImg) {
+    if (data.avatarUrl) {
+      avatarImg.src = data.avatarUrl;
+      avatarImg.classList.remove('hidden');
+      if (avatarFallback) avatarFallback.classList.add('hidden');
+    } else {
+      avatarImg.src = '';
+      avatarImg.classList.add('hidden');
+      if (avatarFallback) avatarFallback.classList.remove('hidden');
+    }
+  }
 
   const coverImg = document.getElementById('proSalonCoverImg');
-  if (coverImg && data.coverUrl) coverImg.src = data.coverUrl;
+  const coverFallback = document.getElementById('proSalonCoverFallback');
+  if (coverImg) {
+    if (data.coverUrl) {
+      coverImg.src = data.coverUrl;
+      coverImg.classList.remove('hidden');
+      if (coverFallback) coverFallback.classList.add('hidden');
+    } else {
+      coverImg.src = '';
+      coverImg.classList.add('hidden');
+      if (coverFallback) coverFallback.classList.remove('hidden');
+    }
+  }
 }
 
 // ------------------------------------------
@@ -1094,7 +1017,7 @@ function deleteProService(idx) {
 // PRO MASTERS MANAGEMENT
 // ------------------------------------------
 let uploadedMasterPortfolio = [];
-let uploadedMasterAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+let uploadedMasterAvatar = '';
 
 function openProMastersListModal() {
   const modal = document.getElementById('proMastersListModal');
@@ -1116,9 +1039,9 @@ function openProAddMasterModal() {
   const modal = document.getElementById('proAddMasterModal');
   if (!modal) return;
   uploadedMasterPortfolio = [];
-  uploadedMasterAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+  uploadedMasterAvatar = '';
   const img = document.getElementById('newMasterAvatarPreviewImg');
-  if (img) img.src = uploadedMasterAvatar;
+  if (img) img.src = '';
   renderMasterPortfolioPreview();
   modal.classList.remove('hidden');
   modal.classList.add('flex');
@@ -1176,7 +1099,10 @@ function handleMasterAvatarUploaded(event) {
   reader.onload = function(e) {
     uploadedMasterAvatar = e.target.result;
     const img = document.getElementById('newMasterAvatarPreviewImg');
-    if (img) img.src = uploadedMasterAvatar;
+    if (img) {
+      img.src = uploadedMasterAvatar;
+      img.classList.remove('hidden');
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -1218,8 +1144,8 @@ function renderProMastersList() {
 
   container.innerHTML = data.masters.map((m, idx) => `
     <div class="p-3.5 rounded-2xl bg-surface-container-low border border-slate-200/70 flex items-center justify-between gap-3">
-      <div class="w-12 h-12 rounded-2xl overflow-hidden bg-slate-200 shrink-0 border border-slate-300/60">
-        <img src="${m.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}" alt="${m.name}" class="w-full h-full object-cover"/>
+      <div class="w-12 h-12 rounded-2xl overflow-hidden bg-indigo-50 shrink-0 border border-slate-200 flex items-center justify-center text-primary">
+        ${m.avatar_url ? `<img src="${m.avatar_url}" alt="${m.name}" class="w-full h-full object-cover"/>` : `<span class="material-symbols-outlined text-[24px]">person</span>`}
       </div>
       <div class="flex flex-col min-w-0 flex-1">
         <span class="font-bold text-xs text-on-surface truncate">${m.name} ${m.lastName || ''}</span>
@@ -1317,7 +1243,11 @@ function openProMasterEditModal(idx) {
   const servicesList = document.getElementById('editMasterServicesList');
 
   if (idxInput) idxInput.value = idx;
-  if (avatarEl) avatarEl.src = master.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+  if (avatarEl) {
+    avatarEl.src = master.avatar_url || '';
+    if (!master.avatar_url) avatarEl.classList.add('hidden');
+    else avatarEl.classList.remove('hidden');
+  }
   if (nameEl) nameEl.textContent = `${master.name} ${master.lastName || ''}`.trim();
   if (roleEl) roleEl.textContent = master.role_title || 'Специалист салона';
   if (expEl) expEl.textContent = `Опыт: ${master.experience || '3 года'}`;
