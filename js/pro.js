@@ -179,6 +179,23 @@ function saveProSalonData(data) {
     sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
   } catch (e) { }
 
+  // Update browser URL query params in-place so F5/reload in same session preserves the new data
+  try {
+    if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+      const curUrl = new URL(window.location.href);
+      if (data.name) curUrl.searchParams.set('salon_name', data.name);
+      if (data.address !== undefined) curUrl.searchParams.set('address', data.address);
+      if (data.phone !== undefined) curUrl.searchParams.set('phone', data.phone);
+      if (data.city) curUrl.searchParams.set('city', data.city);
+      if (data.latitude) curUrl.searchParams.set('lat', data.latitude);
+      if (data.longitude) curUrl.searchParams.set('lon', data.longitude);
+      if (data.adminTag !== undefined) curUrl.searchParams.set('admin_tag', data.adminTag);
+      curUrl.searchParams.set('v', String(data.updatedAt));
+      window.history.replaceState(null, '', curUrl.toString());
+      sessionStorage.setItem('okoshko_url_params', curUrl.search);
+    }
+  } catch (e) { }
+
   // Sync to Telegram CloudStorage across devices (PC <-> Mobile)
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.setItem) {

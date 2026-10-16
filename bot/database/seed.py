@@ -841,6 +841,30 @@ async def seed_data():
                 c_existing.zoom = city_data["zoom"]
                 c_existing.order_num = city_data["order_num"]
 
+        # Устанавливаем владельца для флагманского салона Beauty Studio (ID 1)
+        from bot.database.models import User
+        bs_res = await session.execute(select(Salon).where(Salon.id == 1))
+        bs_salon = bs_res.scalar_one_or_none()
+        if bs_salon:
+            bs_salon.owner_id = 1205557089
+
+        u_res = await session.execute(select(User).where(User.telegram_id == 1205557089))
+        owner_user = u_res.scalar_one_or_none()
+        if not owner_user:
+            owner_user = User(
+                telegram_id=1205557089,
+                username="maximtepin",
+                first_name="Максим",
+                is_pro=True,
+                role="owner",
+                salon_id=1,
+            )
+            session.add(owner_user)
+        else:
+            owner_user.is_pro = True
+            owner_user.role = "owner"
+            owner_user.salon_id = 1
+
         await session.commit()
     logger.info("✅ База данных успешно заполнена городами, 15 салонами и мастерами!")
 

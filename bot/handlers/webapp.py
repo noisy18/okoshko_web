@@ -270,8 +270,10 @@ async def handle_web_app_data(message: Message):
                         if s_phone is not None: salon.phone = s_phone
                         if s_avatar is not None: salon.logo_url = s_avatar
                         if s_cover is not None: salon.cover_image_url = s_cover
-                        if s_admin_tag is not None: salon.admin_tag = s_admin_tag
-                        if s_lat is not None:
+                        if s_admin_tag is not None:
+                            salon.admin_tag = s_admin_tag
+                            if not s_admin_tag:
+                                salon.admin_id = None
                             try:
                                 salon.latitude = float(s_lat)
                             except (ValueError, TypeError):
@@ -415,7 +417,10 @@ async def handle_direct_json_data(message: Message):
                     if s_phone is not None: salon.phone = s_phone
                     if s_avatar is not None: salon.logo_url = s_avatar
                     if s_cover is not None: salon.cover_image_url = s_cover
-                    if s_admin_tag is not None: salon.admin_tag = s_admin_tag
+                    if s_admin_tag is not None:
+                        salon.admin_tag = s_admin_tag
+                        if not s_admin_tag:
+                            salon.admin_id = None
 
                     if user:
                         user.is_pro = True

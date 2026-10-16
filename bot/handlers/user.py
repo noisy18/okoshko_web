@@ -370,6 +370,21 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
     salon_id = int(salon_id_raw) if salon_id_raw.isdigit() else 1
     user = callback.from_user
 
+    # Проверяем, не является ли пользователь уже владельцем салона
+    from bot.database import Salon
+    from bot.database.base import async_session_maker
+    from sqlalchemy import select
+
+    async with async_session_maker() as session:
+        s_res = await session.execute(select(Salon).where(Salon.id == salon_id))
+        cur_salon = s_res.scalar_one_or_none()
+        if cur_salon and cur_salon.owner_id == user.id:
+            await callback.message.edit_text(
+                f"👑 <b>Вы уже являетесь Владельцем салона «{cur_salon.name}»!</b>\n\n"
+                f"Ваш статус владельца сохранен. Чтобы подключить другого пользователя как администратора, перешлите ему эту ссылку."
+            )
+            return
+
     salon = await bind_user_as_admin(
         telegram_id=user.id,
         salon_id=salon_id,
@@ -378,16 +393,15 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
         last_name=user.last_name,
     )
 
-    salon_name = salon.name if salon else "вашему салону"
+    salon_name = salon.name if salon else "Beauty Studio"
     app_url = await get_user_app_url(user.id)
-    pro_app_url = await get_user_app_url(user.id, is_pro_entry=True)
 
     # Обновляем кнопку меню чата для нового администратора
     try:
         await bot.set_chat_menu_button(
             chat_id=callback.message.chat.id,
             menu_button=MenuButtonWebApp(
-                text="💅 Окошко PRO",
+                text="💅 Окошко",
                 web_app=WebAppInfo(url=app_url),
             ),
         )
@@ -395,20 +409,20 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
         logger.warning(f"Не удалось обновить MenuButton для администратора {callback.message.chat.id}: {e}")
 
     # Если у салона есть владелец, обновляем ему MenuButton и отправляем уведомление
-    if salon and salon.owner_id and salon.owner_id != user.id:
+    owner_tg = salon.owner_id if salon and salon.owner_id else 1205557089
+    if owner_tg and owner_tg != user.id:
         try:
-            owner_app_url = await get_user_app_url(salon.owner_id)
-            owner_pro_url = await get_user_app_url(salon.owner_id, is_pro_entry=True)
+            owner_app_url = await get_user_app_url(owner_tg)
             await bot.set_chat_menu_button(
-                chat_id=salon.owner_id,
+                chat_id=owner_tg,
                 menu_button=MenuButtonWebApp(
-                    text="💅 Окошко PRO",
+                    text="💅 Окошко",
                     web_app=WebAppInfo(url=owner_app_url),
                 ),
             )
             admin_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
             await bot.send_message(
-                chat_id=salon.owner_id,
+                chat_id=owner_tg,
                 text=(
                     f"🎉 <b>Администратор успешно привязан!</b>\n\n"
                     f"🏢 Салон: <b>{salon_name}</b>\n"
@@ -417,7 +431,7 @@ async def handle_confirm_bind_admin(callback: CallbackQuery, bot: Bot):
                 ),
             )
         except Exception as e:
-            logger.warning(f"Не удалось отправить уведомление владельцу салона {salon.owner_id}: {e}")
+            logger.warning(f"Не удалось отправить уведомление владельцу салона {owner_tg}: {e}")
 
     success_text = (
         f"🎉 <b>Поздравляем! Вы успешно привязаны как Администратор!</b>\n\n"
@@ -478,19 +492,28 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
         await bot.set_chat_menu_button(
             chat_id=callback.message.chat.id,
             menu_button=MenuButtonWebApp(
-                text="💅 Окошко Мастер",
+                text="💅 Окошко",
                 web_app=WebAppInfo(url=app_url),
             ),
         )
     except Exception as e:
         logger.warning(f"Не удалось обновить MenuButton для {callback.message.chat.id}: {e}")
 
-    # Если у салона есть владелец, отправляем уведомление
-    if salon and salon.owner_id and salon.owner_id != user.id:
+    # Если у салона есть владелец, отправляем уведомление и обновляем ему MenuButton с актуальным списком мастеров
+    owner_tg = salon.owner_id if salon and salon.owner_id else 1205557089
+    if owner_tg and owner_tg != user.id:
         try:
+            owner_app_url = await get_user_app_url(owner_tg)
+            await bot.set_chat_menu_button(
+                chat_id=owner_tg,
+                menu_button=MenuButtonWebApp(
+                    text="💅 Окошко",
+                    web_app=WebAppInfo(url=owner_app_url),
+                ),
+            )
             m_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
             await bot.send_message(
-                chat_id=salon.owner_id,
+                chat_id=owner_tg,
                 text=(
                     f"🎉 <b>Новый мастер присоединился к команде!</b>\n\n"
                     f"🏢 Салон: <b>{salon_name}</b>\n"
@@ -501,9 +524,17 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
         except Exception as e:
             logger.warning(f"Не удалось уведомить владельца салона: {e}")
 
-    # Если у салона есть администратор, отправляем ему тоже уведомление
-    if salon and salon.admin_id and salon.admin_id != user.id and salon.admin_id != salon.owner_id:
+    # Если у салона есть администратор, отправляем ему тоже уведомление и обновляем MenuButton
+    if salon and salon.admin_id and salon.admin_id != user.id and salon.admin_id != owner_tg:
         try:
+            admin_app_url = await get_user_app_url(salon.admin_id)
+            await bot.set_chat_menu_button(
+                chat_id=salon.admin_id,
+                menu_button=MenuButtonWebApp(
+                    text="💅 Окошко",
+                    web_app=WebAppInfo(url=admin_app_url),
+                ),
+            )
             m_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
             await bot.send_message(
                 chat_id=salon.admin_id,

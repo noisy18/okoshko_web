@@ -48,20 +48,22 @@ async def get_or_create_user(
                 await session.commit()
                 await session.refresh(user)
 
-        # Автоматическая привязка салона для PRO-пользователя (владельца)
-        if user.is_pro:
-            # Проверяем, есть ли уже салон у этого владельца
-            salon_res = await session.execute(select(Salon).where((Salon.owner_id == telegram_id) | (Salon.id == user.salon_id if user.salon_id else False)))
-            salon = salon_res.scalar_one_or_none()
-            if not salon:
-                # Если у PRO пользователя еще нет салона с owner_id, связываем его с Beauty Studio (ID 1)
-                bs_res = await session.execute(select(Salon).where(Salon.id == 1))
-                salon = bs_res.scalar_one_or_none()
-                if salon:
+        # Автоматическая привязка салона для создателя (1205557089) или PRO-пользователя (владельца)
+        is_creator = (telegram_id == 1205557089)
+        if is_creator or user.is_pro:
+            user.is_pro = True
+            if is_creator and (not user.role or user.role == "client"):
+                user.role = "owner"
+            if not user.salon_id:
+                user.salon_id = 1
+            if user.role == "owner" or is_creator:
+                salon_res = await session.execute(select(Salon).where(Salon.id == 1))
+                salon = salon_res.scalar_one_or_none()
+                if salon and not salon.owner_id:
                     salon.owner_id = telegram_id
-                    user.salon_id = salon.id
-                    await session.commit()
-                    logger.info(f"Салон '{salon.name}' (ID {salon.id}) автоматически закреплен за владельцем {telegram_id}")
+                    logger.info(f"Салон '{salon.name}' (ID {salon.id}) закреплен за владельцем {telegram_id}")
+            await session.commit()
+            await session.refresh(user)
 
         return user
 
@@ -316,7 +318,8 @@ async def bind_user_as_admin(
             session.add(user)
         else:
             user.is_pro = True
-            user.role = "admin"
+            if user.role != "owner":
+                user.role = "admin"
             user.salon_id = salon.id
             if username:
                 user.username = username
@@ -428,7 +431,8 @@ async def bind_user_as_master(
             session.add(user)
         else:
             user.is_pro = True
-            user.role = "master"
+            if user.role != "owner":
+                user.role = "master"
             user.salon_id = salon.id
             if username:
                 user.username = username
