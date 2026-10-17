@@ -192,6 +192,13 @@ async def handle_update_salon(request: web.Request) -> web.Response:
             if s_promoted is not None:
                 salon.is_promoted = bool(s_promoted)
 
+            s_photos = data.get("photos")
+            if s_photos is not None:
+                if isinstance(s_photos, list):
+                    salon.photos_json = json.dumps(s_photos, ensure_ascii=False)
+                elif isinstance(s_photos, str):
+                    salon.photos_json = s_photos
+
             now = datetime.utcnow()
             if hasattr(salon, "updated_at"):
                 salon.updated_at = now

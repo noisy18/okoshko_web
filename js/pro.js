@@ -186,7 +186,8 @@ function syncVenuesWithProSalon(data) {
         slots: ['10:00', '12:00', '14:00', '16:00', '18:00'],
         priceFrom: 'от 1 500 ₽',
         target: 'salon',
-        photoCount: 1,
+        photoCount: (data.photos && data.photos.length) ? data.photos.length : 1,
+        photos: Array.isArray(data.photos) ? data.photos : [],
         img: data.avatarUrl || '',
         coords: [lat, lon],
         description: data.description || '',
@@ -279,6 +280,16 @@ function saveProSalonData(data) {
         }));
         curUrl.searchParams.set('masters_json', JSON.stringify(compactMasters));
       }
+      if (data.photos && Array.isArray(data.photos) && data.photos.length) {
+        const cdnPhotos = data.photos.filter(p => typeof p === 'string' && p.startsWith('http'));
+        if (cdnPhotos.length && JSON.stringify(cdnPhotos).length < 1500) {
+          curUrl.searchParams.set('photos_json', JSON.stringify(cdnPhotos));
+        } else {
+          curUrl.searchParams.delete('photos_json');
+        }
+      } else {
+        curUrl.searchParams.delete('photos_json');
+      }
       curUrl.searchParams.set('v', String(data.updatedAt));
       window.history.replaceState(null, '', curUrl.toString());
     }
@@ -356,7 +367,8 @@ function saveProSalonData(data) {
     salon_type: data.salonType || '',
     filter_tags: data.filterTags || [],
     search_keywords: data.searchKeywords || [],
-    is_promoted: !!data.isPromoted
+    is_promoted: !!data.isPromoted,
+    photos: Array.isArray(data.photos) ? data.photos.filter(p => typeof p === 'string' && (p.startsWith('http') || p.length < 500)) : []
   };
 
   try {
@@ -416,6 +428,12 @@ function saveProSalonData(data) {
         freshParams.set('search_keywords_json', JSON.stringify(data.searchKeywords));
       }
       if (data.isPromoted) freshParams.set('is_promoted', '1');
+      if (data.photos && Array.isArray(data.photos) && data.photos.length) {
+        const cdnPhotos = data.photos.filter(p => typeof p === 'string' && p.startsWith('http'));
+        if (cdnPhotos.length && JSON.stringify(cdnPhotos).length < 1500) {
+          freshParams.set('photos_json', JSON.stringify(cdnPhotos));
+        }
+      }
       freshParams.set('v', String(data.updatedAt));
 
       // Обновляем текущий URL в истории браузера, чтобы при обычном F5/обновлении страницы мастера и данные сохранялись
@@ -457,7 +475,8 @@ function saveProSalonData(data) {
       salon_type: data.salonType || '',
       filter_tags: data.filterTags || [],
       search_keywords: data.searchKeywords || [],
-      is_promoted: !!data.isPromoted
+      is_promoted: !!data.isPromoted,
+      photos: Array.isArray(data.photos) ? data.photos.filter(p => typeof p === 'string' && (p.startsWith('http') || p.length < 500)) : []
     });
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
@@ -581,6 +600,16 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
   }
   if (urlParams.has('is_promoted')) {
     data.isPromoted = (urlParams.get('is_promoted') === '1');
+  }
+  if (urlParams.has('photos_json')) {
+    try {
+      const ph = JSON.parse(urlParams.get('photos_json'));
+      if (Array.isArray(ph) && ph.length) {
+        data.photos = ph;
+      }
+    } catch (e) {
+      console.warn('[PRO] Error parsing photos_json:', e);
+    }
   }
   if (timestamp) data.updatedAt = timestamp;
 
@@ -1137,6 +1166,21 @@ function syncProSalonUI() {
       promoteBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium';
       promoteBadge.textContent = 'Не активно';
     }
+  // Photo Gallery
+  const galleryCount = (data.photos || []).length;
+  const galleryCardBadge = document.getElementById('proGalleryCardBadge');
+  if (galleryCardBadge) {
+    galleryCardBadge.textContent = `${galleryCount} фото`;
+  }
+  const galleryTotalBadge = document.getElementById('proGalleryTotalBadge');
+  if (galleryTotalBadge) {
+    galleryTotalBadge.textContent = `${galleryCount} фото`;
+  }
+  if (typeof renderProGalleryCardPreview === 'function') {
+    renderProGalleryCardPreview();
+  }
+  if (typeof renderProGalleryGrid === 'function') {
+    renderProGalleryGrid();
   }
 
   // Sync client business card avatar
@@ -1698,6 +1742,12 @@ function openProFieldModal(fieldKey) {
     input.placeholder = 'Например: Beauty Studio';
     input.value = data.name;
     hint.textContent = 'Отображается на карточке и в каталоге сервиса';
+    input.onkeydown = function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveProFieldEdit();
+      }
+    };
   } else if (fieldKey === 'address') {
     title.textContent = 'Адрес салона';
     input.placeholder = 'Город, улица, дом, метро';
@@ -1806,8 +1856,28 @@ function saveProFieldEdit() {
 
   const data = getProSalonData();
   if (activeProEditField === 'name') {
-    data.name = val;
-    showToast('Название обновлено ✓');
+    if (val === data.name) {
+      closeProFieldModal();
+      return;
+    }
+    confirmProAction(
+      'Изменить название салона?',
+      `Вы уверены, что хотите изменить название салона на «${val}»?`,
+      () => {
+        data.name = val;
+        saveProSalonData(data);
+        closeProFieldModal();
+        closeProConfirmModal();
+        showToast('Название обновлено ✓');
+      },
+      {
+        type: 'primary',
+        icon: 'edit',
+        confirmText: 'Да, изменить',
+        cancelText: 'Отмена'
+      }
+    );
+    return;
   } else if (activeProEditField === 'address') {
     data.address = val;
     showToast('Адрес обновлен ✓');
@@ -4015,4 +4085,372 @@ function confirmProMapSelectedAddress() {
       window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }
   } catch (e) { }
+}
+
+// ------------------------------------------
+// PRO SALON PHOTO GALLERY & LIGHTBOX
+// ------------------------------------------
+let lightboxCurrentIndex = 0;
+let lightboxTouchStartX = 0;
+let lightboxTouchEndX = 0;
+
+function renderProGalleryCardPreview() {
+  const container = document.getElementById('proGalleryPreviewContainer');
+  if (!container) return;
+  const data = getProSalonData();
+  const photos = Array.isArray(data.photos) ? data.photos : [];
+
+  if (photos.length === 0) {
+    container.innerHTML = `
+      <div onclick="document.getElementById('proGalleryFileInput').click()"
+        class="w-full py-3.5 px-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 hover:bg-slate-50 flex items-center justify-center gap-2 text-slate-400 cursor-pointer active:scale-[0.99] transition-all">
+        <span class="material-symbols-outlined text-[20px] text-primary/70">add_photo_alternate</span>
+        <span class="text-xs font-medium">Добавьте первые фото в галерею</span>
+      </div>
+    `;
+    return;
+  }
+
+  const previewList = photos.slice(0, 4);
+  let html = previewList.map((p, idx) => `
+    <div onclick="openPhotoLightbox(${idx})"
+      class="w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-xl bg-[#242428] overflow-hidden flex items-center justify-center cursor-pointer shadow-xs border border-slate-200/60 shrink-0 active:scale-95 transition-transform relative group">
+      <img src="${p}" alt="Фото ${idx + 1}" class="w-full h-full object-contain pointer-events-none" />
+      <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white pointer-events-none">
+        <span class="material-symbols-outlined text-[18px]">zoom_in</span>
+      </div>
+    </div>
+  `).join('');
+
+  if (photos.length > 4) {
+    html += `
+      <div onclick="openProGalleryPage()"
+        class="w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-xl bg-slate-100 border border-slate-200 flex flex-col items-center justify-center cursor-pointer shrink-0 active:scale-95 transition-transform text-slate-600 font-bold text-xs gap-0.5">
+        <span class="text-sm text-primary">+${photos.length - 4}</span>
+        <span class="text-[10px] text-slate-400 font-medium">ещё</span>
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+}
+
+function renderProGalleryGrid() {
+  const grid = document.getElementById('proGalleryGrid');
+  const emptyState = document.getElementById('proGalleryEmptyState');
+  if (!grid) return;
+  const data = getProSalonData();
+  const photos = Array.isArray(data.photos) ? data.photos : [];
+
+  if (photos.length === 0) {
+    grid.innerHTML = '';
+    if (emptyState) {
+      emptyState.classList.remove('hidden');
+      emptyState.classList.add('flex');
+    }
+    return;
+  }
+
+  if (emptyState) {
+    emptyState.classList.add('hidden');
+    emptyState.classList.remove('flex');
+  }
+
+  grid.innerHTML = photos.map((p, idx) => `
+    <div onclick="openPhotoLightbox(${idx})"
+      class="relative aspect-square rounded-2xl bg-[#242428] overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/60 cursor-pointer active:scale-[0.98] transition-transform group">
+      <img src="${p}" alt="Фото ${idx + 1}" class="w-full h-full object-contain pointer-events-none" />
+      <button type="button" onclick="event.stopPropagation(); confirmDeleteGalleryPhoto(${idx})" title="Удалить фото"
+        class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-rose-600 active:scale-90 text-white flex items-center justify-center backdrop-blur-md transition-all shadow-md z-10">
+        <span class="material-symbols-outlined text-[15px]">delete</span>
+      </button>
+    </div>
+  `).join('');
+}
+
+function openProGalleryPage() {
+  if (typeof router !== 'undefined' && router.navigate) {
+    router.navigate('pro-gallery');
+  } else {
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+      s.style.display = 'none';
+    });
+    const s = document.getElementById('screen-pro-gallery');
+    if (s) {
+      s.classList.add('active');
+      s.style.display = 'block';
+    }
+  }
+  window.scrollTo(0, 0);
+  renderProGalleryGrid();
+}
+
+function closeProGalleryPage() {
+  if (typeof router !== 'undefined' && router.navigate) {
+    router.navigate('pro-profile');
+  } else {
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+      s.style.display = 'none';
+    });
+    const s = document.getElementById('screen-pro-profile');
+    if (s) {
+      s.classList.add('active');
+      s.style.display = 'block';
+    }
+  }
+  window.scrollTo(0, 0);
+}
+
+function openPhotoLightbox(index = 0) {
+  const data = getProSalonData();
+  const photos = Array.isArray(data.photos) ? data.photos : [];
+  if (!photos.length) return;
+
+  lightboxCurrentIndex = Math.max(0, Math.min(index, photos.length - 1));
+  updateLightboxView();
+
+  const modal = document.getElementById('proPhotoLightboxModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.style.display = 'flex';
+  }
+
+  window.addEventListener('keydown', handleLightboxKeydown);
+  initLightboxTouchGestures();
+}
+
+function closePhotoLightbox() {
+  const modal = document.getElementById('proPhotoLightboxModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.style.display = 'none';
+  }
+  window.removeEventListener('keydown', handleLightboxKeydown);
+}
+
+function updateLightboxView() {
+  const data = getProSalonData();
+  const photos = Array.isArray(data.photos) ? data.photos : [];
+  if (!photos.length) {
+    closePhotoLightbox();
+    return;
+  }
+  if (lightboxCurrentIndex < 0) lightboxCurrentIndex = photos.length - 1;
+  if (lightboxCurrentIndex >= photos.length) lightboxCurrentIndex = 0;
+
+  const currentPhoto = photos[lightboxCurrentIndex];
+  const imgEl = document.getElementById('lightboxImg');
+  const counterEl = document.getElementById('lightboxCounter');
+  const prevBtn = document.getElementById('lightboxPrevBtn');
+  const nextBtn = document.getElementById('lightboxNextBtn');
+
+  if (imgEl) {
+    imgEl.src = currentPhoto;
+  }
+  if (counterEl) {
+    counterEl.textContent = `${lightboxCurrentIndex + 1} / ${photos.length}`;
+  }
+
+  if (prevBtn) {
+    prevBtn.style.display = photos.length > 1 ? 'flex' : 'none';
+  }
+  if (nextBtn) {
+    nextBtn.style.display = photos.length > 1 ? 'flex' : 'none';
+  }
+}
+
+function lightboxPrev(e) {
+  if (e) e.stopPropagation();
+  const data = getProSalonData();
+  const photos = Array.isArray(data.photos) ? data.photos : [];
+  if (photos.length <= 1) return;
+  lightboxCurrentIndex = (lightboxCurrentIndex - 1 + photos.length) % photos.length;
+  updateLightboxView();
+}
+
+function lightboxNext(e) {
+  if (e) e.stopPropagation();
+  const data = getProSalonData();
+  const photos = Array.isArray(data.photos) ? data.photos : [];
+  if (photos.length <= 1) return;
+  lightboxCurrentIndex = (lightboxCurrentIndex + 1) % photos.length;
+  updateLightboxView();
+}
+
+function handleLightboxKeydown(e) {
+  if (e.key === 'Escape') {
+    closePhotoLightbox();
+  } else if (e.key === 'ArrowLeft') {
+    lightboxPrev();
+  } else if (e.key === 'ArrowRight') {
+    lightboxNext();
+  }
+}
+
+function initLightboxTouchGestures() {
+  const modal = document.getElementById('proPhotoLightboxModal');
+  if (!modal || modal._touchBound) return;
+  modal._touchBound = true;
+
+  modal.addEventListener('touchstart', (e) => {
+    lightboxTouchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  modal.addEventListener('touchend', (e) => {
+    lightboxTouchEndX = e.changedTouches[0].screenX;
+    const diff = lightboxTouchEndX - lightboxTouchStartX;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        lightboxPrev();
+      } else {
+        lightboxNext();
+      }
+    }
+  }, { passive: true });
+}
+
+function deleteCurrentLightboxPhoto() {
+  confirmDeleteGalleryPhoto(lightboxCurrentIndex);
+}
+
+function confirmDeleteGalleryPhoto(index) {
+  confirmProAction(
+    'Удалить фото?',
+    'Вы уверены, что хотите удалить эту фотографию из галереи салона?',
+    () => {
+      deleteGalleryPhoto(index);
+    },
+    {
+      type: 'danger',
+      icon: 'delete',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена'
+    }
+  );
+}
+
+function deleteGalleryPhoto(index) {
+  const data = getProSalonData();
+  if (!data.photos || !data.photos[index]) return;
+  const removedUrl = data.photos[index];
+  data.photos.splice(index, 1);
+  data.updatedAt = Date.now();
+  saveProSalonData(data);
+
+  // Sync removal to Telegram and PostgreSQL
+  try {
+    const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+    const groupChatId = -5590032342;
+    const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: groupChatId,
+        text: `#pro_salon_remove_photo|gallery|${userTgId}|${data.id || 1}|${encodeURIComponent(removedUrl)}`,
+        disable_notification: true
+      })
+    }).catch(() => {});
+  } catch (e) {}
+
+  showToast('Фотография удалена 🗑️');
+  syncProSalonUI();
+
+  const modal = document.getElementById('proPhotoLightboxModal');
+  if (modal && !modal.classList.contains('hidden')) {
+    if (!data.photos.length) {
+      closePhotoLightbox();
+    } else {
+      if (lightboxCurrentIndex >= data.photos.length) {
+        lightboxCurrentIndex = data.photos.length - 1;
+      }
+      updateLightboxView();
+    }
+  }
+}
+
+async function handleGalleryPhotosSelected(event) {
+  const files = event.target.files;
+  if (!files || !files.length) return;
+
+  const data = getProSalonData();
+  if (!Array.isArray(data.photos)) data.photos = [];
+
+  showToast('Загрузка и обработка фото... ⏳');
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file.type.startsWith('image/')) continue;
+
+    try {
+      // Natural aspect ratio, compressed to high quality JPEG max 1280px without cropping
+      const { blob, dataUrl } = await compressImageForGallery(file, 1280, 0.85);
+
+      const targetIdx = data.photos.length;
+      data.photos.push(dataUrl);
+      saveProSalonData(data);
+      syncProSalonUI();
+
+      uploadSalonPhotoToTelegram(blob, 'gallery').then(cdnUrl => {
+        const freshData = getProSalonData();
+        if (freshData.photos && freshData.photos[targetIdx] === dataUrl) {
+          freshData.photos[targetIdx] = cdnUrl;
+        } else if (freshData.photos) {
+          const matchIdx = freshData.photos.indexOf(dataUrl);
+          if (matchIdx >= 0) freshData.photos[matchIdx] = cdnUrl;
+        }
+        saveProSalonData(freshData);
+        syncProSalonUI();
+        showToast('Фото сохранено в галерее! ✅');
+      }).catch(err => {
+        console.warn('[PRO] Gallery cloud upload fallback:', err);
+      });
+
+    } catch (err) {
+      console.error('[PRO] Failed to process gallery photo:', err);
+      showToast('Ошибка обработки фото ⚠️');
+    }
+  }
+
+  event.target.value = '';
+}
+
+function compressImageForGallery(file, maxDim = 1280, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          if (blob) resolve({ blob, dataUrl: canvas.toDataURL('image/jpeg', quality) });
+          else reject(new Error('Canvas toBlob failed'));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }

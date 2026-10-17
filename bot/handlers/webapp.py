@@ -555,13 +555,25 @@ async def handle_salon_photo_upload_message(message: Message, bot: Bot):
                 res_bs = await session.execute(select(Salon).where(Salon.id == 1))
                 salon = res_bs.scalar_one_or_none()
 
-            if salon:
                 if photo_type == "avatar":
                     salon.logo_url = cdn_url
                 elif photo_type == "cover":
                     salon.cover_image_url = cdn_url
                 elif photo_type == "master":
                     logger.info(f"📸 Фото мастера загружено в CDN Telegram: {cdn_url}")
+                elif photo_type == "gallery":
+                    cur_photos = []
+                    if salon.photos_json:
+                        try:
+                            cur_photos = json.loads(salon.photos_json)
+                            if not isinstance(cur_photos, list):
+                                cur_photos = []
+                        except Exception:
+                            cur_photos = []
+                    if cdn_url not in cur_photos:
+                        cur_photos.append(cdn_url)
+                        salon.photos_json = json.dumps(cur_photos, ensure_ascii=False)
+                    logger.info(f"📸 Фото галереи добавлено в салон ID {salon.id}: {cdn_url}")
                 salon.updated_at = datetime.utcnow()
                 await session.commit()
                 logger.info(f"📸 Фото ({photo_type}) салона ID {salon.id} успешно сохранено в PostgreSQL: {cdn_url}")
@@ -766,8 +778,19 @@ async def handle_salon_remove_photo_message(message: Message, bot: Bot):
             if salon:
                 if photo_type == "avatar":
                     salon.logo_url = ""
-                else:
+                elif photo_type == "cover":
                     salon.cover_image_url = ""
+                elif photo_type == "gallery":
+                    photo_to_remove = parts[4] if len(parts) > 4 else ""
+                    if photo_to_remove and salon.photos_json:
+                        try:
+                            import urllib.parse
+                            cur_photos = json.loads(salon.photos_json)
+                            if isinstance(cur_photos, list):
+                                unquoted = urllib.parse.unquote(photo_to_remove)
+                                salon.photos_json = json.dumps([p for p in cur_photos if p != photo_to_remove and p != unquoted], ensure_ascii=False)
+                        except Exception as e:
+                            logger.warning(f"Ошибка удаления фото галереи: {e}")
                 salon.updated_at = datetime.utcnow()
                 await session.commit()
                 logger.info(f"🗑️ Фото ({photo_type}) салона ID {salon.id} очищено в PostgreSQL")
@@ -894,6 +917,14 @@ async def handle_salon_update_info_message(message: Message, bot: Bot):
                 is_promoted = payload.get("is_promoted")
                 if is_promoted is not None:
                     salon.is_promoted = bool(is_promoted)
+
+                photos = payload.get("photos")
+                if photos is not None:
+                    if isinstance(photos, list):
+                        valid_photos = [p for p in photos if isinstance(p, str) and (p.startswith('http://') or p.startswith('https://') or len(p) < 1000)]
+                        salon.photos_json = json.dumps(valid_photos, ensure_ascii=False)
+                    elif isinstance(photos, str):
+                        salon.photos_json = photos
 
                 salon.updated_at = datetime.utcnow()
                 await session.commit()

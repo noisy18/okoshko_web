@@ -262,6 +262,9 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                         params.append(f"search_keywords_json={urllib.parse.quote(user_salon.search_keywords_json.strip())}")
                     if getattr(user_salon, "is_promoted", False):
                         params.append("is_promoted=1")
+                    if getattr(user_salon, "photos_json", None) and user_salon.photos_json.strip() and user_salon.photos_json.strip() != "[]":
+                        if len(user_salon.photos_json) < 2000:
+                            params.append(f"photos_json={urllib.parse.quote(user_salon.photos_json.strip())}")
 
                     updated_ts = 0
                     if getattr(user_salon, "updated_at", None):

@@ -756,6 +756,11 @@
           return;
         }
 
+        if (state.currentScreen === 'pro-gallery') {
+          this.navigate('pro-profile', false);
+          return;
+        }
+
         // Filter out 'verify' screen from history if the user is already verified
         if (state.verified) {
           state.screenHistory = state.screenHistory.filter(s => s !== 'verify');
@@ -881,7 +886,7 @@
         if (headerSubtitle) headerSubtitle.textContent = '';
 
         // Only show back button on inner detail sub-screens, never on main screens
-        const isSubScreen = (screen === 'salon' || screen === 'master' || screen === 'favorites' || screen === 'reviews');
+        const isSubScreen = (screen === 'salon' || screen === 'master' || screen === 'favorites' || screen === 'reviews' || screen === 'pro-gallery');
         if (backBtn) {
           if (isSubScreen) {
             backBtn.classList.remove('hidden');
@@ -946,6 +951,10 @@
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Панель PRO';
           if (typeof syncProSalonUI === 'function') syncProSalonUI();
+        } else if (screen === 'pro-gallery') {
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
+          headerTitle.textContent = 'Галерея';
+          if (typeof renderProGalleryGrid === 'function') renderProGalleryGrid();
         }
       }
     };
