@@ -5,12 +5,33 @@
 
     function openBusinessModal() {
       if (state.user?.is_pro) {
-        if (typeof enterProMode === 'function') {
-          enterProMode();
+        if (typeof confirmProAction === 'function') {
+          confirmProAction(
+            'Войти в бизнес-кабинет?',
+            'Вы переходите в режим управления салоном Okoshko PRO.',
+            () => {
+              if (typeof enterProMode === 'function') {
+                enterProMode();
+              } else {
+                state.isProMode = true;
+                document.body.classList.add('pro-mode-active');
+                router.navigate('pro-stats');
+              }
+            },
+            {
+              type: 'primary',
+              icon: 'storefront',
+              confirmText: 'Войти в PRO'
+            }
+          );
         } else {
-          state.isProMode = true;
-          document.body.classList.add('pro-mode-active');
-          router.navigate('pro-stats');
+          if (typeof enterProMode === 'function') {
+            enterProMode();
+          } else {
+            state.isProMode = true;
+            document.body.classList.add('pro-mode-active');
+            router.navigate('pro-stats');
+          }
         }
         return;
       }

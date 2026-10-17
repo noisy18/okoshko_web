@@ -688,6 +688,39 @@ function exitProMode() {
   } catch (e) { }
 }
 
+function confirmExitProMode() {
+  confirmProAction(
+    'Вернуться в клиентский режим?',
+    'Вы действительно хотите выйти из кабинета PRO и перейти в клиентский профиль?',
+    () => exitProMode(),
+    {
+      type: 'primary',
+      icon: 'logout',
+      confirmText: 'Вернуться в клиент'
+    }
+  );
+}
+
+function handleHeaderLogoClick() {
+  if (state.isProMode) {
+    // In PRO mode, clicking "Панель PRO" in the top-left corner does nothing
+    return;
+  }
+  router.navigate('map');
+}
+
+function handleHeaderProfileClick() {
+  if (state.isProMode) {
+    confirmExitProMode();
+  } else {
+    router.navigate('profile');
+  }
+}
+
+function openSupportProject() {
+  showToast('Ссылка на поддержку проекта скоро появится ✨');
+}
+
 // ------------------------------------------
 // SYNC PRO SALON PROFILE UI
 // ------------------------------------------
@@ -901,14 +934,44 @@ function resetProAdminBinding() {
 // ------------------------------------------
 let pendingProConfirmedAction = null;
 
-function confirmProAction(title, desc, actionFn) {
+function confirmProAction(title, desc, actionFn, options = {}) {
   pendingProConfirmedAction = actionFn;
   const modal = document.getElementById('proConfirmModal');
   const tEl = document.getElementById('proConfirmTitle');
   const dEl = document.getElementById('proConfirmDesc');
+  const iconContainer = document.getElementById('proConfirmIconContainer');
+  const iconEl = document.getElementById('proConfirmIcon');
+  const submitBtn = document.getElementById('proConfirmSubmitBtn');
 
   if (tEl) tEl.textContent = title;
   if (dEl) dEl.textContent = desc;
+
+  const isPrimary = options.type === 'primary' || options.btnClass?.includes('primary');
+
+  if (iconContainer && iconEl) {
+    if (options.icon) {
+      iconEl.textContent = options.icon;
+      if (isPrimary) {
+        iconContainer.className = 'w-12 h-12 rounded-2xl bg-indigo-50 text-primary flex items-center justify-center';
+      } else {
+        iconContainer.className = options.iconClass || 'w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center';
+      }
+    } else {
+      iconEl.textContent = 'warning';
+      iconContainer.className = 'w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center';
+    }
+  }
+
+  if (submitBtn) {
+    submitBtn.textContent = options.confirmText || 'Подтвердить';
+    if (options.btnClass) {
+      submitBtn.className = `flex-1 py-3 rounded-2xl font-bold text-xs active:scale-95 transition-all shadow-md ${options.btnClass}`;
+    } else if (isPrimary) {
+      submitBtn.className = 'flex-1 py-3 rounded-2xl bg-primary hover:bg-primary-hover text-white font-bold text-xs active:scale-95 transition-all shadow-md';
+    } else {
+      submitBtn.className = 'flex-1 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs active:scale-95 transition-all shadow-md';
+    }
+  }
 
   if (modal) {
     modal.classList.remove('hidden');
@@ -921,6 +984,15 @@ function closeProConfirmModal() {
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+  }
+  const iconContainer = document.getElementById('proConfirmIconContainer');
+  const iconEl = document.getElementById('proConfirmIcon');
+  const submitBtn = document.getElementById('proConfirmSubmitBtn');
+  if (iconContainer) iconContainer.className = 'w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center';
+  if (iconEl) iconEl.textContent = 'warning';
+  if (submitBtn) {
+    submitBtn.textContent = 'Подтвердить';
+    submitBtn.className = 'flex-1 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs active:scale-95 transition-all shadow-md';
   }
   pendingProConfirmedAction = null;
 }
