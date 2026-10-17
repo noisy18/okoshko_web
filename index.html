@@ -1254,22 +1254,15 @@
     <!-- ======================================================== -->
     <section id="screen-pro-stats" class="screen pb-44">
       <div class="px-4 pt-3 flex flex-col gap-4">
-        <!-- Top Pro Banner -->
-        <div class="p-4 rounded-3xl pro-gradient-card text-white shadow-md flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-xs">
-              <span class="material-symbols-outlined text-[24px]">query_stats</span>
-            </div>
-            <div class="flex flex-col">
-              <div class="flex items-center gap-1.5">
-                <span class="font-extrabold text-sm tracking-tight">Панель управления</span>
-                <span class="px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black uppercase">PRO</span>
-              </div>
-              <span class="text-[11px] text-indigo-200 mt-0.5">Статистика и аналитика салона</span>
-            </div>
+        <!-- Compact Pro Stats Header with Exit Button -->
+        <div class="flex items-center justify-between pt-1">
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-extrabold text-on-surface tracking-tight">Статистика</h2>
+            <span class="px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">PRO</span>
           </div>
-          <button onclick="exitProMode()" class="px-2.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-[11px] font-semibold text-white transition-all active:scale-95 flex items-center gap-1">
-            <span class="material-symbols-outlined text-[14px]">logout</span>
+          <button onclick="exitProMode()"
+            class="px-3 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80 shadow-2xs text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-[15px] text-primary">logout</span>
             <span>Клиент</span>
           </button>
         </div>
@@ -1346,16 +1339,189 @@
           </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="flex gap-2">
-          <button onclick="router.navigate('pro-appointments')" class="flex-1 py-3 px-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center gap-2 text-xs font-bold text-on-surface active:scale-95 transition-all">
-            <span class="material-symbols-outlined text-primary text-[18px]">calendar_today</span>
-            <span>Записи клиентов</span>
+        <!-- Single Big Card: Full Analytics -->
+        <button onclick="router.navigate('pro-analytics')"
+          class="w-full p-4 rounded-3xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-primary text-white shadow-md flex items-center justify-between active:scale-[0.98] transition-all group overflow-hidden relative">
+          <div class="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+          <div class="flex items-center gap-3.5 z-10">
+            <div class="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-xs shrink-0">
+              <span class="material-symbols-outlined text-[24px]">insights</span>
+            </div>
+            <div class="flex flex-col text-left">
+              <div class="flex items-center gap-1.5">
+                <span class="font-extrabold text-sm tracking-tight">Посмотреть полную статистику</span>
+                <span class="px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black uppercase">PRO</span>
+              </div>
+              <span class="text-[11px] text-slate-300 mt-0.5">Графики выручки, динамика записей и конверсия</span>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-white/80 text-[22px] group-hover:translate-x-1 transition-transform z-10">arrow_forward</span>
+        </button>
+
+        <!-- Spacer for bottom dock -->
+        <div class="w-full h-24 pointer-events-none" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN: PRO DETAILED ANALYTICS & CHARTS (Графики) -->
+    <!-- ======================================================== -->
+    <section id="screen-pro-analytics" class="screen pb-44">
+      <div class="px-4 pt-3 flex flex-col gap-4">
+        <!-- Top Navigation -->
+        <div class="flex items-center justify-between">
+          <button onclick="router.navigate('pro-stats')" class="w-9 h-9 rounded-full bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center text-slate-700 active:scale-90 transition-transform">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
           </button>
-          <button onclick="router.navigate('pro-profile')" class="flex-1 py-3 px-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center gap-2 text-xs font-bold text-on-surface active:scale-95 transition-all">
-            <span class="material-symbols-outlined text-indigo-600 text-[18px]">settings</span>
-            <span>Настройки профиля</span>
-          </button>
+          <div class="flex flex-col items-center">
+            <h2 class="text-sm font-bold text-on-surface">Полная аналитика</h2>
+            <span class="text-[10px] text-slate-400">Графики и финансовые показатели</span>
+          </div>
+          <div class="w-9 h-9"></div>
+        </div>
+
+        <!-- Period Filter Pills -->
+        <div class="flex items-center p-1 rounded-2xl bg-slate-100/90 text-xs font-semibold">
+          <button onclick="setAnalyticsPeriod('week', this)" class="analytics-period-btn active flex-1 py-1.5 rounded-xl bg-white text-primary shadow-xs transition-all">Неделя</button>
+          <button onclick="setAnalyticsPeriod('month', this)" class="analytics-period-btn flex-1 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 transition-all">Месяц</button>
+          <button onclick="setAnalyticsPeriod('quarter', this)" class="analytics-period-btn flex-1 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 transition-all">Квартал</button>
+          <button onclick="setAnalyticsPeriod('year', this)" class="analytics-period-btn flex-1 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 transition-all">Год</button>
+        </div>
+
+        <!-- Chart 1: Revenue Trends (Bar Chart Mockup) -->
+        <div class="p-4 rounded-3xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Выручка за период</span>
+              <span id="analyticsRevenueTotal" class="text-2xl font-extrabold text-on-surface mt-0.5">128 400 ₽</span>
+            </div>
+            <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center gap-0.5">
+              <span>↑ 24.3%</span>
+            </span>
+          </div>
+
+          <!-- Interactive Bar Chart SVG Visual -->
+          <div class="pt-3 pb-1">
+            <div class="flex items-end justify-between gap-2 h-36 px-1">
+              <!-- Mon -->
+              <div class="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
+                <span class="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">14.5k</span>
+                <div class="w-full bg-indigo-100 hover:bg-primary transition-colors rounded-t-xl" style="height: 45%;"></div>
+                <span class="text-[10px] text-slate-400 font-medium">Пн</span>
+              </div>
+              <!-- Tue -->
+              <div class="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
+                <span class="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">18.2k</span>
+                <div class="w-full bg-indigo-100 hover:bg-primary transition-colors rounded-t-xl" style="height: 60%;"></div>
+                <span class="text-[10px] text-slate-400 font-medium">Вт</span>
+              </div>
+              <!-- Wed -->
+              <div class="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
+                <span class="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">22.0k</span>
+                <div class="w-full bg-indigo-100 hover:bg-primary transition-colors rounded-t-xl" style="height: 72%;"></div>
+                <span class="text-[10px] text-slate-400 font-medium">Ср</span>
+              </div>
+              <!-- Thu -->
+              <div class="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
+                <span class="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">19.8k</span>
+                <div class="w-full bg-indigo-100 hover:bg-primary transition-colors rounded-t-xl" style="height: 65%;"></div>
+                <span class="text-[10px] text-slate-400 font-medium">Чт</span>
+              </div>
+              <!-- Fri -->
+              <div class="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
+                <span class="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">27.4k</span>
+                <div class="w-full bg-indigo-200 hover:bg-primary transition-colors rounded-t-xl" style="height: 88%;"></div>
+                <span class="text-[10px] text-slate-400 font-medium">Пт</span>
+              </div>
+              <!-- Sat (Peak) -->
+              <div class="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
+                <span class="text-[9px] font-bold text-emerald-600">31.2k</span>
+                <div class="w-full bg-gradient-to-t from-primary to-indigo-500 rounded-t-xl shadow-xs" style="height: 100%;"></div>
+                <span class="text-[10px] text-primary font-bold">Сб</span>
+              </div>
+              <!-- Sun -->
+              <div class="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
+                <span class="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">25.3k</span>
+                <div class="w-full bg-indigo-200 hover:bg-primary transition-colors rounded-t-xl" style="height: 82%;"></div>
+                <span class="text-[10px] text-slate-400 font-medium">Вс</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Пиковый день: <b>Суббота (31 200 ₽)</b></span>
+            <span class="text-emerald-600 font-semibold">Средний чек: 2 680 ₽</span>
+          </div>
+        </div>
+
+        <!-- Chart 2: Category Breakdown -->
+        <div class="p-4 rounded-3xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-on-surface">Распределение выручки по услугам</span>
+            <span class="text-[11px] text-slate-400">Топ категории</span>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <!-- Item 1 -->
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-medium text-slate-700">💅 Ногтевой сервис & Педикюр</span>
+                <span class="font-bold text-on-surface">68 000 ₽ <span class="text-slate-400 font-normal">(53%)</span></span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div class="h-full bg-primary rounded-full" style="width: 53%;"></div>
+              </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-medium text-slate-700">✨ Оформление бровей и ресниц</span>
+                <span class="font-bold text-on-surface">32 400 ₽ <span class="text-slate-400 font-normal">(25%)</span></span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div class="h-full bg-indigo-500 rounded-full" style="width: 25%;"></div>
+              </div>
+            </div>
+
+            <!-- Item 3 -->
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-medium text-slate-700">💇‍♀️ Парикмахерские услуги & Уход</span>
+                <span class="font-bold text-on-surface">19 200 ₽ <span class="text-slate-400 font-normal">(15%)</span></span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div class="h-full bg-amber-500 rounded-full" style="width: 15%;"></div>
+              </div>
+            </div>
+
+            <!-- Item 4 -->
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-medium text-slate-700">💆 SPA & Массажные ритуалы</span>
+                <span class="font-bold text-on-surface">8 800 ₽ <span class="text-slate-400 font-normal">(7%)</span></span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div class="h-full bg-emerald-500 rounded-full" style="width: 7%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 3: Client Loyalty & Retention -->
+        <div class="p-4 rounded-3xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-3">
+          <span class="text-xs font-bold text-on-surface">Анализ клиентской базы</span>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-0.5">
+              <span class="text-[10px] text-slate-400">Постоянные клиенты</span>
+              <span class="text-lg font-bold text-on-surface">76.4%</span>
+              <span class="text-[9px] text-emerald-600 font-medium">Высокая лояльность</span>
+            </div>
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-0.5">
+              <span class="text-[10px] text-slate-400">Новые клиенты</span>
+              <span class="text-lg font-bold text-on-surface">23.6%</span>
+              <span class="text-[9px] text-primary font-medium">Приток из каталога</span>
+            </div>
+          </div>
         </div>
 
         <!-- Spacer for bottom dock -->
@@ -1415,25 +1581,25 @@
 
             <!-- Upload Cover & Delete Cover Buttons -->
             <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-20">
-              <button type="button" id="proSalonCoverDeleteBtn" onclick="removeSalonCover(event)" title="Удалить фон"
+              <button type="button" id="proSalonCoverDeleteBtn" onclick="confirmDeleteSalonCover(event)" title="Удалить фон"
                 class="hidden px-2.5 py-1.5 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition-all shadow-md backdrop-blur-sm">
                 <span class="material-symbols-outlined text-[14px]">delete</span>
                 <span>Удалить фон</span>
               </button>
-              <button type="button" onclick="triggerSalonCoverUpload()"
+              <button type="button" onclick="openSalonCoverOptions()"
                 class="px-2.5 py-1.5 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition-all shadow-md">
                 <span class="material-symbols-outlined text-[15px]">photo_camera</span>
                 <span>Фон карточки</span>
               </button>
             </div>
-            <input type="file" id="proSalonCoverInput" accept="image/*" class="hidden" onchange="handleSalonCoverUploaded(event)" />
+            <input type="file" id="proSalonCoverInput" accept="image/*" class="hidden" onchange="handleSalonCoverSelected(event)" />
           </div>
 
           <!-- Avatar & Salon Info -->
           <div class="px-4 pb-4 pt-0 flex flex-col items-center text-center -mt-12 relative z-10">
             <!-- Salon Avatar with upload overlay and delete button -->
             <div class="relative group mb-2">
-              <div class="w-20 h-20 rounded-full overflow-hidden shadow-xl bg-white p-1 border-4 border-white aspect-square shrink-0 cursor-pointer" onclick="triggerSalonAvatarUpload()">
+              <div class="w-20 h-20 rounded-full overflow-hidden shadow-xl bg-white p-1 border-4 border-white aspect-square shrink-0 cursor-pointer" onclick="openSalonAvatarOptions()">
                 <img id="proSalonAvatarImg" src=""
                   alt="Avatar" class="hidden w-full h-full object-cover rounded-full aspect-square" />
                 <div id="proSalonAvatarFallback" class="w-full h-full rounded-full bg-gradient-to-tr from-indigo-50 to-indigo-100 flex items-center justify-center text-primary aspect-square shadow-inner border border-indigo-200/50">
@@ -1447,12 +1613,12 @@
               <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black uppercase shadow-xs pointer-events-none">PRO</span>
 
               <!-- Delete Avatar Button -->
-              <button type="button" id="proSalonAvatarDeleteBtn" onclick="removeSalonAvatar(event)" title="Удалить аватарку"
+              <button type="button" id="proSalonAvatarDeleteBtn" onclick="confirmDeleteSalonAvatar(event)" title="Удалить аватарку"
                 class="hidden absolute -top-1 -right-1 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-md active:scale-90 transition-all z-20">
                 <span class="material-symbols-outlined text-[14px]">delete</span>
               </button>
             </div>
-            <input type="file" id="proSalonAvatarInput" accept="image/*" class="hidden" onchange="handleSalonAvatarUploaded(event)" />
+            <input type="file" id="proSalonAvatarInput" accept="image/*" class="hidden" onchange="handleSalonAvatarSelected(event)" />
 
             <div class="flex items-center gap-1.5">
               <h1 id="proSalonName" class="font-bold text-lg text-on-surface">Название салона</h1>
@@ -2510,6 +2676,222 @@
             <span>Выбрать этот адрес</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: SALON AVATAR OPTIONS (Выбор / Удаление аватарки) -->
+  <!-- ======================================================== -->
+  <div id="salonAvatarOptionsModal" onclick="if(event.target === this) closeSalonAvatarOptions()"
+    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom sm:zoom-in-95 duration-150">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div class="flex flex-col">
+          <h3 class="font-bold text-sm text-on-surface">Фотография профиля</h3>
+          <span class="text-[11px] text-slate-400">Аватарка вашего салона</span>
+        </div>
+        <button type="button" onclick="closeSalonAvatarOptions()"
+          class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button type="button" onclick="openAvatarCropperPicker()"
+          class="w-full p-3.5 rounded-2xl bg-slate-50 hover:bg-primary-fixed/30 border border-slate-200/80 flex items-center gap-3 text-left active:scale-[0.98] transition-all group">
+          <div class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-xs">
+            <span class="material-symbols-outlined text-[20px]">add_a_photo</span>
+          </div>
+          <div class="flex flex-col flex-1 min-w-0">
+            <span class="font-bold text-xs text-on-surface group-hover:text-primary transition-colors">Загрузить новое фото</span>
+            <span class="text-[10px] text-slate-400">С выбором области и кадрированием</span>
+          </div>
+          <span class="material-symbols-outlined text-[18px] text-slate-300 group-hover:text-primary transition-colors">chevron_right</span>
+        </button>
+
+        <button type="button" id="salonAvatarModalDeleteBtn" onclick="confirmDeleteSalonAvatar(event)"
+          class="hidden w-full p-3.5 rounded-2xl bg-rose-50/60 hover:bg-rose-50 border border-rose-200/60 flex items-center gap-3 text-left active:scale-[0.98] transition-all group">
+          <div class="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <span class="material-symbols-outlined text-[20px]">delete</span>
+          </div>
+          <div class="flex flex-col flex-1 min-w-0">
+            <span class="font-bold text-xs text-rose-600">Удалить фотографию</span>
+            <span class="text-[10px] text-rose-400">Восстановить стандартную эмблему</span>
+          </div>
+          <span class="material-symbols-outlined text-[18px] text-rose-300">chevron_right</span>
+        </button>
+      </div>
+
+      <button type="button" onclick="closeSalonAvatarOptions()"
+        class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all">
+        Отмена
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: SALON COVER OPTIONS (Выбор / Удаление фона) -->
+  <!-- ======================================================== -->
+  <div id="salonCoverOptionsModal" onclick="if(event.target === this) closeSalonCoverOptions()"
+    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom sm:zoom-in-95 duration-150">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div class="flex flex-col">
+          <h3 class="font-bold text-sm text-on-surface">Фон профиля</h3>
+          <span class="text-[11px] text-slate-400">Обложка карточки салона</span>
+        </div>
+        <button type="button" onclick="closeSalonCoverOptions()"
+          class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center active:scale-90 transition-transform">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button type="button" onclick="openCoverCropperPicker()"
+          class="w-full p-3.5 rounded-2xl bg-slate-50 hover:bg-primary-fixed/30 border border-slate-200/80 flex items-center gap-3 text-left active:scale-[0.98] transition-all group">
+          <div class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-xs">
+            <span class="material-symbols-outlined text-[20px]">panorama</span>
+          </div>
+          <div class="flex flex-col flex-1 min-w-0">
+            <span class="font-bold text-xs text-on-surface group-hover:text-primary transition-colors">Загрузить новый фон</span>
+            <span class="text-[10px] text-slate-400">С выбором области (16:9)</span>
+          </div>
+          <span class="material-symbols-outlined text-[18px] text-slate-300 group-hover:text-primary transition-colors">chevron_right</span>
+        </button>
+
+        <button type="button" id="salonCoverModalDeleteBtn" onclick="confirmDeleteSalonCover(event)"
+          class="hidden w-full p-3.5 rounded-2xl bg-rose-50/60 hover:bg-rose-50 border border-rose-200/60 flex items-center gap-3 text-left active:scale-[0.98] transition-all group">
+          <div class="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <span class="material-symbols-outlined text-[20px]">delete</span>
+          </div>
+          <div class="flex flex-col flex-1 min-w-0">
+            <span class="font-bold text-xs text-rose-600">Удалить фоновое изображение</span>
+            <span class="text-[10px] text-rose-400">Восстановить фоновую эмблему</span>
+          </div>
+          <span class="material-symbols-outlined text-[18px] text-rose-300">chevron_right</span>
+        </button>
+      </div>
+
+      <button type="button" onclick="closeSalonCoverOptions()"
+        class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all">
+        Отмена
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CONFIRM DELETE AVATAR (Подтверждение удаления фото) -->
+  <!-- ======================================================== -->
+  <div id="confirmDeleteAvatarModal" onclick="if(event.target === this) closeConfirmDeleteAvatarModal()"
+    class="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs hidden items-center justify-center p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-3 animate-in zoom-in-95 duration-150">
+      <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">delete_forever</span>
+      </div>
+      <h3 class="font-bold text-base text-on-surface">Удалить аватарку салона?</h3>
+      <p class="text-xs text-slate-500 max-w-[260px]">Фотография профиля будет удалена. Вместо нее будет отображаться стандартная эмблема.</p>
+
+      <div class="flex items-center gap-2 w-full mt-2">
+        <button type="button" onclick="closeConfirmDeleteAvatarModal()"
+          class="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all">
+          Отмена
+        </button>
+        <button type="button" onclick="executeRemoveSalonAvatar()"
+          class="flex-1 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs active:scale-95 transition-all shadow-md">
+          Удалить
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CONFIRM DELETE COVER (Подтверждение удаления фона) -->
+  <!-- ======================================================== -->
+  <div id="confirmDeleteCoverModal" onclick="if(event.target === this) closeConfirmDeleteCoverModal()"
+    class="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs hidden items-center justify-center p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-3 animate-in zoom-in-95 duration-150">
+      <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">delete_forever</span>
+      </div>
+      <h3 class="font-bold text-base text-on-surface">Удалить фон профиля?</h3>
+      <p class="text-xs text-slate-500 max-w-[260px]">Фоновое изображение карточки будет удалено. Вместо него будет отображаться фоновая эмблема.</p>
+
+      <div class="flex items-center gap-2 w-full mt-2">
+        <button type="button" onclick="closeConfirmDeleteCoverModal()"
+          class="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all">
+          Отмена
+        </button>
+        <button type="button" onclick="executeRemoveSalonCover()"
+          class="flex-1 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs active:scale-95 transition-all shadow-md">
+          Удалить
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: INTERACTIVE IMAGE CROPPER (Выбор области фото) -->
+  <!-- ======================================================== -->
+  <div id="imageCropperModal"
+    class="fixed inset-0 z-50 bg-slate-950 flex flex-col justify-between hidden select-none animate-in fade-in duration-200">
+    <!-- Top Cropper Bar -->
+    <div class="p-4 flex items-center justify-between z-20 bg-slate-900/80 backdrop-blur-md border-b border-white/10">
+      <button type="button" onclick="closeImageCropper()"
+        class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center active:scale-90 transition-transform">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+      <div class="flex flex-col items-center">
+        <span id="cropperTitle" class="text-white font-bold text-sm">Кадрирование фото</span>
+        <span id="cropperRatioBadge" class="text-[10px] text-white/60 bg-white/10 px-2 py-0.5 rounded-full mt-0.5">1:1 (Квадрат)</span>
+      </div>
+      <button type="button" onclick="cropperRotate90()" title="Повернуть на 90°"
+        class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center active:scale-90 transition-transform">
+        <span class="material-symbols-outlined text-[19px]">rotate_right</span>
+      </button>
+    </div>
+
+    <!-- Middle Viewport Area (Interactive Drag & Zoom Area) -->
+    <div id="cropperViewport" class="flex-1 relative overflow-hidden flex items-center justify-center bg-black cursor-grab active:cursor-grabbing touch-none select-none">
+      <!-- The Image being cropped -->
+      <img id="cropperImage" src="" alt="Cropper" class="absolute pointer-events-none select-none max-w-none origin-center" />
+
+      <!-- Centered Crop Box with border and mask overlay -->
+      <div id="cropperBox" class="relative z-10 pointer-events-none transition-all duration-150">
+        <!-- Mask shading outside the box -->
+        <div class="absolute inset-0 cropper-mask"></div>
+        <!-- Grid and Border -->
+        <div id="cropperGuideBorder" class="absolute inset-0 border-2 border-white/90 shadow-2xl cropper-grid-guide"></div>
+        <!-- Circular guide overlay for avatar -->
+        <div id="cropperCircleGuide" class="hidden absolute inset-0 rounded-full border-2 border-emerald-400/90 pointer-events-none"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls & Action Bar -->
+    <div class="p-4 flex flex-col gap-3.5 z-20 bg-slate-900/90 backdrop-blur-md border-t border-white/10">
+      <!-- Zoom Range Slider -->
+      <div class="flex items-center gap-3 px-2">
+        <span class="material-symbols-outlined text-white/50 text-[18px]">zoom_out</span>
+        <input type="range" id="cropperZoomSlider" min="1" max="3" step="0.01" value="1"
+          oninput="onCropperZoomSlider(this.value)"
+          class="flex-1 h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-primary" />
+        <span class="material-symbols-outlined text-white/50 text-[18px]">zoom_in</span>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button type="button" onclick="closeImageCropper()"
+          class="flex-1 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs active:scale-95 transition-all">
+          Отмена
+        </button>
+        <button type="button" onclick="applyCroppedImage()"
+          class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-primary via-indigo-600 to-indigo-700 text-white font-bold text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">check</span>
+          <span>Применить</span>
+        </button>
       </div>
     </div>
   </div>

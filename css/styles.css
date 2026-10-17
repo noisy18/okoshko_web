@@ -516,3 +516,14 @@
       scrollbar-color: #5f3add #f1f0f4;
     }
 
+    /* Image Cropper Modal & Viewport */
+    .cropper-mask {
+      box-shadow: 0 0 0 9999px rgba(10, 15, 30, 0.78);
+    }
+    .cropper-grid-guide {
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.22) 1px, transparent 1px);
+      background-size: 33.333% 33.333%;
+    }
+

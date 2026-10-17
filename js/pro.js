@@ -811,45 +811,134 @@ function toggleProNotifications(enabled) {
 }
 
 // ------------------------------------------
-// SALON AVATAR & COVER UPLOAD HANDLERS
+// SALON AVATAR & COVER MODAL OPTIONS & CONFIRMATIONS
 // ------------------------------------------
-function triggerSalonAvatarUpload() {
+function openSalonAvatarOptions() {
+  const data = getProSalonData();
+  const delBtn = document.getElementById('salonAvatarModalDeleteBtn');
+  if (delBtn) {
+    if (data.avatarUrl) delBtn.classList.remove('hidden');
+    else delBtn.classList.add('hidden');
+  }
+  const modal = document.getElementById('salonAvatarOptionsModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeSalonAvatarOptions() {
+  const modal = document.getElementById('salonAvatarOptionsModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function openSalonCoverOptions() {
+  const data = getProSalonData();
+  const delBtn = document.getElementById('salonCoverModalDeleteBtn');
+  if (delBtn) {
+    if (data.coverUrl) delBtn.classList.remove('hidden');
+    else delBtn.classList.add('hidden');
+  }
+  const modal = document.getElementById('salonCoverOptionsModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeSalonCoverOptions() {
+  const modal = document.getElementById('salonCoverOptionsModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function confirmDeleteSalonAvatar(event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  closeSalonAvatarOptions();
+  const modal = document.getElementById('confirmDeleteAvatarModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeConfirmDeleteAvatarModal() {
+  const modal = document.getElementById('confirmDeleteAvatarModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function executeRemoveSalonAvatar() {
+  removeSalonAvatar();
+  closeConfirmDeleteAvatarModal();
+}
+
+function confirmDeleteSalonCover(event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  closeSalonCoverOptions();
+  const modal = document.getElementById('confirmDeleteCoverModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeConfirmDeleteCoverModal() {
+  const modal = document.getElementById('confirmDeleteCoverModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function executeRemoveSalonCover() {
+  removeSalonCover();
+  closeConfirmDeleteCoverModal();
+}
+
+function openAvatarCropperPicker() {
+  closeSalonAvatarOptions();
   document.getElementById('proSalonAvatarInput')?.click();
 }
 
-function handleSalonAvatarUploaded(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const base64 = e.target.result;
-    const data = getProSalonData();
-    data.avatarUrl = base64;
-    saveProSalonData(data);
-    showToast('Аватарка салона обновлена 🖼️');
-  };
-  reader.readAsDataURL(file);
-}
-
-function triggerSalonCoverUpload() {
+function openCoverCropperPicker() {
+  closeSalonCoverOptions();
   document.getElementById('proSalonCoverInput')?.click();
 }
 
-function handleSalonCoverUploaded(event) {
+function handleSalonAvatarSelected(event) {
   const file = event.target.files?.[0];
   if (!file) return;
-
   const reader = new FileReader();
   reader.onload = function(e) {
-    const base64 = e.target.result;
-    const data = getProSalonData();
-    data.coverUrl = base64;
-    data.updatedAt = Date.now();
-    saveProSalonData(data);
-    showToast('Фоновое изображение обновлено 📸');
+    openImageCropper(e.target.result, 'avatar');
   };
   reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function handleSalonCoverSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    openImageCropper(e.target.result, 'cover');
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
 }
 
 function removeSalonAvatar(event) {
@@ -864,6 +953,7 @@ function removeSalonAvatar(event) {
   if (input) input.value = '';
   saveProSalonData(data);
   showToast('Аватарка салона удалена 🗑️');
+  renderProProfile();
   if (typeof updateBizCardAvatar === 'function') {
     updateBizCardAvatar();
   }
@@ -881,6 +971,296 @@ function removeSalonCover(event) {
   if (input) input.value = '';
   saveProSalonData(data);
   showToast('Фон профиля удален 🗑️');
+  renderProProfile();
+}
+
+// ------------------------------------------
+// INTERACTIVE IMAGE CROPPER ENGINE (Кадрирование)
+// ------------------------------------------
+let cropperState = {
+  type: 'avatar', // 'avatar' | 'cover'
+  rawImage: null,
+  imgWidth: 0,
+  imgHeight: 0,
+  cropBoxW: 260,
+  cropBoxH: 260,
+  x: 0,
+  y: 0,
+  scale: 1,
+  baseScale: 1,
+  rotation: 0,
+  isDragging: false,
+  dragStartX: 0,
+  dragStartY: 0,
+  initialX: 0,
+  initialY: 0,
+  initialPinchDist: 0,
+  initialScaleOnPinch: 1
+};
+let cropperEventsAttached = false;
+
+function initCropperEventListeners() {
+  if (cropperEventsAttached) return;
+  const viewport = document.getElementById('cropperViewport');
+  if (!viewport) return;
+  cropperEventsAttached = true;
+
+  // Pointer Dragging (Pointer Events handle mouse and touch)
+  viewport.addEventListener('pointerdown', (e) => {
+    cropperState.isDragging = true;
+    cropperState.dragStartX = e.clientX;
+    cropperState.dragStartY = e.clientY;
+    cropperState.initialX = cropperState.x;
+    cropperState.initialY = cropperState.y;
+    try { viewport.setPointerCapture(e.pointerId); } catch(err) {}
+  });
+
+  viewport.addEventListener('pointermove', (e) => {
+    if (!cropperState.isDragging) return;
+    const dx = e.clientX - cropperState.dragStartX;
+    const dy = e.clientY - cropperState.dragStartY;
+    cropperState.x = cropperState.initialX + dx;
+    cropperState.y = cropperState.initialY + dy;
+    updateCropperTransform();
+  });
+
+  const stopDrag = (e) => {
+    cropperState.isDragging = false;
+    try { viewport.releasePointerCapture(e.pointerId); } catch(err) {}
+  };
+  viewport.addEventListener('pointerup', stopDrag);
+  viewport.addEventListener('pointercancel', stopDrag);
+
+  // Multi-touch Pinch to Zoom on mobile devices
+  viewport.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      cropperState.isDragging = false;
+      cropperState.initialPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      cropperState.initialScaleOnPinch = cropperState.scale;
+    }
+  }, { passive: false });
+
+  viewport.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (cropperState.initialPinchDist > 0) {
+        const factor = dist / cropperState.initialPinchDist;
+        const minScale = cropperState.baseScale;
+        const maxScale = cropperState.baseScale * 3.5;
+        const nextScale = Math.max(minScale, Math.min(maxScale, cropperState.initialScaleOnPinch * factor));
+        cropperState.scale = nextScale;
+        const slider = document.getElementById('cropperZoomSlider');
+        if (slider) {
+          slider.value = (nextScale / cropperState.baseScale).toFixed(2);
+        }
+        updateCropperTransform();
+      }
+    }
+  }, { passive: false });
+
+  // Mouse wheel zoom
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.08 : -0.08;
+    const slider = document.getElementById('cropperZoomSlider');
+    let currentVal = slider ? parseFloat(slider.value) : 1;
+    currentVal = Math.max(1, Math.min(3, currentVal + delta));
+    if (slider) slider.value = currentVal.toFixed(2);
+    onCropperZoomSlider(currentVal);
+  }, { passive: false });
+}
+
+function openImageCropper(imageSource, type) {
+  initCropperEventListeners();
+  cropperState.type = type;
+
+  const viewport = document.getElementById('cropperViewport');
+  const viewW = viewport ? viewport.clientWidth : window.innerWidth;
+  const viewH = viewport ? viewport.clientHeight : (window.innerHeight - 150);
+
+  if (type === 'avatar') {
+    // 1:1 Aspect Ratio (Square with circle guide)
+    const boxSize = Math.min(270, Math.floor(viewW * 0.78), Math.floor(viewH * 0.6));
+    cropperState.cropBoxW = boxSize;
+    cropperState.cropBoxH = boxSize;
+    const titleEl = document.getElementById('cropperTitle');
+    if (titleEl) titleEl.textContent = 'Кадрирование аватарки';
+    const badgeEl = document.getElementById('cropperRatioBadge');
+    if (badgeEl) badgeEl.textContent = '1:1 (Круг / Квадрат)';
+    document.getElementById('cropperCircleGuide')?.classList.remove('hidden');
+    document.getElementById('cropperGuideBorder')?.classList.add('rounded-full');
+  } else {
+    // 16:9 Aspect Ratio (Cover Banner)
+    const boxW = Math.min(340, Math.floor(viewW * 0.92));
+    const boxH = Math.round(boxW * 9 / 16);
+    cropperState.cropBoxW = boxW;
+    cropperState.cropBoxH = boxH;
+    const titleEl = document.getElementById('cropperTitle');
+    if (titleEl) titleEl.textContent = 'Кадрирование обложки';
+    const badgeEl = document.getElementById('cropperRatioBadge');
+    if (badgeEl) badgeEl.textContent = '16:9 (Широкий баннер)';
+    document.getElementById('cropperCircleGuide')?.classList.add('hidden');
+    document.getElementById('cropperGuideBorder')?.classList.remove('rounded-full');
+  }
+
+  const boxEl = document.getElementById('cropperBox');
+  if (boxEl) {
+    boxEl.style.width = cropperState.cropBoxW + 'px';
+    boxEl.style.height = cropperState.cropBoxH + 'px';
+  }
+
+  const img = new Image();
+  img.onload = function() {
+    cropperState.rawImage = img;
+    cropperState.imgWidth = img.naturalWidth || img.width;
+    cropperState.imgHeight = img.naturalHeight || img.height;
+    cropperState.rotation = 0;
+
+    // Base scale fits image to cover the crop box completely
+    const scaleX = cropperState.cropBoxW / cropperState.imgWidth;
+    const scaleY = cropperState.cropBoxH / cropperState.imgHeight;
+    cropperState.baseScale = Math.max(scaleX, scaleY);
+    cropperState.scale = cropperState.baseScale;
+    cropperState.x = 0;
+    cropperState.y = 0;
+
+    const slider = document.getElementById('cropperZoomSlider');
+    if (slider) slider.value = '1';
+
+    const cropperImgEl = document.getElementById('cropperImage');
+    if (cropperImgEl) {
+      cropperImgEl.src = imageSource;
+      cropperImgEl.style.width = cropperState.imgWidth + 'px';
+      cropperImgEl.style.height = cropperState.imgHeight + 'px';
+    }
+
+    updateCropperTransform();
+
+    const modal = document.getElementById('imageCropperModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  };
+  img.src = imageSource;
+}
+
+function closeImageCropper() {
+  const modal = document.getElementById('imageCropperModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function updateCropperTransform() {
+  const cropperImgEl = document.getElementById('cropperImage');
+  if (!cropperImgEl) return;
+  cropperImgEl.style.transform = `translate(${cropperState.x}px, ${cropperState.y}px) rotate(${cropperState.rotation}deg) scale(${cropperState.scale})`;
+}
+
+function onCropperZoomSlider(val) {
+  const multiplier = parseFloat(val) || 1;
+  cropperState.scale = cropperState.baseScale * multiplier;
+  updateCropperTransform();
+}
+
+function cropperRotate90() {
+  cropperState.rotation = (cropperState.rotation + 90) % 360;
+  const isRotated = (cropperState.rotation % 180 !== 0);
+  const effW = isRotated ? cropperState.imgHeight : cropperState.imgWidth;
+  const effH = isRotated ? cropperState.imgWidth : cropperState.imgHeight;
+  cropperState.baseScale = Math.max(cropperState.cropBoxW / effW, cropperState.cropBoxH / effH);
+
+  const slider = document.getElementById('cropperZoomSlider');
+  const multiplier = slider ? (parseFloat(slider.value) || 1) : 1;
+  cropperState.scale = cropperState.baseScale * multiplier;
+  updateCropperTransform();
+}
+
+function applyCroppedImage() {
+  if (!cropperState.rawImage) return;
+
+  const isAvatar = (cropperState.type === 'avatar');
+  const outW = isAvatar ? 512 : 960;
+  const outH = isAvatar ? 512 : 540;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.clearRect(0, 0, outW, outH);
+
+  const canvasRatio = outW / cropperState.cropBoxW;
+
+  ctx.translate(outW / 2, outH / 2);
+  ctx.scale(canvasRatio, canvasRatio);
+  ctx.translate(cropperState.x, cropperState.y);
+  ctx.rotate(cropperState.rotation * Math.PI / 180);
+  ctx.scale(cropperState.scale, cropperState.scale);
+
+  ctx.drawImage(
+    cropperState.rawImage,
+    -cropperState.imgWidth / 2,
+    -cropperState.imgHeight / 2,
+    cropperState.imgWidth,
+    cropperState.imgHeight
+  );
+
+  const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+  const data = getProSalonData();
+  if (isAvatar) {
+    data.avatarUrl = croppedDataUrl;
+    data.updatedAt = Date.now();
+    saveProSalonData(data);
+    showToast('Аватарка салона обновлена 🖼️');
+  } else {
+    data.coverUrl = croppedDataUrl;
+    data.updatedAt = Date.now();
+    saveProSalonData(data);
+    showToast('Фон профиля обновлен 📸');
+  }
+
+  closeImageCropper();
+  renderProProfile();
+  if (typeof updateBizCardAvatar === 'function') {
+    updateBizCardAvatar();
+  }
+}
+
+// ------------------------------------------
+// PRO ANALYTICS PERIOD FILTER HANDLER
+// ------------------------------------------
+function setAnalyticsPeriod(period, btn) {
+  document.querySelectorAll('.analytics-period-btn').forEach(b => {
+    b.classList.remove('active', 'bg-white', 'text-primary', 'shadow-xs');
+    b.classList.add('text-slate-500');
+  });
+  if (btn) {
+    btn.classList.add('active', 'bg-white', 'text-primary', 'shadow-xs');
+    btn.classList.remove('text-slate-500');
+  }
+  const revenueEl = document.getElementById('analyticsRevenueTotal');
+  if (revenueEl) {
+    const dataMap = {
+      week: '128 400 ₽',
+      month: '542 000 ₽',
+      quarter: '1 620 000 ₽',
+      year: '6 480 000 ₽'
+    };
+    revenueEl.textContent = dataMap[period] || '128 400 ₽';
+  }
 }
 
 // ------------------------------------------

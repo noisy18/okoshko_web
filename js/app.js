@@ -852,6 +852,7 @@
         if (proIndicator) {
           const proPositions = {
             'pro-stats': '0%',
+            'pro-analytics': '0%',
             'pro-appointments': '100%',
             'pro-profile': '200%'
           };
@@ -934,6 +935,9 @@
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Панель PRO';
           if (typeof renderProStats === 'function') renderProStats();
+        } else if (screen === 'pro-analytics') {
+          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
+          headerTitle.textContent = 'Аналитика';
         } else if (screen === 'pro-appointments') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Панель PRO';
