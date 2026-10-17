@@ -1166,6 +1166,8 @@ function syncProSalonUI() {
       promoteBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium';
       promoteBadge.textContent = 'Не активно';
     }
+  }
+
   // Photo Gallery
   const galleryCount = (data.photos || []).length;
   const galleryCardBadge = document.getElementById('proGalleryCardBadge');

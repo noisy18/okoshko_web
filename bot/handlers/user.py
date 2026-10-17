@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import CallbackQuery, MenuButtonWebApp, Message, WebAppInfo
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, MenuButtonWebApp, Message, WebAppInfo
 
 from bot.config import MINI_APP_URL
 from bot.database import (
@@ -165,7 +165,6 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandObje
         f"💅 Открывайте сервис в любой момент через синюю кнопку <b>«Меню»</b> внизу экрана слева!"
     )
 
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
     app_btn = InlineKeyboardMarkup(
         inline_keyboard=[
             [
