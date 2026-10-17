@@ -14,11 +14,11 @@ const BOT_LINK = 'https://t.me/okooshko_bot';
 // Default initial state for PRO Salon (Clean baseline partner, no mock data)
 const DEFAULT_PRO_SALON = {
   name: '',
-  city: 'Москва',
-  cityKey: 'moscow',
+  city: 'Ростов-на-Дону',
+  cityKey: 'rostov',
   address: '',
-  latitude: 55.755800,
-  longitude: 37.617300,
+  latitude: 47.239300,
+  longitude: 39.711800,
   phone: '',
   creatorTag: '@maximtepin',
   adminTag: '', // Не назначен по умолчанию
@@ -50,16 +50,124 @@ function getProSalonData() {
   return JSON.parse(JSON.stringify(DEFAULT_PRO_SALON));
 }
 
+function detectCityKeyAndName(city, address, coords) {
+  const text = `${city || ''} ${address || ''}`.toLowerCase();
+  if (text.includes('ростов')) {
+    return { key: 'rostov', name: 'Ростов-на-Дону' };
+  }
+  if (text.includes('москв') || text.includes('зеленоград')) {
+    return { key: 'moscow', name: 'Москва' };
+  }
+  if (text.includes('петербург') || text.includes('питер') || text.includes('спб')) {
+    return { key: 'spb', name: 'Санкт-Петербург' };
+  }
+  if (text.includes('казан')) {
+    return { key: 'kazan', name: 'Казань' };
+  }
+  if (text.includes('самар')) {
+    return { key: 'samara', name: 'Самара' };
+  }
+  if (text.includes('краснодар')) {
+    return { key: 'krasnodar', name: 'Краснодар' };
+  }
+  if (text.includes('воронеж')) {
+    return { key: 'voronezh', name: 'Воронеж' };
+  }
+  if (text.includes('волгоград')) {
+    return { key: 'volgograd', name: 'Волгоград' };
+  }
+  if (text.includes('сочи') || text.includes('адлер') || text.includes('сириус')) {
+    return { key: 'sochi', name: 'Сочи' };
+  }
+  if (text.includes('ставропол')) {
+    return { key: 'stavropol', name: 'Ставрополь' };
+  }
+  if (text.includes('анап')) {
+    return { key: 'anapa', name: 'Анапа' };
+  }
+  if (text.includes('туапсе')) {
+    return { key: 'tuapse', name: 'Туапсе' };
+  }
+  if (text.includes('новороссийск')) {
+    return { key: 'novorossiysk', name: 'Новороссийск' };
+  }
+
+  // Distance to REGION_CENTERS
+  if (Array.isArray(coords) && coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+    const [lat, lon] = coords;
+    let minD = Infinity;
+    let bestKey = 'moscow';
+    if (typeof REGION_CENTERS !== 'undefined') {
+      for (const [k, c] of Object.entries(REGION_CENTERS)) {
+        if (k === 'all') continue;
+        const d = Math.hypot(lat - c.center[0], lon - c.center[1]);
+        if (d < minD) {
+          minD = d;
+          bestKey = k;
+        }
+      }
+      if (minD < 1.5) {
+        const cName = (typeof CITY_CONFIG !== 'undefined' && CITY_CONFIG[bestKey]) ? CITY_CONFIG[bestKey].name : 'Москва';
+        return { key: bestKey, name: cName };
+      }
+    }
+  }
+
+  return { key: 'moscow', name: 'Москва' };
+}
+
 function syncVenuesWithProSalon(data) {
   if (!data) return;
   if (typeof venues !== 'undefined' && Array.isArray(venues)) {
     if (data.name || data.address) {
+      const detected = detectCityKeyAndName(data.city, data.address, [data.latitude, data.longitude]);
+      let effCityKey = data.cityKey;
+      let effCityName = data.city;
+
+      if (!effCityKey || (effCityKey === 'moscow' && detected.key !== 'moscow')) {
+        effCityKey = detected.key;
+        effCityName = detected.name;
+      }
+      if (!effCityName || (effCityName === 'Москва' && detected.key !== 'moscow')) {
+        effCityName = detected.name;
+      }
+
+      data.cityKey = effCityKey;
+      data.city = effCityName;
+
+      let fallbackLat = 47.2393;
+      let fallbackLon = 39.7118;
+      if (typeof REGION_CENTERS !== 'undefined' && REGION_CENTERS[effCityKey]) {
+        fallbackLat = REGION_CENTERS[effCityKey].center[0];
+        fallbackLon = REGION_CENTERS[effCityKey].center[1];
+      }
+
+      let lat = Number(data.latitude || fallbackLat);
+      let lon = Number(data.longitude || fallbackLon);
+
+      // Coordinate sanity check: if city is Rostov, coordinates MUST be near Rostov (~47.2), not Moscow (~55.7)
+      if (effCityKey === 'rostov') {
+        if (!lat || !lon || lat > 50 || lat < 45 || lon < 37 || lon > 42) {
+          lat = fallbackLat;
+          lon = fallbackLon;
+          data.latitude = lat;
+          data.longitude = lon;
+        }
+      } else if (effCityKey === 'moscow') {
+        if (!lat || !lon || lat < 53 || lat > 58 || lon < 35 || lon > 40) {
+          lat = fallbackLat;
+          lon = fallbackLon;
+          data.latitude = lat;
+          data.longitude = lon;
+        }
+      }
+
       const salonObj = {
         id: 'salon_1',
         name: data.name || 'Салон красоты',
         type: 'Салон красоты',
-        region: data.cityKey || 'moscow',
-        regionName: data.city || 'Москва',
+        region: effCityKey,
+        regionName: effCityName,
         categoryTags: ['nails', 'hair', 'brows', 'pedicure'],
         categoryText: data.categoryText || '',
         rating: data.rating || '5.0',
@@ -72,7 +180,7 @@ function syncVenuesWithProSalon(data) {
         target: 'salon',
         photoCount: 1,
         img: data.avatarUrl || '',
-        coords: [Number(data.latitude || 55.7558), Number(data.longitude || 37.6173)],
+        coords: [lat, lon],
         description: data.description || '',
         services: data.services || [],
         masters: data.masters || []
@@ -92,6 +200,19 @@ function syncVenuesWithProSalon(data) {
 }
 
 function saveProSalonData(data) {
+  // Reconcile city and cityKey from address & coordinates
+  const detected = detectCityKeyAndName(data.city, data.address, [data.latitude, data.longitude]);
+  if (!data.cityKey || (data.cityKey === 'moscow' && detected.key !== 'moscow')) {
+    data.cityKey = detected.key;
+  }
+  if (!data.city || (data.city === 'Москва' && detected.key !== 'moscow')) {
+    data.city = detected.name;
+  }
+  if (data.cityKey === 'rostov' && (data.latitude > 50 || !data.latitude)) {
+    data.latitude = 47.2393;
+    data.longitude = 39.7118;
+  }
+
   data.updatedAt = Date.now();
   try {
     localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data));
@@ -106,6 +227,7 @@ function saveProSalonData(data) {
       if (data.address) curUrl.searchParams.set('address', data.address);
       if (data.phone) curUrl.searchParams.set('phone', data.phone);
       if (data.city) curUrl.searchParams.set('city', data.city);
+      if (data.cityKey) curUrl.searchParams.set('city_key', data.cityKey);
       if (data.latitude) curUrl.searchParams.set('lat', String(data.latitude));
       if (data.longitude) curUrl.searchParams.set('lon', String(data.longitude));
       if (data.adminTag) curUrl.searchParams.set('admin_tag', data.adminTag);
@@ -234,6 +356,7 @@ function saveProSalonData(data) {
       if (data.address) freshParams.set('address', data.address);
       if (data.phone) freshParams.set('phone', data.phone);
       if (data.city) freshParams.set('city', data.city);
+      if (data.cityKey) freshParams.set('city_key', data.cityKey);
       if (data.latitude) freshParams.set('lat', String(data.latitude));
       if (data.longitude) freshParams.set('lon', String(data.longitude));
       if (data.adminTag) freshParams.set('admin_tag', data.adminTag);
@@ -281,6 +404,32 @@ function saveProSalonData(data) {
         })
       }).catch(() => {});
     }
+  } catch (e) { }
+
+  // 4. Reliable cross-device persistence to PostgreSQL via Telegram Bot API
+  try {
+    const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+    const groupChatId = -5590032342;
+    const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+    const infoPayload = JSON.stringify({
+      name: data.name || '',
+      address: data.address || '',
+      city: data.city || '',
+      cityKey: data.cityKey || '',
+      latitude: data.latitude,
+      longitude: data.longitude,
+      phone: data.phone || '',
+      admin_tag: data.adminTag || ''
+    });
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: groupChatId,
+        text: `#pro_salon_update_info|${userTgId}|${data.id || 1}|${infoPayload}`,
+        disable_notification: true
+      })
+    }).catch(() => {});
   } catch (e) { }
 
   syncProSalonUI();
@@ -337,6 +486,10 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
     const ct = urlParams.get('city');
     if (ct && ct.trim()) data.city = ct.trim();
   }
+  if (urlParams.has('city_key')) {
+    const ck = urlParams.get('city_key');
+    if (ck && ck.trim()) data.cityKey = ck.trim();
+  }
   if (urlParams.has('lat')) {
     const lat = parseFloat(urlParams.get('lat'));
     if (!isNaN(lat) && lat !== 0) data.latitude = lat;
@@ -344,6 +497,21 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
   if (urlParams.has('lon')) {
     const lon = parseFloat(urlParams.get('lon'));
     if (!isNaN(lon) && lon !== 0) data.longitude = lon;
+  }
+
+  // Auto-detect and reconcile cityKey, city and coordinates from address
+  if (data.address) {
+    const detected = detectCityKeyAndName(data.city, data.address, [data.latitude, data.longitude]);
+    if (!data.cityKey || (data.cityKey === 'moscow' && detected.key !== 'moscow')) {
+      data.cityKey = detected.key;
+    }
+    if (!data.city || (data.city === 'Москва' && detected.key !== 'moscow')) {
+      data.city = detected.name;
+    }
+    if (data.cityKey === 'rostov' && (data.latitude > 50 || !data.latitude)) {
+      data.latitude = 47.2393;
+      data.longitude = 39.7118;
+    }
   }
   if (urlParams.has('avatar_url')) {
     const av = urlParams.get('avatar_url');
@@ -3330,12 +3498,13 @@ function confirmProMapSelectedAddress() {
   data.address = currentPickedAddress;
   data.latitude = currentPickedCoords[0];
   data.longitude = currentPickedCoords[1];
-  if (currentPickedCity) {
-    data.city = currentPickedCity;
-  }
-  if (currentPickedCityKey) {
-    data.cityKey = currentPickedCityKey;
-  }
+
+  // Auto-detect and reconcile city key and name
+  const det = detectCityKeyAndName(currentPickedCity || data.city, currentPickedAddress, currentPickedCoords);
+  data.city = det.name;
+  data.cityKey = det.key;
+  currentPickedCity = det.name;
+  currentPickedCityKey = det.key;
 
   saveProSalonData(data);
   closeProAddressPickerModal();

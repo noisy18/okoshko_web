@@ -37,9 +37,13 @@
 
     function closeCityModal() {
       const modal = document.getElementById('citySelectModal');
-      if (!modal) return;
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      if (typeof isProCitySelection !== 'undefined') {
+        isProCitySelection = false;
+      }
     }
 
     // Close city modal when clicking backdrop
@@ -180,6 +184,7 @@
 
       // If called from PRO profile city selector
       if (typeof isProCitySelection !== 'undefined' && isProCitySelection) {
+        isProCitySelection = false;
         const cityName = CITY_CONFIG[cityId]?.name || 'Москва';
         if (typeof handleProCitySelected === 'function') {
           handleProCitySelected(cityId, cityName);
@@ -202,13 +207,20 @@
 
       applyCombinedFilters();
 
-      // Pan & Zoom map to selected region
-      if (yandexMapInstance && REGION_CENTERS[cityId]) {
-        const rc = REGION_CENTERS[cityId];
-        yandexMapInstance.setCenter(rc.center, rc.zoom, {
-          flying: true,
-          duration: 700
-        });
+      // Pan & Zoom map to selected region or venue
+      if (yandexMapInstance) {
+        if (visibleVenues.length > 0 && visibleVenues[0].coords) {
+          yandexMapInstance.setCenter(visibleVenues[0].coords, 14, {
+            checkZoomRange: true,
+            duration: 600
+          });
+        } else if (REGION_CENTERS[cityId]) {
+          const rc = REGION_CENTERS[cityId];
+          yandexMapInstance.setCenter(rc.center, rc.zoom, {
+            checkZoomRange: true,
+            duration: 600
+          });
+        }
       }
 
       showToast(`Выбран город: ${CITY_CONFIG[cityId].name} 📍`);
@@ -313,7 +325,30 @@
     function applyCombinedFilters() {
       // 1. Filter by Region, Category and Search Query
       visibleVenues = venues.filter(v => {
-        const matchRegion = (currentFilterRegion === 'all' || v.region === currentFilterRegion);
+        let matchRegion = false;
+        if (currentFilterRegion === 'all') {
+          matchRegion = true;
+        } else {
+          if (v.region === currentFilterRegion) {
+            matchRegion = true;
+          } else {
+            // Intelligent fallback matching by city name, short name or address keywords
+            const cityCfg = CITY_CONFIG[currentFilterRegion];
+            if (cityCfg) {
+              const checkText = `${v.regionName || ''} ${v.address || ''} ${v.name || ''}`.toLowerCase();
+              const shortLower = (cityCfg.short || '').toLowerCase();
+              const nameLower = (cityCfg.name || '').toLowerCase();
+              if (
+                (shortLower && checkText.includes(shortLower)) ||
+                (nameLower && checkText.includes(nameLower))
+              ) {
+                matchRegion = true;
+                v.region = currentFilterRegion;
+                if (!v.regionName) v.regionName = cityCfg.name;
+              }
+            }
+          }
+        }
         const matchCategory = (currentFilterCategory === 'all' || v.categoryTags.includes(currentFilterCategory));
         let matchSearch = true;
         if (currentSearchQuery) {

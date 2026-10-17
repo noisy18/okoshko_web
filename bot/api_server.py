@@ -140,6 +140,13 @@ async def handle_update_salon(request: web.Request) -> web.Response:
                 salon.phone = s_phone.strip()
             if s_city is not None:
                 salon.region_name = s_city.strip()
+            s_city_key = data.get("cityKey") or data.get("city_key")
+            if s_city_key:
+                salon.region = s_city_key.strip()
+            elif s_city and "ростов" in s_city.lower():
+                salon.region = "rostov"
+            elif s_city and "москв" in s_city.lower():
+                salon.region = "moscow"
             if s_avatar is not None:
                 salon.logo_url = s_avatar
             if s_cover is not None:

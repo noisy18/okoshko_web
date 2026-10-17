@@ -788,3 +788,116 @@ async def handle_salon_remove_photo_message(message: Message, bot: Bot):
         logger.error(f"Ошибка удаления фото салона в БД: {e}")
 
 
+@webapp_router.message(F.text.startswith("#pro_salon_update_info"))
+async def handle_salon_update_info_message(message: Message, bot: Bot):
+    """
+    Обновляет основные данные салона (название, адрес, город, координаты, телефон) в PostgreSQL из Mini App
+    Формат: #pro_salon_update_info|user_id|salon_id|{"name":"...","address":"...","city":"...","cityKey":"...","latitude":...,"longitude":...,"phone":"..."}
+    """
+    try:
+        parts = message.text.split("|", 3)
+        user_id = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else (message.from_user.id if message.from_user else 1205557089)
+        salon_id = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 1
+        raw_payload = parts[3] if len(parts) > 3 else "{}"
+        payload = json.loads(raw_payload)
+
+        from bot.database.base import async_session_maker
+        from bot.database.models import Salon
+        from bot.database.requests import transliterate_to_latin
+        from bot.handlers.user import get_user_app_url
+        from aiogram.types import MenuButtonWebApp, WebAppInfo
+        from sqlalchemy import select
+
+        async with async_session_maker() as session:
+            res = await session.execute(
+                select(Salon).where((Salon.owner_id == user_id) | (Salon.admin_id == user_id) | (Salon.id == salon_id))
+            )
+            salon = res.scalar_one_or_none()
+            if not salon:
+                res_first = await session.execute(select(Salon).where(Salon.id == 1))
+                salon = res_first.scalar_one_or_none()
+
+            if salon:
+                if not salon.owner_id:
+                    salon.owner_id = user_id
+
+                name = (payload.get("name") or "").strip()
+                if name:
+                    salon.name = name
+                    slug = transliterate_to_latin(name)
+                    if slug:
+                        salon.slug = slug
+
+                address = (payload.get("address") or "").strip()
+                if address:
+                    salon.address = address
+
+                city = (payload.get("city") or "").strip()
+                city_key = (payload.get("cityKey") or "").strip()
+
+                # Автоопределение города если в адресе есть Ростов или Москва
+                addr_lower = (address or "").lower()
+                city_lower = (city or "").lower()
+                if "ростов" in addr_lower or "ростов" in city_lower:
+                    city = "Ростов-на-Дону"
+                    city_key = "rostov"
+                elif "москв" in addr_lower or "москв" in city_lower:
+                    city = "Москва"
+                    city_key = "moscow"
+
+                if city:
+                    salon.region_name = city
+                if city_key:
+                    salon.region = city_key
+
+                lat = payload.get("latitude")
+                lon = payload.get("longitude")
+                if lat is not None:
+                    try:
+                        salon.latitude = float(lat)
+                    except (ValueError, TypeError):
+                        pass
+                if lon is not None:
+                    try:
+                        salon.longitude = float(lon)
+                    except (ValueError, TypeError):
+                        pass
+
+                phone = (payload.get("phone") or "").strip()
+                if phone:
+                    salon.phone = phone
+
+                admin_tag = payload.get("admin_tag")
+                if admin_tag is not None:
+                    salon.admin_tag = admin_tag.strip()
+                    if not salon.admin_tag:
+                        salon.admin_id = None
+
+                salon.updated_at = datetime.utcnow()
+                await session.commit()
+                logger.info(f"✅ Данные салона id={salon.id} обновлены в БД: name='{salon.name}', city='{salon.region_name}', addr='{salon.address}', coords=[{salon.latitude}, {salon.longitude}]")
+
+                # Обновляем кнопку меню владельца
+                try:
+                    fresh_url = await get_user_app_url(user_id)
+                    await bot.set_chat_menu_button(
+                        chat_id=user_id,
+                        menu_button=MenuButtonWebApp(
+                            text="💅 Окошко",
+                            web_app=WebAppInfo(url=fresh_url),
+                        ),
+                    )
+                    logger.info(f"MenuButton для {user_id} обновлена со свежими координатами и адресом")
+                except Exception as m_err:
+                    logger.warning(f"Не удалось обновить MenuButton: {m_err}")
+
+        # Удаляем сервисное сообщение
+        try:
+            await message.delete()
+        except Exception:
+            pass
+
+    except Exception as e:
+        logger.error(f"Ошибка в handle_salon_update_info_message: {e}")
+
+

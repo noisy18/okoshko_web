@@ -103,7 +103,7 @@
 
         <!-- Center: City Selector Pill Button (Telegram Liquid Glass style) -->
         <div class="flex-1 flex items-center justify-center min-w-0">
-          <button id="headerCityBtn" onclick="event.stopPropagation(); openCityModal()" aria-label="Выбрать город"
+          <button id="headerCityBtn" onclick="event.stopPropagation(); if (typeof isProCitySelection !== 'undefined') isProCitySelection = false; openCityModal()" aria-label="Выбрать город"
             class="telegram-glass-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full text-on-surface text-xs font-semibold active:scale-95 transition-all max-w-[150px]">
             <span class="text-[13px] leading-none shrink-0" id="headerCityIcon">🏙</span>
             <span id="headerCityName" class="truncate text-[11px] font-bold">Москва</span>
@@ -449,7 +449,7 @@
         </div>
 
         <!-- City Selector Pill Button (shown in fullscreen mode, top-left with Telegram Liquid Glass style) -->
-        <button id="mapFullscreenCityBtn" onclick="event.stopPropagation(); openCityModal()" aria-label="Выбрать город"
+        <button id="mapFullscreenCityBtn" onclick="event.stopPropagation(); if (typeof isProCitySelection !== 'undefined') isProCitySelection = false; openCityModal()" aria-label="Выбрать город"
           class="hidden absolute top-4 left-4 z-40 telegram-glass-pill flex items-center gap-1.5 px-3 py-2 rounded-full text-on-surface text-xs font-semibold active:scale-95 transition-all">
           <span class="text-[14px] leading-none" id="mapFullscreenCityIcon">🏙</span>
           <span id="mapFullscreenCityName" class="max-w-[100px] truncate text-[12px] font-bold text-on-surface">Москва</span>
