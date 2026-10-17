@@ -203,6 +203,8 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
   if (urlParams.has('city')) data.city = urlParams.get('city');
   if (urlParams.has('lat')) data.latitude = parseFloat(urlParams.get('lat'));
   if (urlParams.has('lon')) data.longitude = parseFloat(urlParams.get('lon'));
+  if (urlParams.has('avatar_url')) data.avatarUrl = urlParams.get('avatar_url') || '';
+  if (urlParams.has('cover_url')) data.coverUrl = urlParams.get('cover_url') || '';
   if (timestamp) data.updatedAt = timestamp;
 
   if (urlParams.has('services_json')) {
@@ -508,6 +510,24 @@ function syncProSalonUI() {
       coverImg.classList.add('hidden');
       if (coverFallback) coverFallback.classList.remove('hidden');
     }
+  }
+
+  // Delete buttons visibility
+  const avatarDelBtn = document.getElementById('proSalonAvatarDeleteBtn');
+  if (avatarDelBtn) {
+    if (data.avatarUrl) avatarDelBtn.classList.remove('hidden');
+    else avatarDelBtn.classList.add('hidden');
+  }
+
+  const coverDelBtn = document.getElementById('proSalonCoverDeleteBtn');
+  if (coverDelBtn) {
+    if (data.coverUrl) coverDelBtn.classList.remove('hidden');
+    else coverDelBtn.classList.add('hidden');
+  }
+
+  // Sync client business card avatar
+  if (typeof updateBizCardAvatar === 'function') {
+    updateBizCardAvatar();
   }
 }
 
@@ -825,10 +845,75 @@ function handleSalonCoverUploaded(event) {
     const base64 = e.target.result;
     const data = getProSalonData();
     data.coverUrl = base64;
+    data.updatedAt = Date.now();
     saveProSalonData(data);
     showToast('Фоновое изображение обновлено 📸');
   };
   reader.readAsDataURL(file);
+}
+
+function removeSalonAvatar(event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  const data = getProSalonData();
+  data.avatarUrl = '';
+  data.updatedAt = Date.now();
+  const input = document.getElementById('proSalonAvatarInput');
+  if (input) input.value = '';
+  saveProSalonData(data);
+  showToast('Аватарка салона удалена 🗑️');
+  if (typeof updateBizCardAvatar === 'function') {
+    updateBizCardAvatar();
+  }
+}
+
+function removeSalonCover(event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  const data = getProSalonData();
+  data.coverUrl = '';
+  data.updatedAt = Date.now();
+  const input = document.getElementById('proSalonCoverInput');
+  if (input) input.value = '';
+  saveProSalonData(data);
+  showToast('Фон профиля удален 🗑️');
+}
+
+// ------------------------------------------
+// CLIENT BIZ CARD AVATAR SYNCHRONIZATION
+// ------------------------------------------
+function updateBizCardAvatar() {
+  const bizCardImg = document.getElementById('bizCardAvatarImg');
+  const bizCardFallback = document.getElementById('bizCardAvatarFallback');
+  if (!bizCardImg && !bizCardFallback) return;
+
+  let avatarUrl = '';
+  try {
+    const data = getProSalonData();
+    if (data && data.avatarUrl) avatarUrl = data.avatarUrl;
+  } catch (e) { }
+
+  if (!avatarUrl && typeof venues !== 'undefined' && venues.length && (venues[0]?.avatarUrl || venues[0]?.avatar_url)) {
+    avatarUrl = venues[0].avatarUrl || venues[0].avatar_url;
+  }
+
+  if (avatarUrl) {
+    if (bizCardImg) {
+      bizCardImg.src = avatarUrl;
+      bizCardImg.classList.remove('hidden');
+    }
+    if (bizCardFallback) bizCardFallback.classList.add('hidden');
+  } else {
+    if (bizCardImg) {
+      bizCardImg.src = '';
+      bizCardImg.classList.add('hidden');
+    }
+    if (bizCardFallback) bizCardFallback.classList.remove('hidden');
+  }
 }
 
 // ------------------------------------------

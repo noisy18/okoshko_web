@@ -113,6 +113,9 @@
         }
         if (bizCardSub) bizCardSub.textContent = 'Управление салоном, мастерами и онлайн-записями';
       }
+      if (typeof updateBizCardAvatar === 'function') {
+        updateBizCardAvatar();
+      }
 
       // Top Header Avatar
       const hInit = document.getElementById('headerUserInitials');

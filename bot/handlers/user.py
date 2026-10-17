@@ -236,6 +236,10 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                     salon_phone = getattr(user_salon, "phone", None)
                     if salon_phone is not None:
                         params.append(f"phone={urllib.parse.quote(salon_phone)}")
+                    if getattr(user_salon, "logo_url", None):
+                        params.append(f"avatar_url={urllib.parse.quote(user_salon.logo_url)}")
+                    if getattr(user_salon, "cover_image_url", None):
+                        params.append(f"cover_url={urllib.parse.quote(user_salon.cover_image_url)}")
                     if user_salon.id:
                         params.append(f"salon_id={user_salon.id}")
                     import time

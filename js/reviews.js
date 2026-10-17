@@ -759,38 +759,7 @@
       } catch (e) {
         console.error('Error reading appointments:', e);
       }
-      const initial = [
-        {
-          id: 'bk_1',
-          salon: 'Beauty Studio',
-          address: 'ул. Большая Садовая, 42',
-          master: 'Алина Романова (Топ)',
-          service: 'Маникюр с покрытием гель-лак Luxio',
-          date: 'Сегодня',
-          time: '14:00',
-          total: 2500,
-          status: 'active',
-          img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
-          rating: '4.9'
-        },
-        {
-          id: 'bk_0',
-          salon: 'Beauty Studio',
-          address: 'ул. Большая Садовая, 42',
-          master: 'Кристина Ли',
-          service: 'Smart-педикюр эстетический',
-          date: '24 октября',
-          time: '15:30',
-          total: 2800,
-          status: 'completed',
-          img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
-          rating: '4.9'
-        }
-      ];
-      try {
-        localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(initial));
-      } catch (e) { }
-      return initial;
+      return [];
     }
 
     function saveStoredAppointments(list) {
@@ -852,8 +821,8 @@
 
               <!-- Studio & Master Info -->
               <div class="flex gap-3 items-center">
-                <div class="w-14 h-14 rounded-2xl overflow-hidden bg-surface-container shrink-0">
-                  <img class="w-full h-full object-cover" alt="${a.salon}" src="${a.img || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw'}"/>
+                <div class="w-14 h-14 rounded-2xl overflow-hidden bg-indigo-50 shrink-0 flex items-center justify-center text-primary border border-slate-200/60">
+                  ${a.img ? `<img class="w-full h-full object-cover" alt="${a.salon}" src="${a.img}"/>` : `<span class="material-symbols-outlined text-[26px]">storefront</span>`}
                 </div>
                 <div class="flex flex-col min-w-0 flex-1">
                   <div class="flex items-center gap-1.5">
@@ -1071,8 +1040,8 @@
         time: bookingData.time,
         total: bookingData.price,
         status: 'active',
-        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAcCxWme6ULSpQ44tJiz4tQHu4YUpsONV_LbIPwYQ7F26j9eLjQH3DxXwCFKuXmEg-GAdD5l167fJ914D7wMIfLygqAWKTg0UbacsMAEvp04kKtm0CS8wzbbWTrzRqI5-qgi0_kzzDS106FjHN8m8IB73sqELUJHQHEfTeIngb2cQJHzPk7uGk018G7mBHpA6axq-QqQxuVTuk2fdkSj7cH3IreFxih-Q7Yo2PZxw',
-        rating: '4.9'
+        img: bookingData.img || '',
+        rating: '5.0'
       };
 
       const all = getStoredAppointments();

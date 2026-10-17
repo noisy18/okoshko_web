@@ -440,14 +440,43 @@
 
       // 1. Hero Image & Badges
       const heroImg = document.getElementById('salonHeroImg');
-      if (heroImg) {
-        heroImg.src = salon.img || 'https://lh3.googleusercontent.com/aida-public/AB6AXuD68Q2lB-8_fzvF7A5OEHVHVhzif4gV6RJO3v1Pki6C3MDKAe0aVRpFaq2OhI2tIrB-199wxEmoCupVLmA6hNZB-2aghZ_lOnO1YyyoChZAtTcfdODO9ojl_oO6S_ZYBAgjLIx2n_S6TS09jqNtPujm77WTaf7Wy_NwiyDpJ5Qm3T1inuQxRLzxzvPJa64DlATLBAqU-N_vG49gtkadYgOYO1BBb74Voj3HfrL87g';
-        heroImg.alt = salon.name;
+      const heroFallback = document.getElementById('salonHeroFallback');
+      const coverSrc = salon.coverUrl || salon.cover_image_url || salon.img || '';
+      if (coverSrc) {
+        if (heroImg) {
+          heroImg.src = coverSrc;
+          heroImg.alt = salon.name;
+          heroImg.classList.remove('hidden');
+        }
+        if (heroFallback) heroFallback.classList.add('hidden');
+      } else {
+        if (heroImg) {
+          heroImg.src = '';
+          heroImg.classList.add('hidden');
+        }
+        if (heroFallback) heroFallback.classList.remove('hidden');
       }
       const distText = document.getElementById('salonDistanceText');
       if (distText) distText.textContent = salon.distance ? `${salon.distance} от вас` : 'Рядом с вами';
 
-      // 2. Title, Subtitle, Rating, Reviews
+      // 2. Title, Subtitle, Avatar, Rating, Reviews
+      const salonAvImg = document.getElementById('salonAvatarImg');
+      const salonAvFallback = document.getElementById('salonAvatarFallback');
+      const avatarSrc = salon.avatarUrl || salon.avatar_url || salon.logo_url || '';
+      if (avatarSrc) {
+        if (salonAvImg) {
+          salonAvImg.src = avatarSrc;
+          salonAvImg.classList.remove('hidden');
+        }
+        if (salonAvFallback) salonAvFallback.classList.add('hidden');
+      } else {
+        if (salonAvImg) {
+          salonAvImg.src = '';
+          salonAvImg.classList.add('hidden');
+        }
+        if (salonAvFallback) salonAvFallback.classList.remove('hidden');
+      }
+
       const nameEl = document.getElementById('salonName');
       if (nameEl) nameEl.textContent = salon.name;
 
@@ -559,8 +588,8 @@
           const isTop = (m.grade_badge && m.grade_badge.includes('TOP'));
           railHTML += `
             <div onclick="openMasterDetails('${m.id}')" class="min-w-[130px] p-3 rounded-2xl bg-white ${isTop ? 'border-2 border-primary/40' : 'border border-slate-200'} shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform shrink-0 relative">
-              <div class="w-12 h-12 rounded-full overflow-hidden bg-primary-fixed mb-2 shadow-xs">
-                <img class="w-full h-full object-cover" alt="${m.name}" src="${m.avatar_url}" onerror="this.src='https://lh3.googleusercontent.com/aida-public/AB6AXuDk4gw1UO5MRK6ZgCmtBhgbzfykfvdMi22HxmB42TFZv43Ycfx-fGIgpdWlkDauw_wwkEdituuObvw2bYr3OWyoV7Rqd3KFJr3g1SQM8vQ9ejRqbfexejYKE6z1IcUAVFuonjPm6mZI6Wyfi3KUqpeR2pHxtJfueeBJ_aDmYd4TtueiDxgWXzAv7kB7okWv6LGjfOYzg5WbMcK7hUcST54m7JMjCxVmk0kjDtDoRw'"/>
+              <div class="w-12 h-12 rounded-full overflow-hidden bg-indigo-50 border border-slate-200 mb-2 shadow-xs flex items-center justify-center text-primary">
+                ${m.avatar_url ? `<img class="w-full h-full object-cover" alt="${m.name}" src="${m.avatar_url}"/>` : `<span class="material-symbols-outlined text-[24px]">person</span>`}
               </div>
               <span class="text-xs font-bold text-on-surface truncate w-full">${m.name}</span>
               <div class="flex items-center space-x-0.5 text-[10px] text-amber-500 font-bold">
@@ -647,9 +676,18 @@
 
       // 1. Master Profile Header
       const avImg = document.getElementById('masterAvatarImg');
+      const avFallback = document.getElementById('masterAvatarFallback');
       if (avImg) {
-        avImg.src = masterInfo.avatar_url;
-        avImg.alt = masterInfo.name;
+        if (masterInfo.avatar_url) {
+          avImg.src = masterInfo.avatar_url;
+          avImg.alt = masterInfo.name;
+          avImg.classList.remove('hidden');
+          if (avFallback) avFallback.classList.add('hidden');
+        } else {
+          avImg.src = '';
+          avImg.classList.add('hidden');
+          if (avFallback) avFallback.classList.remove('hidden');
+        }
       }
       const gradeEl = document.getElementById('masterGradeBadge');
       if (gradeEl) gradeEl.textContent = masterInfo.grade_badge || 'PRO MASTER';
@@ -752,6 +790,23 @@
       if (mRevAvatar) {
         const initials = latestRev.author.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'КЛ';
         mRevAvatar.textContent = initials;
+      }
+
+      // 6. Master Portfolio
+      const portGrid = document.getElementById('masterPortfolioGrid');
+      const portCount = document.getElementById('masterPortfolioCount');
+      const photos = masterInfo.portfolio_photos || [];
+      if (portCount) portCount.textContent = `${photos.length} фото`;
+      if (portGrid) {
+        if (photos.length > 0) {
+          portGrid.innerHTML = photos.map(p => `
+            <div class="relative rounded-2xl overflow-hidden aspect-square bg-surface-container group cursor-pointer" onclick="openPhotoModal(this)">
+              <img class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="Работа мастера" src="${p.url || p}" />
+            </div>
+          `).join('');
+        } else {
+          portGrid.innerHTML = `<div class="col-span-3 py-6 text-center text-xs text-slate-400">Работы мастера пополняются</div>`;
+        }
       }
 
       updateDock();
