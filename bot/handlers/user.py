@@ -165,10 +165,20 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandObje
         f"💅 Открывайте сервис в любой момент через синюю кнопку <b>«Меню»</b> внизу экрана слева!"
     )
 
-    from aiogram.types import ReplyKeyboardRemove
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+    app_btn = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="💅 Открыть «Окошко»",
+                    web_app=WebAppInfo(url=app_url),
+                )
+            ]
+        ]
+    )
     await message.answer(
         text=welcome_text,
-        reply_markup=ReplyKeyboardRemove(),
+        reply_markup=app_btn,
     )
 
 
@@ -545,6 +555,16 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
                 ),
             )
             m_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
+            owner_markup = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="💇 Открыть команду мастеров",
+                            web_app=WebAppInfo(url=owner_app_url),
+                        )
+                    ]
+                ]
+            )
             await bot.send_message(
                 chat_id=owner_tg,
                 text=(
@@ -553,6 +573,7 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
                     f"💇 Мастер: <b>{master_name}</b> ({m_mention}, ID: <code>{user.id}</code>)\n"
                     f"Специализация: <i>{master.role_title if master else 'Специалист'}</i>"
                 ),
+                reply_markup=owner_markup,
             )
         except Exception as e:
             logger.warning(f"Не удалось уведомить владельца салона: {e}")
@@ -569,6 +590,16 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
                 ),
             )
             m_mention = f"@{user.username}" if user.username else (user.first_name or f"ID {user.id}")
+            admin_markup = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="💇 Открыть команду мастеров",
+                            web_app=WebAppInfo(url=admin_app_url),
+                        )
+                    ]
+                ]
+            )
             await bot.send_message(
                 chat_id=salon.admin_id,
                 text=(
@@ -577,6 +608,7 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
                     f"💇 Мастер: <b>{master_name}</b> ({m_mention}, ID: <code>{user.id}</code>)\n"
                     f"Специализация: <i>{master.role_title if master else 'Специалист'}</i>"
                 ),
+                reply_markup=admin_markup,
             )
         except Exception as e:
             logger.warning(f"Не удалось уведомить администратора салона: {e}")

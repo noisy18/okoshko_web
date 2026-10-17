@@ -537,6 +537,7 @@ async def bind_user_as_master(
             if last_name:
                 user.last_name = last_name
 
+        salon.updated_at = datetime.utcnow()
         await session.commit()
         await session.refresh(salon)
         await session.refresh(master)

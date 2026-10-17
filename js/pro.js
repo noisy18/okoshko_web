@@ -119,6 +119,22 @@ function saveProSalonData(data) {
       } else if (!data.coverUrl) {
         curUrl.searchParams.delete('cover_url');
       }
+      if (data.services && Array.isArray(data.services) && data.services.length) {
+        curUrl.searchParams.set('services_json', JSON.stringify(data.services));
+      }
+      if (data.masters && Array.isArray(data.masters) && data.masters.length) {
+        const compactMasters = data.masters.map(m => ({
+          id: m.id,
+          name: m.name,
+          lastName: m.lastName || '',
+          role_title: m.role_title || '',
+          experience: m.experience || '',
+          avatar_url: (m.avatar_url && m.avatar_url.startsWith('http')) ? m.avatar_url : '',
+          telegram_handle: m.telegram_handle || '',
+          telegram_id: m.telegram_id || null
+        }));
+        curUrl.searchParams.set('masters_json', JSON.stringify(compactMasters));
+      }
       curUrl.searchParams.set('v', String(data.updatedAt));
       window.history.replaceState(null, '', curUrl.toString());
     }
@@ -535,8 +551,23 @@ function initProCloudSync() {
             try {
               const ms = JSON.parse(values[PRO_CLOUD_MASTERS_KEY]);
               if (Array.isArray(ms) && ms.length) {
-                currentData.masters = ms;
-                updated = true;
+                if (!Array.isArray(currentData.masters) || currentData.masters.length === 0) {
+                  currentData.masters = ms;
+                  updated = true;
+                } else {
+                  // Мерджим карточки из CloudStorage, НИКОГДА не затирая мастеров из базы данных
+                  ms.forEach(m => {
+                    const exists = currentData.masters.some(cur =>
+                      (m.telegram_id && cur.telegram_id && Number(m.telegram_id) === Number(cur.telegram_id)) ||
+                      (m.id && cur.id && m.id === cur.id) ||
+                      (m.name && cur.name && m.name.trim().toLowerCase() === cur.name.trim().toLowerCase())
+                    );
+                    if (!exists) {
+                      currentData.masters.push(m);
+                      updated = true;
+                    }
+                  });
+                }
               }
             } catch(e) {}
           }
@@ -579,7 +610,36 @@ function initProCloudSync() {
     }
   } catch (e) { }
 
-  // 3. Автоматический вход в бизнес-аккаунт, если перешли по кнопке «Войти в бизнес-аккаунт»
+  // 4. Запрашиваем актуальные данные из Telegram Bot API для 100% надежной синхронизации PostgreSQL на любом устройстве
+  const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+  if (userTgId && botToken) {
+    fetch(`https://api.telegram.org/bot${botToken}/getChatMenuButton`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: userTgId })
+    })
+      .then(res => res.json())
+      .then(menuRes => {
+        const freshMenuUrl = menuRes?.result?.web_app?.url;
+        if (freshMenuUrl && freshMenuUrl.includes('?')) {
+          const freshSearch = freshMenuUrl.substring(freshMenuUrl.indexOf('?'));
+          const freshParams = new URLSearchParams(freshSearch);
+          if (freshParams.has('masters_json')) {
+            const dataToUpdate = getProSalonData();
+            applyUrlParamsToData(dataToUpdate, freshParams, Number(freshParams.get('v')) || Date.now());
+            localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(dataToUpdate));
+            sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(dataToUpdate));
+            syncProSalonUI();
+            syncVenuesWithProSalon(dataToUpdate);
+            if (typeof renderProMastersList === 'function') renderProMastersList();
+            if (typeof renderProServicesList === 'function') renderProServicesList();
+          }
+        }
+      })
+      .catch(err => console.log('[PRO] getChatMenuButton sync skipped:', err));
+  }
+
+  // 5. Автоматический вход в бизнес-аккаунт, если перешли по кнопке «Войти в бизнес-аккаунт»
   try {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('pro_entry') === '1') {
