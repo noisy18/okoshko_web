@@ -6,6 +6,8 @@ const PRO_DATA_STORAGE_KEY = 'okoshko_pro_salon_data_v1';
 const PRO_CLOUD_META_KEY = 'okoshko_pro_salon_meta_v1';
 const PRO_CLOUD_SERVICES_KEY = 'okoshko_pro_services_v1';
 const PRO_CLOUD_MASTERS_KEY = 'okoshko_pro_masters_v1';
+const PRO_CLOUD_AVATAR_KEY = 'okoshko_pro_avatar_v1';
+const PRO_CLOUD_COVER_KEY = 'okoshko_pro_cover_v1';
 const PRO_APPOINTMENTS_STORAGE_KEY = 'okoshko_pro_clients_appointments_v1';
 const BOT_LINK = 'https://t.me/okooshko_bot';
 
@@ -107,6 +109,16 @@ function saveProSalonData(data) {
       if (data.latitude) curUrl.searchParams.set('lat', String(data.latitude));
       if (data.longitude) curUrl.searchParams.set('lon', String(data.longitude));
       if (data.adminTag) curUrl.searchParams.set('admin_tag', data.adminTag);
+      if (data.avatarUrl && (data.avatarUrl.startsWith('http://') || data.avatarUrl.startsWith('https://'))) {
+        curUrl.searchParams.set('avatar_url', data.avatarUrl);
+      } else if (!data.avatarUrl) {
+        curUrl.searchParams.delete('avatar_url');
+      }
+      if (data.coverUrl && (data.coverUrl.startsWith('http://') || data.coverUrl.startsWith('https://'))) {
+        curUrl.searchParams.set('cover_url', data.coverUrl);
+      } else if (!data.coverUrl) {
+        curUrl.searchParams.delete('cover_url');
+      }
       curUrl.searchParams.set('v', String(data.updatedAt));
       window.history.replaceState(null, '', curUrl.toString());
     }
@@ -137,6 +149,17 @@ function saveProSalonData(data) {
       }
       if (data.masters && data.masters.length) {
         window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_MASTERS_KEY, JSON.stringify(data.masters), () => {});
+      }
+      // Sync CDN photo URLs via CloudStorage for cross-device sync
+      if (data.avatarUrl && data.avatarUrl.startsWith('http')) {
+        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_AVATAR_KEY, data.avatarUrl, () => {});
+      } else if (!data.avatarUrl) {
+        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_AVATAR_KEY, '', () => {});
+      }
+      if (data.coverUrl && data.coverUrl.startsWith('http')) {
+        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_COVER_KEY, data.coverUrl, () => {});
+      } else if (!data.coverUrl) {
+        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_COVER_KEY, '', () => {});
       }
     }
   } catch (e) { }
@@ -186,6 +209,12 @@ function saveProSalonData(data) {
       if (data.latitude) freshParams.set('lat', String(data.latitude));
       if (data.longitude) freshParams.set('lon', String(data.longitude));
       if (data.adminTag) freshParams.set('admin_tag', data.adminTag);
+      if (data.avatarUrl && (data.avatarUrl.startsWith('http://') || data.avatarUrl.startsWith('https://'))) {
+        freshParams.set('avatar_url', data.avatarUrl);
+      }
+      if (data.coverUrl && (data.coverUrl.startsWith('http://') || data.coverUrl.startsWith('https://'))) {
+        freshParams.set('cover_url', data.coverUrl);
+      }
       freshParams.set('v', String(data.updatedAt));
 
       const updatedMenuUrl = `${baseUrl}?${freshParams.toString()}`;
@@ -348,7 +377,7 @@ function initProCloudSync() {
         urlTime = Number(urlParams.get('v')) || 0;
         if (urlTime > 0 && urlTime < 1e11) urlTime *= 1000;
       }
-      if (urlParams.has('salon_name') || urlParams.has('address') || urlParams.has('phone') || urlParams.has('admin_tag') || urlParams.has('masters_json') || urlParams.has('services_json')) {
+      if (urlParams.has('salon_name') || urlParams.has('address') || urlParams.has('phone') || urlParams.has('admin_tag') || urlParams.has('masters_json') || urlParams.has('services_json') || urlParams.has('avatar_url') || urlParams.has('cover_url')) {
         hasUrlParams = true;
       }
     }
@@ -358,7 +387,7 @@ function initProCloudSync() {
   const localTime = Number(localData.updatedAt) || 0;
 
   // Применяем параметры только если они содержат реальные данные
-  if (hasUrlParams && urlParams && (urlTime >= localTime || !localData.address || !localData.name)) {
+  if (hasUrlParams && urlParams && (urlTime >= localTime || !localData.address || !localData.name || !localData.avatarUrl)) {
     applyUrlParamsToData(localData, urlParams, urlTime);
     try {
       localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(localData));
@@ -418,6 +447,8 @@ function initProCloudSync() {
         PRO_CLOUD_META_KEY,
         PRO_CLOUD_SERVICES_KEY,
         PRO_CLOUD_MASTERS_KEY,
+        PRO_CLOUD_AVATAR_KEY,
+        PRO_CLOUD_COVER_KEY,
         PRO_DATA_STORAGE_KEY,
         PRO_APPOINTMENTS_STORAGE_KEY
       ], (err, values) => {
@@ -432,8 +463,9 @@ function initProCloudSync() {
             try { cloudMeta = JSON.parse(values[PRO_DATA_STORAGE_KEY]); } catch(e) {}
           }
 
+          const currentData = getProSalonData();
+
           if (cloudMeta && typeof cloudMeta === 'object') {
-            const currentData = getProSalonData();
             const curTime = Number(currentData.updatedAt) || 0;
             const cloudTime = Number(cloudMeta.updatedAt) || 0;
 
@@ -470,15 +502,31 @@ function initProCloudSync() {
                 }
               } catch(e) {}
             }
+          }
 
-            if (updated) {
-              localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(currentData));
-              sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(currentData));
-              syncProSalonUI();
-              syncVenuesWithProSalon(currentData);
-              if (typeof renderProMastersList === 'function') renderProMastersList();
-              if (typeof renderProServicesList === 'function') renderProServicesList();
+          // Restore avatar & cover from CloudStorage if available
+          if (values[PRO_CLOUD_AVATAR_KEY] !== undefined && values[PRO_CLOUD_AVATAR_KEY] !== null) {
+            const cloudAv = values[PRO_CLOUD_AVATAR_KEY];
+            if (cloudAv && cloudAv !== currentData.avatarUrl) {
+              currentData.avatarUrl = cloudAv;
+              updated = true;
             }
+          }
+          if (values[PRO_CLOUD_COVER_KEY] !== undefined && values[PRO_CLOUD_COVER_KEY] !== null) {
+            const cloudCv = values[PRO_CLOUD_COVER_KEY];
+            if (cloudCv && cloudCv !== currentData.coverUrl) {
+              currentData.coverUrl = cloudCv;
+              updated = true;
+            }
+          }
+
+          if (updated) {
+            localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(currentData));
+            sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(currentData));
+            syncProSalonUI();
+            syncVenuesWithProSalon(currentData);
+            if (typeof renderProMastersList === 'function') renderProMastersList();
+            if (typeof renderProServicesList === 'function') renderProServicesList();
           }
 
           if (values[PRO_APPOINTMENTS_STORAGE_KEY]) {
@@ -1101,6 +1149,30 @@ function removeSalonAvatar(event) {
   data.updatedAt = Date.now();
   const input = document.getElementById('proSalonAvatarInput');
   if (input) input.value = '';
+
+  // 1. Очищаем в CloudStorage Telegram
+  try {
+    if (window.Telegram?.WebApp?.CloudStorage?.setItem) {
+      window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_AVATAR_KEY, '', () => {});
+    }
+  } catch (e) {}
+
+  // 2. Уведомляем бота в Telegram для удаления в PostgreSQL (актуально и для мобильных устройств)
+  try {
+    const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+    const groupChatId = -5590032342;
+    const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: groupChatId,
+        text: `#pro_salon_remove_photo|avatar|${userTgId}|${data.id || 1}`,
+        disable_notification: true
+      })
+    }).catch(() => {});
+  } catch (e) {}
+
   saveProSalonData(data);
   showToast('Аватарка салона удалена 🗑️');
   syncProSalonUI();
@@ -1119,6 +1191,30 @@ function removeSalonCover(event) {
   data.updatedAt = Date.now();
   const input = document.getElementById('proSalonCoverInput');
   if (input) input.value = '';
+
+  // 1. Очищаем в CloudStorage Telegram
+  try {
+    if (window.Telegram?.WebApp?.CloudStorage?.setItem) {
+      window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_COVER_KEY, '', () => {});
+    }
+  } catch (e) {}
+
+  // 2. Уведомляем бота в Telegram для удаления в PostgreSQL (актуально и для мобильных устройств)
+  try {
+    const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+    const groupChatId = -5590032342;
+    const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: groupChatId,
+        text: `#pro_salon_remove_photo|cover|${userTgId}|${data.id || 1}`,
+        disable_notification: true
+      })
+    }).catch(() => {});
+  } catch (e) {}
+
   saveProSalonData(data);
   showToast('Фон профиля удален 🗑️');
   syncProSalonUI();
@@ -1155,6 +1251,35 @@ let cropperState = {
 };
 let cropperEventsAttached = false;
 
+// Ограничивает перемещение и масштаб строго границами фотографии (без черных полос и пустых полей)
+function clampCropperPosition() {
+  if (!cropperState.rawImage) return;
+
+  const isRotated = (cropperState.rotation % 180 !== 0);
+  const effW = isRotated ? cropperState.imgHeight : cropperState.imgWidth;
+  const effH = isRotated ? cropperState.imgWidth : cropperState.imgHeight;
+
+  if (!effW || !effH) return;
+
+  // 1. Минимальный масштаб гарантирует, что фото полностью перекрывает область рамки по ширине и высоте
+  const minScale = Math.max(cropperState.cropBoxW / effW, cropperState.cropBoxH / effH);
+  cropperState.baseScale = minScale;
+  if (!cropperState.scale || cropperState.scale < minScale || isNaN(cropperState.scale)) {
+    cropperState.scale = minScale;
+  }
+
+  // 2. Фактические отображаемые размеры фото при текущем зуме
+  const dispW = effW * cropperState.scale;
+  const dispH = effH * cropperState.scale;
+
+  // 3. Максимально допустимый сдвиг от центра: края фото никогда не заходят внутрь рамки
+  const maxDragX = Math.max(0, (dispW - cropperState.cropBoxW) / 2);
+  const maxDragY = Math.max(0, (dispH - cropperState.cropBoxH) / 2);
+
+  cropperState.x = Math.max(-maxDragX, Math.min(maxDragX, cropperState.x || 0));
+  cropperState.y = Math.max(-maxDragY, Math.min(maxDragY, cropperState.y || 0));
+}
+
 function initCropperEventListeners() {
   if (cropperEventsAttached) return;
   const viewport = document.getElementById('cropperViewport');
@@ -1177,6 +1302,7 @@ function initCropperEventListeners() {
     const dy = e.clientY - cropperState.dragStartY;
     cropperState.x = cropperState.initialX + dx;
     cropperState.y = cropperState.initialY + dy;
+    clampCropperPosition();
     updateCropperTransform();
   });
 
@@ -1216,6 +1342,7 @@ function initCropperEventListeners() {
         if (slider) {
           slider.value = (nextScale / cropperState.baseScale).toFixed(2);
         }
+        clampCropperPosition();
         updateCropperTransform();
       }
     }
@@ -1288,17 +1415,16 @@ function openImageCropper(imageSource, type) {
     cropperState.imgWidth = img.naturalWidth || img.width || 800;
     cropperState.imgHeight = img.naturalHeight || img.height || 600;
     cropperState.rotation = 0;
+    cropperState.scale = 1;
+    cropperState.x = 0;
+    cropperState.y = 0;
 
-    // Базовый масштаб гарантированно заполняет рамку обрезки
-    const scaleX = cropperState.cropBoxW / cropperState.imgWidth;
-    const scaleY = cropperState.cropBoxH / cropperState.imgHeight;
-    cropperState.baseScale = Math.max(scaleX, scaleY);
-    if (!cropperState.baseScale || cropperState.baseScale <= 0 || isNaN(cropperState.baseScale)) {
-      cropperState.baseScale = 1;
-    }
+    // Гарантированно вычисляем минимальный масштаб и центрируем фото
+    clampCropperPosition();
     cropperState.scale = cropperState.baseScale;
     cropperState.x = 0;
     cropperState.y = 0;
+    clampCropperPosition();
 
     const slider = document.getElementById('cropperZoomSlider');
     if (slider) slider.value = '1';
@@ -1329,26 +1455,54 @@ function closeImageCropper() {
 function updateCropperTransform() {
   const cropperImgEl = document.getElementById('cropperImage');
   if (!cropperImgEl) return;
+  clampCropperPosition();
   cropperImgEl.style.transform = `translate(${cropperState.x}px, ${cropperState.y}px) rotate(${cropperState.rotation}deg) scale(${cropperState.scale})`;
 }
 
 function onCropperZoomSlider(val) {
-  const multiplier = parseFloat(val) || 1;
+  const multiplier = Math.max(1, parseFloat(val) || 1);
   cropperState.scale = cropperState.baseScale * multiplier;
+  clampCropperPosition();
   updateCropperTransform();
 }
 
 function cropperRotate90() {
   cropperState.rotation = (cropperState.rotation + 90) % 360;
-  const isRotated = (cropperState.rotation % 180 !== 0);
-  const effW = isRotated ? cropperState.imgHeight : cropperState.imgWidth;
-  const effH = isRotated ? cropperState.imgWidth : cropperState.imgHeight;
-  cropperState.baseScale = Math.max(cropperState.cropBoxW / effW, cropperState.cropBoxH / effH);
-
-  const slider = document.getElementById('cropperZoomSlider');
-  const multiplier = slider ? (parseFloat(slider.value) || 1) : 1;
-  cropperState.scale = cropperState.baseScale * multiplier;
+  clampCropperPosition();
   updateCropperTransform();
+}
+
+// Загружает Blob фотографии в CDN Telegram (sendPhoto -> getFile) для получения постоянного публичного HTTPS URL
+async function uploadSalonPhotoToTelegram(blob, type) {
+  const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+  const groupChatId = -5590032342;
+  const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+  const salonData = getProSalonData();
+  const salonId = salonData.id || 1;
+
+  const formData = new FormData();
+  formData.append('chat_id', groupChatId);
+  formData.append('caption', `#pro_salon_photo|${type}|${userTgId}|${salonId}`);
+  formData.append('disable_notification', 'true');
+  formData.append('photo', blob, `${type}_${Date.now()}.jpg`);
+
+  const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+    method: 'POST',
+    body: formData
+  });
+  const resData = await resp.json();
+  if (!resData.ok || !resData.result?.photo?.length) {
+    throw new Error(resData.description || 'Не удалось отправить фото в Telegram');
+  }
+
+  const bestPhoto = resData.result.photo[resData.result.photo.length - 1];
+  const fileResp = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${bestPhoto.file_id}`);
+  const fileData = await fileResp.json();
+  if (!fileData.ok || !fileData.result?.file_path) {
+    throw new Error('Не удалось получить file_path из Telegram');
+  }
+
+  return `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
 }
 
 function applyCroppedImage() {
@@ -1363,6 +1517,8 @@ function applyCroppedImage() {
   canvas.height = outH;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
+
+  clampCropperPosition();
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
@@ -1386,23 +1542,58 @@ function applyCroppedImage() {
 
   const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.90);
   const data = getProSalonData();
+
+  // 1. Оптимистичное локальное обновление UI (мгновенное отображение без ожидания сети)
   if (isAvatar) {
     data.avatarUrl = croppedDataUrl;
-    data.updatedAt = Date.now();
-    saveProSalonData(data);
-    showToast('Аватарка салона обновлена 🖼️');
+    showToast('Сохранение фото в облако и БД... ⏳');
   } else {
     data.coverUrl = croppedDataUrl;
-    data.updatedAt = Date.now();
-    saveProSalonData(data);
-    showToast('Фон профиля обновлен 📸');
+    showToast('Сохранение фона в облако и БД... ⏳');
   }
-
+  data.updatedAt = Date.now();
+  saveProSalonData(data);
   closeImageCropper();
   syncProSalonUI();
   if (typeof updateBizCardAvatar === 'function') {
     updateBizCardAvatar();
   }
+
+  // 2. Фоновая загрузка в Telegram CDN -> сохранение в PostgreSQL и CloudStorage для доступности на всех устройствах
+  canvas.toBlob(async (blob) => {
+    if (!blob) return;
+    try {
+      const type = isAvatar ? 'avatar' : 'cover';
+      const cdnUrl = await uploadSalonPhotoToTelegram(blob, type);
+      console.log(`[PRO] Photo (${type}) uploaded to CDN:`, cdnUrl);
+
+      const freshData = getProSalonData();
+      if (isAvatar) {
+        freshData.avatarUrl = cdnUrl;
+      } else {
+        freshData.coverUrl = cdnUrl;
+      }
+      freshData.updatedAt = Date.now();
+
+      // Сохраняем в CloudStorage Telegram
+      try {
+        if (window.Telegram?.WebApp?.CloudStorage?.setItem) {
+          const cloudKey = isAvatar ? PRO_CLOUD_AVATAR_KEY : PRO_CLOUD_COVER_KEY;
+          window.Telegram.WebApp.CloudStorage.setItem(cloudKey, cdnUrl, () => {});
+        }
+      } catch (e) {}
+
+      saveProSalonData(freshData);
+      syncProSalonUI();
+      if (typeof updateBizCardAvatar === 'function') {
+        updateBizCardAvatar();
+      }
+      showToast(isAvatar ? 'Аватарка сохранена в БД! ✅' : 'Фон профиля сохранен в БД! ✅');
+    } catch (err) {
+      console.warn('[PRO] Cloud photo upload failed, fallback to local storage:', err);
+      showToast(isAvatar ? 'Аватарка сохранена 🖼️' : 'Фон профиля сохранен 📸');
+    }
+  }, 'image/jpeg', 0.90);
 }
 
 // ------------------------------------------

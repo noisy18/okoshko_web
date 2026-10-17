@@ -1,6 +1,6 @@
 import json
 import logging
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.types import Message
 
 from bot.database import create_booking, get_or_create_user
@@ -515,4 +515,121 @@ async def handle_direct_json_data(message: Message):
         return
     except Exception as e:
         logger.error(f"Ошибка обработки прямого JSON: {e}")
+
+
+@webapp_router.message(F.photo)
+async def handle_salon_photo_upload_message(message: Message, bot: Bot):
+    """
+    Принимает фото аватарки или фона салона из Mini App (через bot.sendPhoto в BUSINESS_GROUP_ID),
+    сохраняет постоянный CDN URL в PostgreSQL и обновляет персональную MenuButton владельца/админа.
+    """
+    caption = message.caption or ""
+    if not (caption.startswith("#pro_salon_photo") or caption.startswith("SALON_PHOTO")):
+        return
+
+    try:
+        parts = caption.split("|")
+        # Формат: #pro_salon_photo|avatar|1205557089|1
+        photo_type = parts[1] if len(parts) > 1 else "avatar"
+        user_id = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else (message.from_user.id if message.from_user else 1205557089)
+        salon_id = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 1
+
+        file_id = message.photo[-1].file_id
+        file_info = await bot.get_file(file_id)
+        if not file_info.file_path:
+            return
+
+        cdn_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
+
+        from bot.database import Salon
+        from bot.database.base import async_session_maker
+        from sqlalchemy import select
+        from datetime import datetime
+
+        async with async_session_maker() as session:
+            res = await session.execute(
+                select(Salon).where((Salon.owner_id == user_id) | (Salon.admin_id == user_id) | (Salon.id == salon_id))
+            )
+            salon = res.scalar_one_or_none()
+            if not salon:
+                res_bs = await session.execute(select(Salon).where(Salon.id == 1))
+                salon = res_bs.scalar_one_or_none()
+
+            if salon:
+                if photo_type == "avatar":
+                    salon.logo_url = cdn_url
+                else:
+                    salon.cover_image_url = cdn_url
+                salon.updated_at = datetime.utcnow()
+                await session.commit()
+                logger.info(f"📸 Фото ({photo_type}) салона ID {salon.id} успешно сохранено в PostgreSQL: {cdn_url}")
+
+                # Обновляем кнопку меню чата для пользователя со свежей ссылкой
+                try:
+                    from aiogram.types import MenuButtonWebApp, WebAppInfo
+                    fresh_url = await get_user_app_url(user_id)
+                    await bot.set_chat_menu_button(
+                        chat_id=user_id,
+                        menu_button=MenuButtonWebApp(
+                            text="💅 Окошко",
+                            web_app=WebAppInfo(url=fresh_url),
+                        ),
+                    )
+                    logger.info(f"Кнопка меню для {user_id} обновлена с новым фото URL")
+                except Exception as m_err:
+                    logger.warning(f"Не удалось обновить MenuButton для {user_id} после сохранения фото: {m_err}")
+    except Exception as e:
+        logger.error(f"Ошибка сохранения фото салона в БД: {e}")
+
+
+@webapp_router.message(F.text.startswith("#pro_salon_remove_photo"))
+async def handle_salon_remove_photo_message(message: Message, bot: Bot):
+    """
+    Очищает URL аватарки или фона салона в PostgreSQL при удалении из Mini App.
+    """
+    try:
+        parts = message.text.split("|")
+        # Формат: #pro_salon_remove_photo|avatar|1205557089|1
+        photo_type = parts[1] if len(parts) > 1 else "avatar"
+        user_id = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else (message.from_user.id if message.from_user else 1205557089)
+        salon_id = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 1
+
+        from bot.database import Salon
+        from bot.database.base import async_session_maker
+        from sqlalchemy import select
+        from datetime import datetime
+
+        async with async_session_maker() as session:
+            res = await session.execute(
+                select(Salon).where((Salon.owner_id == user_id) | (Salon.admin_id == user_id) | (Salon.id == salon_id))
+            )
+            salon = res.scalar_one_or_none()
+            if not salon:
+                res_bs = await session.execute(select(Salon).where(Salon.id == 1))
+                salon = res_bs.scalar_one_or_none()
+
+            if salon:
+                if photo_type == "avatar":
+                    salon.logo_url = ""
+                else:
+                    salon.cover_image_url = ""
+                salon.updated_at = datetime.utcnow()
+                await session.commit()
+                logger.info(f"🗑️ Фото ({photo_type}) салона ID {salon.id} очищено в PostgreSQL")
+
+                try:
+                    from aiogram.types import MenuButtonWebApp, WebAppInfo
+                    fresh_url = await get_user_app_url(user_id)
+                    await bot.set_chat_menu_button(
+                        chat_id=user_id,
+                        menu_button=MenuButtonWebApp(
+                            text="💅 Окошко",
+                            web_app=WebAppInfo(url=fresh_url),
+                        ),
+                    )
+                except Exception as m_err:
+                    logger.warning(f"Не удалось обновить MenuButton для {user_id} после удаления фото: {m_err}")
+    except Exception as e:
+        logger.error(f"Ошибка удаления фото салона в БД: {e}")
+
 
