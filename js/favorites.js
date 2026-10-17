@@ -1,14 +1,25 @@
 // ==========================================
     // FAVORITES (ИЗБРАННОЕ) SYSTEM
     // ==========================================
-    const DEFAULT_FAVORITE_IDS = ['beauty', 'mono', 'spb_nevsky_glam', 'rostov_golden_blade'];
+    const DEFAULT_FAVORITE_IDS = [];
 
     function getStoredFavorites() {
       try {
         const raw = localStorage.getItem('okoshko_favorites');
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const legacyMocks = ['beauty', 'mono', 'spb_nevsky_glam', 'rostov_golden_blade'];
+            const isExactLegacy = parsed.length === 4 && legacyMocks.every(id => parsed.includes(id));
+            if (isExactLegacy) {
+              localStorage.removeItem('okoshko_favorites');
+              return [];
+            }
+            return parsed;
+          }
+        }
       } catch (e) { }
-      return [...DEFAULT_FAVORITE_IDS];
+      return [];
     }
 
     function setStoredFavorites(favIds) {

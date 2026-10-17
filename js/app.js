@@ -102,16 +102,33 @@
       }
 
       // If user has PRO status in DB / Telegram
+      const bizCard = document.getElementById('bizAccountCard');
       const bizCardTitle = document.getElementById('bizCardTitle');
       const bizCardBadge = document.getElementById('bizCardBadge');
       const bizCardSub = document.getElementById('bizCardSub');
+      const bizCardGlow = document.getElementById('bizCardGlow');
       if (user.is_pro) {
-        if (bizCardTitle) bizCardTitle.textContent = 'Войти в бизнес-аккаунт';
+        if (bizCard) {
+          bizCard.className = 'p-4 rounded-3xl bg-slate-900 text-white border border-slate-700/60 shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden';
+        }
+        if (bizCardGlow) bizCardGlow.classList.add('hidden');
+        if (bizCardTitle) bizCardTitle.textContent = 'Войти в бизнес кабинет';
         if (bizCardBadge) {
           bizCardBadge.textContent = 'PRO';
           bizCardBadge.className = 'px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-extrabold uppercase';
         }
         if (bizCardSub) bizCardSub.textContent = 'Управление салоном, мастерами и онлайн-записями';
+      } else {
+        if (bizCard) {
+          bizCard.className = 'p-4 rounded-3xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-primary text-white shadow-md flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden';
+        }
+        if (bizCardGlow) bizCardGlow.classList.remove('hidden');
+        if (bizCardTitle) bizCardTitle.textContent = 'Создать Бизнес-аккаунт';
+        if (bizCardBadge) {
+          bizCardBadge.textContent = 'PRO';
+          bizCardBadge.className = 'px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-extrabold uppercase';
+        }
+        if (bizCardSub) bizCardSub.textContent = 'Подключите салон или кабинет мастера';
       }
       if (typeof updateBizCardAvatar === 'function') {
         updateBizCardAvatar();
@@ -132,6 +149,9 @@
       try {
         updateProfilePhoneUI();
         updateProfileRegistrationDateUI();
+        if (typeof updateFavoritesUI === 'function') {
+          updateFavoritesUI();
+        }
 
         const savedNotif = localStorage.getItem('okoshko_tg_notifications');
         const notifToggle = document.getElementById('tgNotificationsToggle');
@@ -167,17 +187,11 @@
       if (digits.length > 3) {
         formatted += digits.substring(3, 6);
       }
-      if (digits.length >= 6) {
-        formatted += '-';
-      }
       if (digits.length > 6) {
-        formatted += digits.substring(6, 8);
-      }
-      if (digits.length >= 8) {
-        formatted += '-';
+        formatted += '-' + digits.substring(6, 8);
       }
       if (digits.length > 8) {
-        formatted += digits.substring(8, 10);
+        formatted += '-' + digits.substring(8, 10);
       }
       return formatted;
     }
@@ -187,15 +201,52 @@
       if (!val || val.trim() === '') {
         input.value = '';
         document.getElementById('modalPhoneClearBtn')?.classList.add('hidden');
+        const hint = document.getElementById('phoneModalHint');
+        if (hint) {
+          hint.textContent = 'Введите 10 цифр номера (начиная после +7)';
+          hint.className = 'text-[11px] text-slate-400';
+        }
         return;
+      }
+
+      // Track cursor position by counting digits before the caret
+      const selStart = input.selectionStart || val.length;
+      let digitsBeforeCaret = 0;
+      for (let i = 0; i < selStart; i++) {
+        if (/\d/.test(val[i])) {
+          digitsBeforeCaret++;
+        }
       }
 
       const formatted = formatPhoneNumber(val);
       input.value = formatted;
       document.getElementById('modalPhoneClearBtn')?.classList.remove('hidden');
 
+      // Place caret right after the same number of digits
+      if (selStart < val.length) {
+        let count = 0;
+        let targetPos = formatted.length;
+        for (let i = 0; i < formatted.length; i++) {
+          if (/\d/.test(formatted[i])) {
+            count++;
+          }
+          if (count === digitsBeforeCaret) {
+            targetPos = i + 1;
+            break;
+          }
+        }
+        try {
+          input.setSelectionRange(targetPos, targetPos);
+        } catch (e) { }
+      }
+
       // Update hint text based on digits count
-      const digits = val.replace(/\D/g, '').replace(/^[78]/, '');
+      let digits = val.replace(/\D/g, '');
+      if (digits.startsWith('7') || digits.startsWith('8')) {
+        digits = digits.substring(1);
+      }
+      digits = digits.substring(0, 10);
+
       const hint = document.getElementById('phoneModalHint');
       if (hint) {
         if (digits.length === 10) {
@@ -209,8 +260,34 @@
     }
 
     function handlePhoneKeyDown(input, event) {
+      if (event.key === 'Backspace') {
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        if (start === end && start > 0) {
+          const charBefore = input.value[start - 1];
+          // If right behind a non-digit like '-', ')', ' ', delete preceding digit
+          if (!/\d/.test(charBefore)) {
+            event.preventDefault();
+            let prevDigitIdx = -1;
+            for (let i = start - 1; i >= 0; i--) {
+              if (/\d/.test(input.value[i])) {
+                prevDigitIdx = i;
+                break;
+              }
+            }
+            if (prevDigitIdx > 1) { // Don't delete +7 prefix
+              const val = input.value.substring(0, prevDigitIdx) + input.value.substring(prevDigitIdx + 1);
+              input.value = formatPhoneNumber(val);
+              handlePhoneInput(input, event);
+            }
+            return;
+          }
+        }
+        return;
+      }
+
       // Disallow non-digit keys (except Control, Backspace, Delete, Arrow keys, Tab, Enter)
-      const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Escape'];
+      const allowedKeys = ['Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Escape'];
       if (allowedKeys.includes(event.key) || event.ctrlKey || event.metaKey) {
         return;
       }

@@ -1070,17 +1070,11 @@
               <img id="profileAvatarImg" class="w-full h-full object-cover rounded-full hidden" alt="Telegram Avatar" />
               <span id="profileAvatarInitials" class="text-xl font-bold text-primary">ТГ</span>
             </div>
-            <button onclick="reverifyTelegram()" aria-label="Синхронизировать" title="Синхронизировать профиль"
-              class="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
-              <span class="material-symbols-outlined text-[13px]">sync</span>
-            </button>
           </div>
 
           <h1 id="profileUserName" class="font-bold text-lg text-on-surface">Пользователь</h1>
           <div class="flex items-center gap-1 mt-0.5 justify-center">
             <span id="profileUserHandle" class="text-xs text-primary font-semibold">@telegram_user</span>
-            <span class="material-symbols-outlined text-primary text-[15px]"
-              style="font-variation-settings: 'FILL' 1;">verified</span>
             <span id="profilePremiumStar"
               class="hidden px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">★
               Premium</span>
@@ -1098,7 +1092,7 @@
             <div class="w-px h-6 bg-slate-200"></div>
             <div onclick="router.navigate('favorites')"
               class="flex flex-col items-center flex-1 cursor-pointer active:scale-95 transition-transform">
-              <span id="profileFavsCount" class="font-bold text-sm text-rose-500">4</span>
+              <span id="profileFavsCount" class="font-bold text-sm text-rose-500">0</span>
               <span class="text-[10px] text-slate-400 mt-0.5">любимых</span>
             </div>
           </div>
@@ -1107,14 +1101,14 @@
         <!-- Create Business Account Card -->
         <div id="bizAccountCard" onclick="openBusinessModal()"
           class="p-4 rounded-3xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-primary text-white shadow-md flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden">
-          <div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+          <div id="bizCardGlow" class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
 
           <div class="flex items-center gap-3.5 z-10">
             <div id="bizCardAvatarContainer"
-              class="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-xs overflow-hidden shrink-0 relative">
+              class="w-11 h-11 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-xs overflow-hidden shrink-0 relative">
               <img id="bizCardAvatarImg" src="" alt="Аватарка салона"
-                class="hidden w-full h-full object-cover rounded-2xl" />
-              <div id="bizCardAvatarFallback" class="w-full h-full flex items-center justify-center bg-white/10 text-white">
+                class="hidden w-full h-full object-cover rounded-full" />
+              <div id="bizCardAvatarFallback" class="w-full h-full flex items-center justify-center bg-white/10 text-white rounded-full">
                 <span class="material-symbols-outlined text-[24px]">storefront</span>
               </div>
             </div>
@@ -1187,7 +1181,7 @@
                   style="font-variation-settings: 'FILL' 1;">favorite</span>
                 <span class="font-semibold text-on-surface">Избранные мастера и салоны</span>
               </div>
-              <span id="profileFavsRowBadge" class="text-slate-400 text-xs">4 места ›</span>
+              <span id="profileFavsRowBadge" class="text-slate-400 text-xs">0 мест ›</span>
             </div>
           </div>
         </div>

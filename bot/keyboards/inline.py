@@ -22,7 +22,7 @@ def get_inline_keyboard(app_url: str = MINI_APP_URL, pro_app_url: Optional[str] 
             ],
             [
                 InlineKeyboardButton(
-                    text="💼 Войти в бизнес-аккаунт",
+                    text="💼 Войти в бизнес кабинет",
                     web_app=WebAppInfo(url=biz_url),
                 )
             ],
