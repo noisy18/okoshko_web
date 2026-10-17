@@ -254,6 +254,14 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                         params.append(f"cover_url={urllib.parse.quote(user_salon.cover_image_url.strip())}")
                     if user_salon.id:
                         params.append(f"salon_id={user_salon.id}")
+                    if getattr(user_salon, "salon_type", None) and user_salon.salon_type.strip():
+                        params.append(f"salon_type={urllib.parse.quote(user_salon.salon_type.strip())}")
+                    if getattr(user_salon, "filter_tags_json", None) and user_salon.filter_tags_json.strip():
+                        params.append(f"filter_tags_json={urllib.parse.quote(user_salon.filter_tags_json.strip())}")
+                    if getattr(user_salon, "search_keywords_json", None) and user_salon.search_keywords_json.strip():
+                        params.append(f"search_keywords_json={urllib.parse.quote(user_salon.search_keywords_json.strip())}")
+                    if getattr(user_salon, "is_promoted", False):
+                        params.append("is_promoted=1")
 
                     updated_ts = 0
                     if getattr(user_salon, "updated_at", None):

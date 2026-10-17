@@ -31,7 +31,11 @@ const DEFAULT_PRO_SALON = {
   updatedAt: 0,
   services: [],
   masters: [],
-  photos: []
+  photos: [],
+  filterTags: [],
+  salonType: '',
+  searchKeywords: [],
+  isPromoted: false
 };
 
 // Default initial client appointments for PRO partner (Clean baseline)
@@ -165,11 +169,15 @@ function syncVenuesWithProSalon(data) {
       const salonObj = {
         id: 'salon_1',
         name: data.name || 'Салон красоты',
-        type: 'Салон красоты',
+        type: data.salonType || 'Салон красоты',
+        salonType: data.salonType || '',
         region: effCityKey,
         regionName: effCityName,
-        categoryTags: ['nails', 'hair', 'brows', 'pedicure'],
-        categoryText: data.categoryText || '',
+        categoryTags: (Array.isArray(data.filterTags) && data.filterTags.length > 0) ? data.filterTags : ['Маникюр', 'Педикюр', 'Брови'],
+        filterTags: Array.isArray(data.filterTags) ? data.filterTags : [],
+        searchKeywords: Array.isArray(data.searchKeywords) ? data.searchKeywords : [],
+        isPromoted: !!data.isPromoted,
+        categoryText: data.categoryText || (data.filterTags && data.filterTags.length ? data.filterTags.join(' · ') : ''),
         rating: data.rating || '5.0',
         reviewsCount: data.reviewsCount || 0,
         address: data.address || '',
@@ -241,6 +249,20 @@ function saveProSalonData(data) {
       } else if (!data.coverUrl) {
         curUrl.searchParams.delete('cover_url');
       }
+      if (data.salonType) curUrl.searchParams.set('salon_type', data.salonType);
+      else curUrl.searchParams.delete('salon_type');
+      if (data.filterTags && Array.isArray(data.filterTags) && data.filterTags.length) {
+        curUrl.searchParams.set('filter_tags_json', JSON.stringify(data.filterTags));
+      } else {
+        curUrl.searchParams.delete('filter_tags_json');
+      }
+      if (data.searchKeywords && Array.isArray(data.searchKeywords) && data.searchKeywords.length) {
+        curUrl.searchParams.set('search_keywords_json', JSON.stringify(data.searchKeywords));
+      } else {
+        curUrl.searchParams.delete('search_keywords_json');
+      }
+      if (data.isPromoted) curUrl.searchParams.set('is_promoted', '1');
+      else curUrl.searchParams.delete('is_promoted');
       if (data.services && Array.isArray(data.services) && data.services.length) {
         curUrl.searchParams.set('services_json', JSON.stringify(data.services));
       }
@@ -330,7 +352,11 @@ function saveProSalonData(data) {
     admin_tag: data.adminTag || '',
     creator_tag: data.creatorTag || '@maximtepin',
     masters: data.masters || [],
-    services: data.services || []
+    services: data.services || [],
+    salon_type: data.salonType || '',
+    filter_tags: data.filterTags || [],
+    search_keywords: data.searchKeywords || [],
+    is_promoted: !!data.isPromoted
   };
 
   try {
@@ -382,6 +408,14 @@ function saveProSalonData(data) {
         }));
         freshParams.set('masters_json', JSON.stringify(compactMasters));
       }
+      if (data.salonType) freshParams.set('salon_type', data.salonType);
+      if (data.filterTags && Array.isArray(data.filterTags) && data.filterTags.length) {
+        freshParams.set('filter_tags_json', JSON.stringify(data.filterTags));
+      }
+      if (data.searchKeywords && Array.isArray(data.searchKeywords) && data.searchKeywords.length) {
+        freshParams.set('search_keywords_json', JSON.stringify(data.searchKeywords));
+      }
+      if (data.isPromoted) freshParams.set('is_promoted', '1');
       freshParams.set('v', String(data.updatedAt));
 
       // Обновляем текущий URL в истории браузера, чтобы при обычном F5/обновлении страницы мастера и данные сохранялись
@@ -419,7 +453,11 @@ function saveProSalonData(data) {
       latitude: data.latitude,
       longitude: data.longitude,
       phone: data.phone || '',
-      admin_tag: data.adminTag || ''
+      admin_tag: data.adminTag || '',
+      salon_type: data.salonType || '',
+      filter_tags: data.filterTags || [],
+      search_keywords: data.searchKeywords || [],
+      is_promoted: !!data.isPromoted
     });
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
@@ -520,6 +558,29 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
   if (urlParams.has('cover_url')) {
     const cv = urlParams.get('cover_url');
     if (cv && cv.trim()) data.coverUrl = cv.trim();
+  }
+  if (urlParams.has('salon_type')) {
+    const st = urlParams.get('salon_type');
+    if (st !== null) data.salonType = st.trim();
+  }
+  if (urlParams.has('filter_tags_json')) {
+    try {
+      const ft = JSON.parse(urlParams.get('filter_tags_json'));
+      if (Array.isArray(ft)) data.filterTags = ft;
+    } catch (e) {
+      console.warn('[PRO] Error parsing filter_tags_json:', e);
+    }
+  }
+  if (urlParams.has('search_keywords_json')) {
+    try {
+      const sk = JSON.parse(urlParams.get('search_keywords_json'));
+      if (Array.isArray(sk)) data.searchKeywords = sk;
+    } catch (e) {
+      console.warn('[PRO] Error parsing search_keywords_json:', e);
+    }
+  }
+  if (urlParams.has('is_promoted')) {
+    data.isPromoted = (urlParams.get('is_promoted') === '1');
   }
   if (timestamp) data.updatedAt = timestamp;
 
@@ -1003,9 +1064,448 @@ function syncProSalonUI() {
     else coverDelBtn.classList.add('hidden');
   }
 
+  // Search settings: Filter Tags
+  const filterTagsSub = document.getElementById('proProfileFilterTagsSub');
+  const filterTagsBadge = document.getElementById('proProfileFilterTagsBadge');
+  if (filterTagsSub) {
+    if (data.filterTags && Array.isArray(data.filterTags) && data.filterTags.length > 0) {
+      filterTagsSub.textContent = data.filterTags.join(', ');
+      filterTagsSub.className = 'text-[11px] text-slate-700 font-medium truncate max-w-[210px]';
+      if (filterTagsBadge) {
+        filterTagsBadge.className = 'font-bold text-primary bg-primary-fixed/60 px-2 py-0.5 rounded-full text-[10px]';
+        filterTagsBadge.textContent = `${data.filterTags.length} ${data.filterTags.length === 1 ? 'тег' : (data.filterTags.length < 5 ? 'тега' : 'тегов')}`;
+      }
+    } else {
+      filterTagsSub.textContent = 'Не выбраны';
+      filterTagsSub.className = 'text-[11px] text-slate-400 truncate max-w-[210px]';
+      if (filterTagsBadge) {
+        filterTagsBadge.className = 'text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-medium';
+        filterTagsBadge.textContent = 'Пусто';
+      }
+    }
+  }
+
+  // Search settings: Business Type
+  const bTypeSub = document.getElementById('proProfileBusinessTypeSub');
+  const bTypeBadge = document.getElementById('proProfileBusinessTypeBadge');
+  if (bTypeSub) {
+    if (data.salonType) {
+      bTypeSub.textContent = data.salonType;
+      bTypeSub.className = 'text-[11px] text-slate-700 font-medium truncate max-w-[210px]';
+      if (bTypeBadge) {
+        bTypeBadge.className = 'font-bold text-primary bg-primary-fixed/60 px-2 py-0.5 rounded-full text-[10px] truncate max-w-[110px]';
+        bTypeBadge.textContent = data.salonType;
+      }
+    } else {
+      bTypeSub.textContent = 'Не выбран';
+      bTypeSub.className = 'text-[11px] text-slate-400 truncate max-w-[210px]';
+      if (bTypeBadge) {
+        bTypeBadge.className = 'text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-medium';
+        bTypeBadge.textContent = 'Пусто';
+      }
+    }
+  }
+
+  // Search settings: Search Keywords
+  const kwSub = document.getElementById('proProfileKeywordsSub');
+  const kwBadge = document.getElementById('proProfileKeywordsBadge');
+  if (kwSub) {
+    if (data.searchKeywords && Array.isArray(data.searchKeywords) && data.searchKeywords.length > 0) {
+      kwSub.textContent = data.searchKeywords.join(', ');
+      kwSub.className = 'text-[11px] text-slate-700 font-medium truncate max-w-[210px]';
+      if (kwBadge) {
+        kwBadge.className = 'font-bold text-primary bg-primary-fixed/60 px-2 py-0.5 rounded-full text-[10px]';
+        kwBadge.textContent = `${data.searchKeywords.length} из 10`;
+      }
+    } else {
+      kwSub.textContent = 'Не заданы';
+      kwSub.className = 'text-[11px] text-slate-400 truncate max-w-[210px]';
+      if (kwBadge) {
+        kwBadge.className = 'text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-medium';
+        kwBadge.textContent = 'Пусто';
+      }
+    }
+  }
+
+  // Search settings: Promote status
+  const promoteBadge = document.getElementById('proProfilePromoteStatusBadge');
+  if (promoteBadge) {
+    if (data.isPromoted) {
+      promoteBadge.className = 'text-[10px] px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold border border-amber-300';
+      promoteBadge.textContent = 'Активно ★';
+    } else {
+      promoteBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium';
+      promoteBadge.textContent = 'Не активно';
+    }
+  }
+
   // Sync client business card avatar
   if (typeof updateBizCardAvatar === 'function') {
     updateBizCardAvatar();
+  }
+}
+
+// ------------------------------------------
+// PRO SEARCH SETTINGS (Настройка поиска)
+// ------------------------------------------
+
+// 1. FILTER TAGS (Теги фильтрации)
+const PRO_FILTER_TAG_OPTIONS = [
+  'Все',
+  'Маникюр',
+  'Педикюр',
+  'Мужская стрижка',
+  'Женская стрижка',
+  'Брови',
+  'Ресницы',
+  'Лазерная эпиляция',
+  'Массаж'
+];
+let tempSelectedFilterTags = [];
+
+function openProFilterTagsModal() {
+  const data = getProSalonData();
+  tempSelectedFilterTags = Array.isArray(data.filterTags) ? [...data.filterTags] : [];
+  renderProFilterTagsOptions();
+  const m = document.getElementById('proFilterTagsModal');
+  if (m) {
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+}
+
+function closeProFilterTagsModal() {
+  const m = document.getElementById('proFilterTagsModal');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+}
+
+function toggleProFilterTag(tag) {
+  const allTagsWithoutAll = PRO_FILTER_TAG_OPTIONS.filter(t => t !== 'Все');
+  if (tag === 'Все') {
+    const allSelected = allTagsWithoutAll.every(t => tempSelectedFilterTags.includes(t));
+    if (allSelected) {
+      tempSelectedFilterTags = [];
+    } else {
+      tempSelectedFilterTags = [...allTagsWithoutAll];
+    }
+  } else {
+    const idx = tempSelectedFilterTags.indexOf(tag);
+    if (idx >= 0) {
+      tempSelectedFilterTags.splice(idx, 1);
+    } else {
+      tempSelectedFilterTags.push(tag);
+    }
+  }
+  renderProFilterTagsOptions();
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+  } catch (e) {}
+}
+
+function renderProFilterTagsOptions() {
+  const container = document.getElementById('proFilterTagsOptionsContainer');
+  if (!container) return;
+  const allTagsWithoutAll = PRO_FILTER_TAG_OPTIONS.filter(t => t !== 'Все');
+  const isAllSelected = allTagsWithoutAll.length > 0 && allTagsWithoutAll.every(t => tempSelectedFilterTags.includes(t));
+
+  const tagIcons = {
+    'Все': '🌟',
+    'Маникюр': '💅',
+    'Педикюр': '🦶',
+    'Мужская стрижка': '💈',
+    'Женская стрижка': '✂️',
+    'Брови': '👁️',
+    'Ресницы': '✨',
+    'Лазерная эпиляция': '⚡',
+    'Массаж': '💆'
+  };
+
+  container.innerHTML = PRO_FILTER_TAG_OPTIONS.map(tag => {
+    const isSelected = (tag === 'Все') ? isAllSelected : tempSelectedFilterTags.includes(tag);
+    const activeClasses = isSelected
+      ? 'bg-primary-fixed/30 border-primary ring-1 ring-primary/40'
+      : 'border-slate-200/80 hover:border-primary/40 bg-white';
+
+    return `
+      <div onclick="toggleProFilterTag('${tag}')"
+        class="p-3 rounded-2xl border ${activeClasses} flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="text-xl shrink-0">${tagIcons[tag] || '🏷️'}</span>
+          <span class="font-bold text-xs text-on-surface truncate">${tag}</span>
+        </div>
+        <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${isSelected ? 'bg-primary text-white shadow-xs' : 'border-2 border-slate-300 bg-white'} transition-colors">
+          ${isSelected ? '<span class="material-symbols-outlined text-[15px]">check</span>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function requestSaveFilterTags() {
+  const count = tempSelectedFilterTags.length;
+  const summaryText = count > 0 ? tempSelectedFilterTags.join(', ') : 'Ничего не выбрано (очистить теги)';
+  confirmProAction(
+    'Подтвердить теги фильтрации?',
+    `Вы действительно хотите сохранить следующие теги (${count})?\n${summaryText}`,
+    () => {
+      const data = getProSalonData();
+      data.filterTags = [...tempSelectedFilterTags];
+      saveProSalonData(data);
+      closeProFilterTagsModal();
+      showToast('Теги фильтрации сохранены ✓');
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+      } catch (e) {}
+    },
+    { type: 'primary', confirmText: 'Сохранить' }
+  );
+}
+
+
+// 2. BUSINESS TYPE (Тип предприятия)
+const PRO_BUSINESS_TYPE_OPTIONS = [
+  'Студия красоты',
+  'Парикмахерская',
+  'Барбершоп',
+  'SPA-салон',
+  'Студия колористики',
+  'Brow-бар',
+  'Lash-студия',
+  'Студия маникюра',
+  'Студии эпиляции'
+];
+let tempSelectedBusinessType = '';
+
+function openProBusinessTypeModal() {
+  const data = getProSalonData();
+  tempSelectedBusinessType = data.salonType || '';
+  renderProBusinessTypeOptions();
+  const m = document.getElementById('proBusinessTypeModal');
+  if (m) {
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+}
+
+function closeProBusinessTypeModal() {
+  const m = document.getElementById('proBusinessTypeModal');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+}
+
+function selectProBusinessType(bType) {
+  if (tempSelectedBusinessType === bType) {
+    tempSelectedBusinessType = '';
+  } else {
+    tempSelectedBusinessType = bType;
+  }
+  renderProBusinessTypeOptions();
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+  } catch (e) {}
+}
+
+function renderProBusinessTypeOptions() {
+  const container = document.getElementById('proBusinessTypeOptionsContainer');
+  if (!container) return;
+
+  const typeIcons = {
+    'Студия красоты': '🌸',
+    'Парикмахерская': '✂️',
+    'Барбершоп': '💈',
+    'SPA-салон': '🫧',
+    'Студия колористики': '🎨',
+    'Brow-бар': '👁️',
+    'Lash-студия': '✨',
+    'Студия маникюра': '💅',
+    'Студии эпиляции': '⚡'
+  };
+
+  container.innerHTML = PRO_BUSINESS_TYPE_OPTIONS.map(bType => {
+    const isSelected = (tempSelectedBusinessType === bType);
+    const activeClasses = isSelected
+      ? 'bg-primary-fixed/30 border-primary ring-1 ring-primary/40'
+      : 'border-slate-200/80 hover:border-primary/40 bg-white';
+
+    return `
+      <div onclick="selectProBusinessType('${bType}')"
+        class="p-3 rounded-2xl border ${activeClasses} flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="text-xl shrink-0">${typeIcons[bType] || '🏢'}</span>
+          <span class="font-bold text-xs text-on-surface truncate">${bType}</span>
+        </div>
+        <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'border-2 border-primary bg-primary text-white shadow-xs' : 'border-2 border-slate-300 bg-white'} transition-colors">
+          ${isSelected ? '<span class="material-symbols-outlined text-[13px]">check</span>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function requestSaveBusinessType() {
+  const title = 'Подтвердить тип предприятия?';
+  const desc = tempSelectedBusinessType
+    ? `Установить тип заведения: «${tempSelectedBusinessType}»?`
+    : 'Сбросить тип предприятия (оставить поле пустым)?';
+  confirmProAction(
+    title,
+    desc,
+    () => {
+      const data = getProSalonData();
+      data.salonType = tempSelectedBusinessType;
+      saveProSalonData(data);
+      closeProBusinessTypeModal();
+      showToast('Тип предприятия сохранен ✓');
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+      } catch (e) {}
+    },
+    { type: 'primary', confirmText: 'Сохранить' }
+  );
+}
+
+
+// 3. SEARCH KEYWORDS (Поисковые запросы)
+function openProSearchKeywordsModal() {
+  renderProSearchKeywordsChips();
+  const m = document.getElementById('proSearchKeywordsModal');
+  if (m) {
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+  const input = document.getElementById('proNewKeywordInput');
+  if (input) {
+    input.value = '';
+    setTimeout(() => input.focus(), 150);
+  }
+}
+
+function closeProSearchKeywordsModal() {
+  const m = document.getElementById('proSearchKeywordsModal');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+}
+
+function renderProSearchKeywordsChips() {
+  const data = getProSalonData();
+  const keywords = Array.isArray(data.searchKeywords) ? data.searchKeywords : [];
+  const badge = document.getElementById('proKeywordsCountBadge');
+  if (badge) badge.textContent = `${keywords.length} из 10`;
+
+  const container = document.getElementById('proSearchKeywordsChipsContainer');
+  if (!container) return;
+
+  if (keywords.length === 0) {
+    container.innerHTML = `
+      <div class="w-full py-6 flex flex-col items-center justify-center text-center text-slate-400">
+        <span class="material-symbols-outlined text-3xl mb-1 text-slate-300">search</span>
+        <p class="text-xs font-semibold">Список пуст</p>
+        <p class="text-[10px] mt-0.5">Введите тег ниже и нажмите «Добавить»</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = keywords.map(kw => {
+    const safeKw = kw.replace(/'/g, "\\'");
+    return `
+      <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200/90 text-slate-700 text-xs font-semibold animate-in zoom-in-95 duration-150">
+        <span>${kw}</span>
+        <button type="button" onclick="confirmRemoveSearchKeyword('${safeKw}')" aria-label="Удалить тег"
+          class="w-4 h-4 rounded-full bg-slate-300/80 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors">
+          <span class="material-symbols-outlined text-[13px]">close</span>
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function addProSearchKeyword() {
+  const input = document.getElementById('proNewKeywordInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) {
+    showToast('Введите поисковый тег');
+    return;
+  }
+
+  const data = getProSalonData();
+  if (!Array.isArray(data.searchKeywords)) data.searchKeywords = [];
+
+  if (data.searchKeywords.length >= 10) {
+    showToast('Максимум 10 ключевых слов ⚠️');
+    return;
+  }
+
+  const exists = data.searchKeywords.some(k => k.toLowerCase() === val.toLowerCase());
+  if (exists) {
+    showToast('Такой тег уже добавлен ⚠️');
+    return;
+  }
+
+  data.searchKeywords.push(val);
+  saveProSalonData(data);
+  input.value = '';
+  renderProSearchKeywordsChips();
+  showToast(`Тег «${val}» добавлен ✓`);
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+  } catch (e) {}
+}
+
+function confirmRemoveSearchKeyword(tag) {
+  confirmProAction(
+    'Удалить поисковый тег?',
+    `Вы уверены, что хотите удалить ключевое слово «${tag}»?`,
+    () => {
+      const data = getProSalonData();
+      if (Array.isArray(data.searchKeywords)) {
+        data.searchKeywords = data.searchKeywords.filter(k => k !== tag);
+        saveProSalonData(data);
+        renderProSearchKeywordsChips();
+        showToast(`Тег «${tag}» удален 🗑️`);
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          }
+        } catch (e) {}
+      }
+    }
+  );
+}
+
+
+// 4. PROMOTE FEATURE (Выделиться из всех - Премиум)
+function openProPromoteModal() {
+  const m = document.getElementById('proPromoteModal');
+  if (m) {
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+}
+
+function closeProPromoteModal() {
+  const m = document.getElementById('proPromoteModal');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
   }
 }
 

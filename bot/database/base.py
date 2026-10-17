@@ -40,6 +40,10 @@ async def init_db():
             await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS admin_tag VARCHAR(128);"))
             await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS phone VARCHAR(32);"))
             await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS filter_tags_json TEXT;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS search_keywords_json TEXT;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS is_promoted BOOLEAN DEFAULT FALSE;"))
+            await conn.execute(text("ALTER TABLE salons ALTER COLUMN salon_type DROP NOT NULL;"))
             # Миграции колонок masters
             await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS last_name VARCHAR(128);"))
             await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS telegram_handle VARCHAR(128);"))

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import BigInteger, DateTime, Float, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from bot.database.base import Base
@@ -12,7 +12,10 @@ class Salon(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     slug: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
-    salon_type: Mapped[str] = mapped_column(String(64), default="Салон красоты")
+    salon_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, default="")
+    filter_tags_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")
+    search_keywords_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")
+    is_promoted: Mapped[bool] = mapped_column(Boolean, default=False)
     region: Mapped[str] = mapped_column(String(64), nullable=False)
     region_name: Mapped[str] = mapped_column(String(128), nullable=False)
     address: Mapped[str] = mapped_column(String(256), nullable=False)

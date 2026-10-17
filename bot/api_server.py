@@ -170,6 +170,28 @@ async def handle_update_salon(request: web.Request) -> web.Response:
             if s_masters is not None and isinstance(s_masters, list):
                 await sync_salon_masters(session, salon.id, s_masters)
 
+            s_type = data.get("salon_type") or data.get("business_type")
+            if s_type is not None:
+                salon.salon_type = str(s_type).strip()
+
+            s_filter_tags = data.get("filter_tags") or data.get("filterTags")
+            if s_filter_tags is not None:
+                if isinstance(s_filter_tags, list):
+                    salon.filter_tags_json = json.dumps(s_filter_tags, ensure_ascii=False)
+                elif isinstance(s_filter_tags, str):
+                    salon.filter_tags_json = s_filter_tags
+
+            s_keywords = data.get("search_keywords") or data.get("searchKeywords")
+            if s_keywords is not None:
+                if isinstance(s_keywords, list):
+                    salon.search_keywords_json = json.dumps(s_keywords, ensure_ascii=False)
+                elif isinstance(s_keywords, str):
+                    salon.search_keywords_json = s_keywords
+
+            s_promoted = data.get("is_promoted") if "is_promoted" in data else data.get("isPromoted")
+            if s_promoted is not None:
+                salon.is_promoted = bool(s_promoted)
+
             now = datetime.utcnow()
             if hasattr(salon, "updated_at"):
                 salon.updated_at = now

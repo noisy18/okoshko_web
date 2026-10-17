@@ -873,6 +873,28 @@ async def handle_salon_update_info_message(message: Message, bot: Bot):
                     if not salon.admin_tag:
                         salon.admin_id = None
 
+                salon_type = payload.get("salon_type")
+                if salon_type is not None:
+                    salon.salon_type = salon_type.strip()
+
+                filter_tags = payload.get("filter_tags")
+                if filter_tags is not None:
+                    if isinstance(filter_tags, list):
+                        salon.filter_tags_json = json.dumps(filter_tags, ensure_ascii=False)
+                    elif isinstance(filter_tags, str):
+                        salon.filter_tags_json = filter_tags
+
+                search_keywords = payload.get("search_keywords")
+                if search_keywords is not None:
+                    if isinstance(search_keywords, list):
+                        salon.search_keywords_json = json.dumps(search_keywords, ensure_ascii=False)
+                    elif isinstance(search_keywords, str):
+                        salon.search_keywords_json = search_keywords
+
+                is_promoted = payload.get("is_promoted")
+                if is_promoted is not None:
+                    salon.is_promoted = bool(is_promoted)
+
                 salon.updated_at = datetime.utcnow()
                 await session.commit()
                 logger.info(f"✅ Данные салона id={salon.id} обновлены в БД: name='{salon.name}', city='{salon.region_name}', addr='{salon.address}', coords=[{salon.latitude}, {salon.longitude}]")

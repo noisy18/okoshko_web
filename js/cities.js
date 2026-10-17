@@ -349,10 +349,31 @@
             }
           }
         }
-        const matchCategory = (currentFilterCategory === 'all' || v.categoryTags.includes(currentFilterCategory));
+        let matchCategory = false;
+        if (currentFilterCategory === 'all') {
+          matchCategory = true;
+        } else {
+          const catLower = currentFilterCategory.toLowerCase();
+          const vFilterTags = (Array.isArray(v.filterTags) && v.filterTags.length > 0 ? v.filterTags : (Array.isArray(v.categoryTags) ? v.categoryTags : [])).map(t => String(t).toLowerCase());
+          if (vFilterTags.includes(catLower)) {
+            matchCategory = true;
+          } else {
+            // Fallback check against salonType, categoryText, searchKeywords, and services
+            const servicesText = (v.services || []).map(s => (s.name || s.title || s)).join(' ').toLowerCase();
+            const keywordsText = (v.searchKeywords || []).join(' ').toLowerCase();
+            const combinedText = `${v.type || ''} ${v.salonType || ''} ${v.categoryText || ''} ${keywordsText} ${servicesText}`.toLowerCase();
+            if (combinedText.includes(catLower)) {
+              matchCategory = true;
+            }
+          }
+        }
+
         let matchSearch = true;
         if (currentSearchQuery) {
-          const fullText = (v.name + ' ' + v.type + ' ' + v.categoryText + ' ' + v.address + ' ' + (v.regionName || '') + ' ' + v.services.join(' ')).toLowerCase();
+          const servicesText = (v.services || []).map(s => (s.name || s.title || s)).join(' ');
+          const keywordsText = (v.searchKeywords || []).join(' ');
+          const filterTagsText = (v.filterTags || []).join(' ');
+          const fullText = (v.name + ' ' + (v.salonType || v.type || '') + ' ' + v.categoryText + ' ' + v.address + ' ' + (v.regionName || '') + ' ' + filterTagsText + ' ' + keywordsText + ' ' + servicesText).toLowerCase();
           matchSearch = fullText.includes(currentSearchQuery);
         }
         return matchRegion && matchCategory && matchSearch;
