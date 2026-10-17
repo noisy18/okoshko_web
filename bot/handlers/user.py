@@ -114,10 +114,10 @@ async def handle_start(message: Message, bot: Bot, command: Optional[CommandObje
             salon_ident = parts[0]
             master_hint = parts[1] if len(parts) > 1 else ""
 
-            owner_hint = int(salon_ident) if salon_ident.isdigit() else None
-            salon = await get_salon_by_slug_or_name(salon_ident, owner_id=owner_hint)
-            salon_name = salon.name if salon else salon_ident.replace("-", " ").title()
-            salon_id = salon.id if salon else 1
+            salon = await get_salon_by_slug_or_name(salon_ident)
+            salon_name = (salon.name.strip() if salon and salon.name and salon.name.strip() else None) or "Beauty Studio"
+            salon_id = salon.id if salon else (int(salon_ident) if salon_ident.isdigit() else 1)
+
 
             invite_text = (
                 f"👋 Здравствуйте, <b>{user_name}</b>!\n\n"
@@ -515,8 +515,8 @@ async def handle_confirm_bind_master(callback: CallbackQuery, bot: Bot):
         avatar_url=avatar_url,
     )
 
-    salon_name = salon.name if salon else "Beauty Studio"
-    master_name = master.name if master else (user.first_name or "Мастер")
+    salon_name = (salon.name.strip() if salon and salon.name and salon.name.strip() else None) or "Beauty Studio"
+    master_name = (master.name.strip() if master and master.name and master.name.strip() else None) or (user.first_name or "Мастер")
     master_id = master.id if master else 0
 
     # Обновляем кнопку меню чата для мастера

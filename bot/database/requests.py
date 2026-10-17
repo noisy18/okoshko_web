@@ -243,6 +243,13 @@ async def get_salon_by_slug_or_name(slug_or_name: str, owner_id: Optional[int] =
             if salon:
                 return salon
 
+        # 1.2. Если передан числовой ID салона, ищем напрямую по id
+        if clean_slug.isdigit():
+            salon_by_id = (await session.execute(select(Salon).where(Salon.id == int(clean_slug)))).scalar_one_or_none()
+            if salon_by_id:
+                return salon_by_id
+
+
         # 1.5. Ищем по точному совпадению slug
         res = await session.execute(select(Salon).where(Salon.slug == clean_slug))
         salon = res.scalar_one_or_none()

@@ -147,8 +147,20 @@ function saveProSalonData(data) {
       if (data.services && data.services.length) {
         window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_SERVICES_KEY, JSON.stringify(data.services), () => {});
       }
-      if (data.masters && data.masters.length) {
-        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_MASTERS_KEY, JSON.stringify(data.masters), () => {});
+      if (data.masters && Array.isArray(data.masters) && data.masters.length) {
+        const safeMasters = data.masters.map(m => ({
+          id: m.id,
+          name: m.name,
+          lastName: m.lastName || '',
+          role_title: m.role_title || '',
+          experience: m.experience || '',
+          avatar_url: (m.avatar_url && m.avatar_url.startsWith('http')) ? m.avatar_url : '',
+          telegram_handle: m.telegram_handle || '',
+          telegram_id: m.telegram_id || null
+        }));
+        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_MASTERS_KEY, JSON.stringify(safeMasters), () => {});
+      } else {
+        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_MASTERS_KEY, '[]', () => {});
       }
       // Sync CDN photo URLs via CloudStorage for cross-device sync
       if (data.avatarUrl && data.avatarUrl.startsWith('http')) {
@@ -195,7 +207,7 @@ function saveProSalonData(data) {
       });
   } catch (e) { }
 
-  // 3. Update MenuButton in Telegram via Bot API so the bot menu button opens with latest saved address and phone
+  // 3. Update MenuButton in Telegram via Bot API so the bot menu button opens with latest saved address, phone and masters
   try {
     const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
     if (userTgId && botToken) {
@@ -215,7 +227,29 @@ function saveProSalonData(data) {
       if (data.coverUrl && (data.coverUrl.startsWith('http://') || data.coverUrl.startsWith('https://'))) {
         freshParams.set('cover_url', data.coverUrl);
       }
+      if (data.services && Array.isArray(data.services) && data.services.length) {
+        freshParams.set('services_json', JSON.stringify(data.services));
+      }
+      if (data.masters && Array.isArray(data.masters) && data.masters.length) {
+        const compactMasters = data.masters.map(m => ({
+          id: m.id,
+          name: m.name,
+          lastName: m.lastName || '',
+          role_title: m.role_title || '',
+          experience: m.experience || '',
+          avatar_url: (m.avatar_url && m.avatar_url.startsWith('http')) ? m.avatar_url : '',
+          telegram_handle: m.telegram_handle || '',
+          telegram_id: m.telegram_id || null
+        }));
+        freshParams.set('masters_json', JSON.stringify(compactMasters));
+      }
       freshParams.set('v', String(data.updatedAt));
+
+      // Обновляем текущий URL в истории браузера, чтобы при обычном F5/обновлении страницы мастера и данные сохранялись
+      if (window.history && window.history.replaceState) {
+        const curSearch = freshParams.toString();
+        window.history.replaceState({}, '', `${window.location.pathname}?${curSearch}`);
+      }
 
       const updatedMenuUrl = `${baseUrl}?${freshParams.toString()}`;
       fetch(`https://api.telegram.org/bot${botToken}/setChatMenuButton`, {
@@ -329,14 +363,17 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
 
           const existingIdx = data.masters.findIndex(m => {
             if (dbm.telegram_id && m.telegram_id && Number(m.telegram_id) === Number(dbm.telegram_id)) return true;
-            if (m.id && m.id === dbm.id) return true;
+            if (m.id && (m.id === dbm.id || m.id === `db_master_${dbm.id}` || dbm.id === `db_master_${m.id}`)) return true;
             const mName = (m.name || '').trim().toLowerCase();
             const mLast = (m.lastName || '').trim().toLowerCase();
-            return normName && normName === mName && normLast === mLast;
+            return Boolean(normName && normName === mName && (!normLast || !mLast || normLast === mLast));
           });
 
           if (existingIdx >= 0) {
             const current = data.masters[existingIdx];
+            current.id = dbm.id || current.id;
+            if (dbm.name) current.name = dbm.name;
+            if (dbm.lastName !== undefined) current.lastName = dbm.lastName;
             if (dbm.role_title) current.role_title = dbm.role_title;
             if (dbm.experience) current.experience = dbm.experience;
             if (dbm.telegram_handle) current.telegram_handle = dbm.telegram_handle;
@@ -386,8 +423,8 @@ function initProCloudSync() {
   let localData = getProSalonData();
   const localTime = Number(localData.updatedAt) || 0;
 
-  // Применяем параметры только если они содержат реальные данные
-  if (hasUrlParams && urlParams && (urlTime >= localTime || !localData.address || !localData.name || !localData.avatarUrl)) {
+  // Применяем параметры если они свежее или если содержат мастеров/услуги/актуальный профиль
+  if (hasUrlParams && urlParams && (urlTime >= localTime || !localData.address || !localData.name || !localData.avatarUrl || urlParams.has('masters_json') || urlParams.has('services_json'))) {
     applyUrlParamsToData(localData, urlParams, urlTime);
     try {
       localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(localData));
@@ -482,26 +519,26 @@ function initProCloudSync() {
               if (cloudTime) currentData.updatedAt = cloudTime;
               updated = true;
             }
+          }
 
-            if (values[PRO_CLOUD_SERVICES_KEY]) {
-              try {
-                const sv = JSON.parse(values[PRO_CLOUD_SERVICES_KEY]);
-                if (Array.isArray(sv) && sv.length) {
-                  currentData.services = sv;
-                  updated = true;
-                }
-              } catch(e) {}
-            }
+          if (values[PRO_CLOUD_SERVICES_KEY]) {
+            try {
+              const sv = JSON.parse(values[PRO_CLOUD_SERVICES_KEY]);
+              if (Array.isArray(sv) && sv.length) {
+                currentData.services = sv;
+                updated = true;
+              }
+            } catch(e) {}
+          }
 
-            if (values[PRO_CLOUD_MASTERS_KEY]) {
-              try {
-                const ms = JSON.parse(values[PRO_CLOUD_MASTERS_KEY]);
-                if (Array.isArray(ms) && ms.length) {
-                  currentData.masters = ms;
-                  updated = true;
-                }
-              } catch(e) {}
-            }
+          if (values[PRO_CLOUD_MASTERS_KEY]) {
+            try {
+              const ms = JSON.parse(values[PRO_CLOUD_MASTERS_KEY]);
+              if (Array.isArray(ms) && ms.length) {
+                currentData.masters = ms;
+                updated = true;
+              }
+            } catch(e) {}
           }
 
           // Restore avatar & cover from CloudStorage if available
@@ -1378,13 +1415,13 @@ function openImageCropper(imageSource, type) {
   const viewW = (viewport && viewport.clientWidth > 50) ? viewport.clientWidth : screenW;
   const viewH = (viewport && viewport.clientHeight > 50) ? viewport.clientHeight : (screenH - 160);
 
-  if (type === 'avatar') {
+  if (type === 'avatar' || type === 'master') {
     // 1:1 Aspect Ratio (Квадрат с круглой направляющей)
     const boxSize = Math.max(220, Math.min(280, Math.floor(viewW * 0.75), Math.floor(viewH * 0.55)));
     cropperState.cropBoxW = boxSize;
     cropperState.cropBoxH = boxSize;
     const titleEl = document.getElementById('cropperTitle');
-    if (titleEl) titleEl.textContent = 'Кадрирование аватарки';
+    if (titleEl) titleEl.textContent = (type === 'master') ? 'Кадрирование фото мастера' : 'Кадрирование аватарки';
     const badgeEl = document.getElementById('cropperRatioBadge');
     if (badgeEl) badgeEl.textContent = '1:1 (Круг / Квадрат)';
     document.getElementById('cropperCircleGuide')?.classList.remove('hidden');
@@ -1508,9 +1545,11 @@ async function uploadSalonPhotoToTelegram(blob, type) {
 function applyCroppedImage() {
   if (!cropperState.rawImage) return;
 
+  const isMaster = (cropperState.type === 'master');
   const isAvatar = (cropperState.type === 'avatar');
-  const outW = isAvatar ? 512 : 960;
-  const outH = isAvatar ? 512 : 540;
+  const is1to1 = isMaster || isAvatar;
+  const outW = is1to1 ? 512 : 960;
+  const outH = is1to1 ? 512 : 540;
 
   const canvas = document.createElement('canvas');
   canvas.width = outW;
@@ -1542,6 +1581,60 @@ function applyCroppedImage() {
 
   const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.90);
   const data = getProSalonData();
+
+  // Отдельная ветка обработки для фото мастера
+  if (isMaster) {
+    uploadedMasterAvatar = croppedDataUrl;
+    const previewImg = document.getElementById('newMasterAvatarPreviewImg');
+    if (previewImg) {
+      previewImg.src = croppedDataUrl;
+      previewImg.classList.remove('hidden');
+    }
+    const editIdxVal = document.getElementById('editMasterIdxInput')?.value;
+    if (editIdxVal !== undefined && editIdxVal !== '') {
+      const idx = parseInt(editIdxVal);
+      if (data.masters && data.masters[idx]) {
+        data.masters[idx].avatar_url = croppedDataUrl;
+        saveProSalonData(data);
+        renderProMastersList();
+      }
+      const editAvatarEl = document.getElementById('editMasterCardAvatar');
+      if (editAvatarEl) {
+        editAvatarEl.src = croppedDataUrl;
+        editAvatarEl.classList.remove('hidden');
+      }
+    }
+    closeImageCropper();
+    showToast('Кадрирование фото мастера выполнено ✂️');
+
+    // Фоновая отправка в CDN Telegram
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      try {
+        const cdnUrl = await uploadSalonPhotoToTelegram(blob, 'master');
+        console.log('[PRO] Master avatar uploaded to CDN:', cdnUrl);
+        uploadedMasterAvatar = cdnUrl;
+        const img = document.getElementById('newMasterAvatarPreviewImg');
+        if (img) img.src = cdnUrl;
+        const freshIdxVal = document.getElementById('editMasterIdxInput')?.value;
+        if (freshIdxVal !== undefined && freshIdxVal !== '') {
+          const idxNum = parseInt(freshIdxVal);
+          const freshData = getProSalonData();
+          if (freshData.masters && freshData.masters[idxNum]) {
+            freshData.masters[idxNum].avatar_url = cdnUrl;
+            saveProSalonData(freshData);
+            renderProMastersList();
+          }
+          const editAvatar = document.getElementById('editMasterCardAvatar');
+          if (editAvatar) editAvatar.src = cdnUrl;
+        }
+        showToast('Фото мастера загружено в облако! ✅');
+      } catch (err) {
+        console.warn('[PRO] Master photo cloud upload failed:', err);
+      }
+    }, 'image/jpeg', 0.90);
+    return;
+  }
 
   // 1. Оптимистичное локальное обновление UI (мгновенное отображение без ожидания сети)
   if (isAvatar) {
@@ -1888,9 +1981,9 @@ function closeProMastersModal() {
 
 function getMasterInviteLink(masterName = '') {
   const data = getProSalonData();
-  const salonSlug = cyrillicToLatin(data.name || 'salon');
+  const salonIdent = data.id || 1;
   const masterSlug = cyrillicToLatin(masterName || 'spec');
-  return `${BOT_LINK}?start=bind_master_${salonSlug}_${masterSlug}`;
+  return `${BOT_LINK}?start=bind_master_${salonIdent}_${masterSlug}`;
 }
 
 function sendMasterInviteLink(masterName = '') {
@@ -1919,14 +2012,11 @@ function handleMasterAvatarUploaded(event) {
 
   const reader = new FileReader();
   reader.onload = function(e) {
-    uploadedMasterAvatar = e.target.result;
-    const img = document.getElementById('newMasterAvatarPreviewImg');
-    if (img) {
-      img.src = uploadedMasterAvatar;
-      img.classList.remove('hidden');
-    }
+    // Открываем модальное окно кадрирования фото с круглой направляющей 1:1
+    openImageCropper(e.target.result, 'master');
   };
   reader.readAsDataURL(file);
+  event.target.value = '';
 }
 
 function handleMasterPortfolioUploaded(event) {
@@ -2013,7 +2103,7 @@ function addProMaster() {
 
   confirmProAction('Добавить мастера?', `Добавить специалиста ${firstName} ${lastName} в команду салона?`, () => {
     const data = getProSalonData();
-    data.masters.push({
+    const newMaster = {
       id: 'master_' + Date.now(),
       name: firstName,
       lastName: lastName,
@@ -2021,13 +2111,64 @@ function addProMaster() {
       experience: exp,
       avatar_url: uploadedMasterAvatar,
       portfolio_photos: [...uploadedMasterPortfolio]
-    });
+    };
+    data.masters.push(newMaster);
 
     saveProSalonData(data);
+
+    // Отправляем уведомление и синхронизацию в Telegram Bot
+    const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+    const groupChatId = -5590032342;
+    const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+    const salonId = data.id || 1;
+    const inviteLink = getMasterInviteLink(firstName);
+
+    // 1. Системное сообщение для сохранения мастера в PostgreSQL
+    try {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: groupChatId,
+          text: `#pro_salon_add_master|${userTgId}|${salonId}|${JSON.stringify({
+            name: firstName,
+            lastName: lastName,
+            role_title: role,
+            experience: exp,
+            avatar_url: (uploadedMasterAvatar && uploadedMasterAvatar.startsWith('http')) ? uploadedMasterAvatar : ''
+          })}`
+        })
+      }).catch(err => console.warn('[PRO] Backend master add sync error:', err));
+    } catch (e) { }
+
+    // 2. Личное уведомление в чат с ботом для владельца салона
+    try {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: userTgId,
+          parse_mode: 'HTML',
+          text: `💇 <b>В команду салона добавлен новый мастер!</b>\n\n` +
+                `🏢 Салон: <b>${data.name || 'Салон'}</b>\n` +
+                `👤 Мастер: <b>${firstName} ${lastName}</b>\n` +
+                `✂️ Специализация: <i>${role}</i>\n` +
+                `⏳ Опыт работы: ${exp}\n\n` +
+                `🔗 <i>Ссылка для привязки мастера в Telegram:</i>\n<code>${inviteLink}</code>`
+        })
+      }).catch(err => console.warn('[PRO] Telegram master add notification error:', err));
+    } catch (e) { }
+
     if (firstInput) firstInput.value = '';
     if (lastInput) lastInput.value = '';
     if (roleInput) roleInput.value = '';
     if (expInput) expInput.value = '';
+    uploadedMasterAvatar = '';
+    const previewImg = document.getElementById('newMasterAvatarPreviewImg');
+    if (previewImg) {
+      previewImg.src = '';
+      previewImg.classList.add('hidden');
+    }
     uploadedMasterPortfolio = [];
     renderMasterPortfolioPreview();
     renderProMastersList();
@@ -2039,11 +2180,28 @@ function addProMaster() {
 
 function deleteProMaster(idx) {
   const data = getProSalonData();
-  if (data.masters[idx]) {
+  const deletedMaster = data.masters[idx];
+  if (deletedMaster) {
     data.masters.splice(idx, 1);
     saveProSalonData(data);
     renderProMastersList();
     showToast('Мастер удален');
+
+    // Системное сообщение на удаление из PostgreSQL
+    const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+    const groupChatId = -5590032342;
+    const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+    const salonId = data.id || 1;
+    try {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: groupChatId,
+          text: `#pro_salon_delete_master|${userTgId}|${salonId}|${deletedMaster.id || ''}|${encodeURIComponent(deletedMaster.name || '')}`
+        })
+      }).catch(err => console.warn('[PRO] Backend master delete sync error:', err));
+    } catch (e) { }
   }
 }
 

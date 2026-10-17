@@ -558,8 +558,10 @@ async def handle_salon_photo_upload_message(message: Message, bot: Bot):
             if salon:
                 if photo_type == "avatar":
                     salon.logo_url = cdn_url
-                else:
+                elif photo_type == "cover":
                     salon.cover_image_url = cdn_url
+                elif photo_type == "master":
+                    logger.info(f"📸 Фото мастера загружено в CDN Telegram: {cdn_url}")
                 salon.updated_at = datetime.utcnow()
                 await session.commit()
                 logger.info(f"📸 Фото ({photo_type}) салона ID {salon.id} успешно сохранено в PostgreSQL: {cdn_url}")
@@ -580,6 +582,159 @@ async def handle_salon_photo_upload_message(message: Message, bot: Bot):
                     logger.warning(f"Не удалось обновить MenuButton для {user_id} после сохранения фото: {m_err}")
     except Exception as e:
         logger.error(f"Ошибка сохранения фото салона в БД: {e}")
+
+
+@webapp_router.message(F.text.startswith("#pro_salon_add_master"))
+async def handle_salon_add_master_message(message: Message, bot: Bot):
+    """
+    Добавляет нового мастера в PostgreSQL из Mini App (обычная форма) и обновляет MenuButton владельца
+    """
+    try:
+        parts = message.text.split("|", 3)
+        # Формат: #pro_salon_add_master|1205557089|1|{"name":"...","role_title":"..."}
+        user_id = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else (message.from_user.id if message.from_user else 1205557089)
+        salon_id = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 1
+        m_raw = parts[3] if len(parts) > 3 else "{}"
+        m_data = json.loads(m_raw)
+
+        m_name = (m_data.get("name") or "").strip()
+        if not m_name:
+            return
+
+        m_last = (m_data.get("lastName") or "").strip()
+        m_role = (m_data.get("role_title") or "Специалист салона").strip()
+        m_exp = (m_data.get("experience") or "3 года").strip()
+        m_avatar = (m_data.get("avatar_url") or "").strip()
+        safe_avatar = m_avatar if not m_avatar.startswith("data:image") else ""
+
+        from bot.database import Salon, Master
+        from bot.database.base import async_session_maker
+        from sqlalchemy import select
+        from datetime import datetime
+
+        async with async_session_maker() as session:
+            res = await session.execute(
+                select(Salon).where((Salon.owner_id == user_id) | (Salon.admin_id == user_id) | (Salon.id == salon_id))
+            )
+            salon = res.scalar_one_or_none()
+            if not salon:
+                res_bs = await session.execute(select(Salon).where(Salon.id == 1))
+                salon = res_bs.scalar_one_or_none()
+
+            if salon:
+                # Проверяем, существует ли уже мастер с таким именем в этом салоне
+                existing_res = await session.execute(
+                    select(Master).where(Master.salon_id == salon.id, Master.name == m_name, Master.last_name == m_last)
+                )
+                existing_m = existing_res.scalar_one_or_none()
+                if existing_m:
+                    existing_m.role_title = m_role
+                    existing_m.experience = m_exp
+                    if safe_avatar:
+                        existing_m.avatar_url = safe_avatar
+                else:
+                    new_m = Master(
+                        salon_id=salon.id,
+                        name=m_name,
+                        last_name=m_last,
+                        role_title=m_role,
+                        experience=m_exp,
+                        avatar_url=safe_avatar,
+                    )
+                    session.add(new_m)
+
+                salon.updated_at = datetime.utcnow()
+                await session.commit()
+                logger.info(f"💇 Мастер '{m_name} {m_last}' успешно сохранен в PostgreSQL (салон ID {salon.id})")
+
+                # Обновляем MenuButton для владельца салона со свежим списком мастеров
+                try:
+                    from aiogram.types import MenuButtonWebApp, WebAppInfo
+                    fresh_url = await get_user_app_url(user_id)
+                    await bot.set_chat_menu_button(
+                        chat_id=user_id,
+                        menu_button=MenuButtonWebApp(
+                            text="💅 Окошко",
+                            web_app=WebAppInfo(url=fresh_url),
+                        ),
+                    )
+                    logger.info(f"MenuButton для {user_id} обновлена со свежим списком мастеров")
+                except Exception as m_err:
+                    logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
+    except Exception as e:
+        logger.error(f"Ошибка сохранения мастера из формы в БД: {e}")
+    finally:
+        try:
+            await message.delete()
+        except Exception:
+            pass
+
+
+@webapp_router.message(F.text.startswith("#pro_salon_delete_master"))
+async def handle_salon_delete_master_message(message: Message, bot: Bot):
+    """
+    Удаляет мастера из PostgreSQL при удалении из Mini App
+    """
+    try:
+        parts = message.text.split("|")
+        # Формат: #pro_salon_delete_master|1205557089|1|master_id_or_tag|m_name
+        user_id = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else (message.from_user.id if message.from_user else 1205557089)
+        salon_id = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 1
+        m_id_str = parts[3] if len(parts) > 3 else ""
+        m_name = parts[4] if len(parts) > 4 else ""
+
+        from bot.database import Salon, Master
+        from bot.database.base import async_session_maker
+        from sqlalchemy import select
+        from datetime import datetime
+
+        async with async_session_maker() as session:
+            target_m = None
+            if m_id_str.startswith("db_master_"):
+                try:
+                    db_id = int(m_id_str.replace("db_master_", ""))
+                    res = await session.execute(select(Master).where(Master.id == db_id))
+                    target_m = res.scalar_one_or_none()
+                except Exception:
+                    pass
+            elif m_id_str.isdigit():
+                res = await session.execute(select(Master).where(Master.id == int(m_id_str)))
+                target_m = res.scalar_one_or_none()
+
+            if not target_m and m_name:
+                import urllib.parse
+                clean_name = urllib.parse.unquote(m_name).strip()
+                res = await session.execute(select(Master).where(Master.salon_id == salon_id, Master.name == clean_name))
+                target_m = res.scalar_one_or_none()
+
+            if target_m:
+                await session.delete(target_m)
+                salon_res = await session.execute(select(Salon).where(Salon.id == salon_id))
+                salon = salon_res.scalar_one_or_none()
+                if salon:
+                    salon.updated_at = datetime.utcnow()
+                await session.commit()
+                logger.info(f"🗑️ Мастер ID {target_m.id} удален из PostgreSQL")
+
+                try:
+                    from aiogram.types import MenuButtonWebApp, WebAppInfo
+                    fresh_url = await get_user_app_url(user_id)
+                    await bot.set_chat_menu_button(
+                        chat_id=user_id,
+                        menu_button=MenuButtonWebApp(
+                            text="💅 Окошко",
+                            web_app=WebAppInfo(url=fresh_url),
+                        ),
+                    )
+                except Exception as m_err:
+                    logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
+    except Exception as e:
+        logger.error(f"Ошибка удаления мастера в БД: {e}")
+    finally:
+        try:
+            await message.delete()
+        except Exception:
+            pass
 
 
 @webapp_router.message(F.text.startswith("#pro_salon_remove_photo"))
