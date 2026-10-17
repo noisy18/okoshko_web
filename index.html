@@ -2582,6 +2582,66 @@
   </div>
 
   <!-- ======================================================== -->
+  <!-- MODAL: PRO SERVICE MASTERS (Закрепление мастеров за услугой) -->
+  <!-- ======================================================== -->
+  <div id="proServiceMastersModal" onclick="if(event.target === this) closeProServiceMastersModal()"
+    class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[88vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined text-[22px]">badge</span>
+          </div>
+          <div class="flex flex-col">
+            <h3 class="font-bold text-base text-on-surface">Мастера услуги</h3>
+            <span class="text-[11px] text-slate-400">Закрепление специалистов за услугой</span>
+          </div>
+        </div>
+        <button onclick="closeProServiceMastersModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
+      </div>
+
+      <input type="hidden" id="editServiceIdxInput" />
+
+      <!-- Read-only service card -->
+      <div class="p-3.5 rounded-2xl bg-surface-container-low border border-slate-200/80 flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-primary-fixed/50 flex items-center justify-center text-primary shrink-0 overflow-hidden">
+          <img id="editServiceCardPhoto" src="" class="w-full h-full object-cover hidden" />
+          <span id="editServiceCardIcon" class="material-symbols-outlined text-[24px]">spa</span>
+        </div>
+        <div class="flex flex-col min-w-0 flex-1">
+          <div class="flex items-center gap-1.5">
+            <span id="editServiceCardName" class="font-bold text-xs text-on-surface truncate"></span>
+            <span id="editServiceCardCategory" class="px-1.5 py-0.5 rounded-full bg-slate-200/60 text-slate-600 text-[9px] font-semibold truncate"></span>
+          </div>
+          <span id="editServiceCardDesc" class="text-[11px] text-slate-500 mt-0.5 truncate"></span>
+          <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+            <span id="editServiceCardPrice" class="text-primary font-bold text-xs"></span>
+            <span id="editServiceCardDuration"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase">Мастера салона</label>
+          <span class="text-[10px] text-slate-400">Отметьте специалистов</span>
+        </div>
+        <div id="editServiceMastersList" class="flex flex-col gap-1.5 max-h-[38vh] overflow-y-auto custom-scrollbar pr-1">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <button type="button" onclick="saveProServiceMastersEdit()"
+        class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-sm shadow-[0_8px_20px_rgba(95,58,221,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-1">
+        <span class="material-symbols-outlined text-[18px]">check</span>
+        <span>Сохранить закрепленных мастеров</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- MODAL: PRO SALON ADDRESS PICKER MAP (Выбор адреса на карте) -->
   <!-- ======================================================== -->
   <div id="proAddressPickerModal" class="fixed inset-0 z-50 bg-black/60 hidden flex-col select-none animate-in fade-in duration-200">

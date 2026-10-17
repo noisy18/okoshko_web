@@ -1898,6 +1898,16 @@ function renderServicePhotosPreview() {
   `).join('');
 }
 
+function formatMasterCount(count) {
+  if (count === 0) return 'Мастера не назначены';
+  const lastDigit = count % 10;
+  const lastTwo = count % 100;
+  if (lastTwo >= 11 && lastTwo <= 19) return `${count} мастеров`;
+  if (lastDigit === 1) return `${count} мастер`;
+  if (lastDigit >= 2 && lastDigit <= 4) return `${count} мастера`;
+  return `${count} мастеров`;
+}
+
 function renderProServicesList() {
   const container = document.getElementById('proServicesListContainer');
   if (!container) return;
@@ -1908,26 +1918,48 @@ function renderProServicesList() {
     return;
   }
 
-  container.innerHTML = data.services.map((svc, idx) => `
-    <div class="p-3.5 rounded-2xl bg-surface-container-low border border-slate-200/70 flex items-center justify-between gap-2">
-      <div class="flex flex-col min-w-0 flex-1">
-        <div class="flex items-center gap-1.5">
-          <span class="font-bold text-xs text-on-surface truncate">${svc.name}</span>
-          ${svc.category ? `<span class="px-1.5 py-0.2 rounded-full bg-slate-200/60 text-slate-600 text-[9px] font-semibold">${svc.category}</span>` : ''}
+  container.innerHTML = data.services.map((svc, idx) => {
+    const assignedMasters = (data.masters || []).filter(m =>
+      Array.isArray(svc.masterIds) && (
+        (m.id && svc.masterIds.includes(m.id)) ||
+        (m.name && svc.masterIds.includes(m.name))
+      )
+    );
+    const hasAssigned = assignedMasters.length > 0;
+    const assignedText = formatMasterCount(assignedMasters.length);
+
+    return `
+      <div onclick="openProServiceMastersModal(${idx})"
+        class="p-3.5 rounded-2xl bg-surface-container-low border border-slate-200/70 hover:border-primary/50 cursor-pointer flex items-center justify-between gap-2.5 transition-all active:scale-[0.99] group">
+        <div class="flex flex-col min-w-0 flex-1">
+          <div class="flex items-center gap-1.5">
+            <span class="font-bold text-xs text-on-surface truncate group-hover:text-primary transition-colors">${svc.name}</span>
+            ${svc.category ? `<span class="px-1.5 py-0.2 rounded-full bg-slate-200/60 text-slate-600 text-[9px] font-semibold">${svc.category}</span>` : ''}
+          </div>
+          <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${svc.desc || ''}</span>
+          <div class="flex items-center flex-wrap gap-2 mt-1">
+            <span class="text-xs font-extrabold text-primary">${(svc.price || 0).toLocaleString('ru-RU')} ₽</span>
+            <span class="text-[10px] text-slate-400">• ${svc.duration || 60} мин</span>
+            ${svc.photos?.length ? `<span class="text-[10px] text-slate-400">• 📷 ${svc.photos.length}</span>` : ''}
+            <span class="inline-flex items-center gap-0.5 text-[10px] ${hasAssigned ? 'text-indigo-600 font-semibold bg-indigo-50/90 px-1.5 py-0.5 rounded-md' : 'text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md'}">
+              <span class="material-symbols-outlined text-[12px]">group</span>
+              <span>${assignedText}</span>
+            </span>
+          </div>
         </div>
-        <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${svc.desc || ''}</span>
-        <div class="flex items-center gap-2 mt-1">
-          <span class="text-xs font-extrabold text-primary">${(svc.price || 0).toLocaleString('ru-RU')} ₽</span>
-          <span class="text-[10px] text-slate-400">• ${svc.duration || 60} мин</span>
-          ${svc.photos?.length ? `<span class="text-[10px] text-slate-400">📷 ${svc.photos.length} фото</span>` : ''}
+        <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+          <button onclick="openProServiceMastersModal(${idx})" title="Закрепить мастеров за услугой"
+            class="w-8 h-8 rounded-xl bg-indigo-50 text-primary hover:bg-indigo-100 flex items-center justify-center active:scale-90 transition-transform">
+            <span class="material-symbols-outlined text-[16px]">group</span>
+          </button>
+          <button onclick="confirmProAction('Удалить услугу?', 'Вы действительно хотите удалить эту позицию из прайс-листа?', () => deleteProService(${idx}))" title="Удалить услугу"
+            class="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center active:scale-90 transition-transform">
+            <span class="material-symbols-outlined text-[17px]">delete</span>
+          </button>
         </div>
       </div>
-      <button onclick="confirmProAction('Удалить услугу?', 'Вы действительно хотите удалить эту позицию из прайс-листа?', () => deleteProService(${idx}))"
-        class="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center shrink-0 active:scale-90 transition-transform">
-        <span class="material-symbols-outlined text-[17px]">delete</span>
-      </button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function addProService() {
@@ -2373,8 +2405,140 @@ function saveProMasterEdit() {
 
   saveProSalonData(data);
   syncProSalonUI();
+  if (typeof renderProServicesList === 'function') {
+    renderProServicesList();
+  }
   closeProMasterEditModal();
   showToast(`Услуги для мастера ${master.name} закреплены ✓`);
+}
+
+// ------------------------------------------
+// PRO SERVICE MASTERS ASSIGNMENT MODAL
+// ------------------------------------------
+function openProServiceMastersModal(idx) {
+  const data = getProSalonData();
+  const svc = data.services[idx];
+  if (!svc) return;
+
+  const modal = document.getElementById('proServiceMastersModal');
+  const idxInput = document.getElementById('editServiceIdxInput');
+  const nameEl = document.getElementById('editServiceCardName');
+  const catEl = document.getElementById('editServiceCardCategory');
+  const descEl = document.getElementById('editServiceCardDesc');
+  const priceEl = document.getElementById('editServiceCardPrice');
+  const durEl = document.getElementById('editServiceCardDuration');
+  const photoEl = document.getElementById('editServiceCardPhoto');
+  const iconEl = document.getElementById('editServiceCardIcon');
+  const mastersList = document.getElementById('editServiceMastersList');
+
+  if (idxInput) idxInput.value = idx;
+  if (nameEl) nameEl.textContent = svc.name || 'Без названия';
+  if (catEl) {
+    catEl.textContent = svc.category || 'Услуга';
+    catEl.style.display = svc.category ? 'inline-block' : 'none';
+  }
+  if (descEl) {
+    descEl.textContent = svc.desc || 'Описание отсутствует';
+  }
+  if (priceEl) {
+    priceEl.textContent = `${(svc.price || 0).toLocaleString('ru-RU')} ₽`;
+  }
+  if (durEl) {
+    durEl.textContent = `• ${svc.duration || 60} мин`;
+  }
+  if (photoEl && iconEl) {
+    if (svc.photos && svc.photos.length > 0 && svc.photos[0]) {
+      photoEl.src = svc.photos[0];
+      photoEl.classList.remove('hidden');
+      iconEl.classList.add('hidden');
+    } else {
+      photoEl.src = '';
+      photoEl.classList.add('hidden');
+      iconEl.classList.remove('hidden');
+    }
+  }
+
+  // Render list of masters with checkboxes
+  if (mastersList) {
+    if (!data.masters || data.masters.length === 0) {
+      mastersList.innerHTML = `
+        <div class="text-center py-6 px-4 flex flex-col items-center gap-2">
+          <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+            <span class="material-symbols-outlined text-[20px]">person_off</span>
+          </div>
+          <span class="text-xs text-slate-400 font-medium">В салоне пока нет добавленных мастеров</span>
+          <button type="button" onclick="closeProServiceMastersModal(); openProAddMasterModal();"
+            class="text-[11px] text-primary font-bold hover:underline mt-1">
+            + Добавить мастера в команду
+          </button>
+        </div>
+      `;
+    } else {
+      mastersList.innerHTML = data.masters.map((m) => {
+        const isAssigned = Array.isArray(svc.masterIds) && (
+          (m.id && svc.masterIds.includes(m.id)) ||
+          (m.name && svc.masterIds.includes(m.name))
+        );
+        return `
+          <label class="p-2.5 rounded-xl bg-surface-container-low border border-slate-200/80 hover:border-primary/50 flex items-center justify-between gap-2.5 cursor-pointer transition-all">
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <input type="checkbox" name="assignMasterIds" value="${m.id}" ${isAssigned ? 'checked' : ''}
+                class="w-4 h-4 rounded text-primary accent-primary cursor-pointer shrink-0" />
+              <div class="w-10 h-10 rounded-2xl overflow-hidden bg-indigo-50 shrink-0 border border-slate-200 flex items-center justify-center text-primary">
+                ${m.avatar_url ? `<img src="${m.avatar_url}" alt="${m.name}" class="w-full h-full object-cover"/>` : `<span class="material-symbols-outlined text-[20px]">person</span>`}
+              </div>
+              <div class="flex flex-col min-w-0 flex-1">
+                <span class="text-xs font-semibold text-on-surface truncate">${m.name} ${m.lastName || ''}</span>
+                <span class="text-[10px] text-slate-400 truncate">${m.role_title || 'Специалист'} • Опыт: ${m.experience || '—'}</span>
+              </div>
+            </div>
+            ${m.telegram_handle ? `<span class="text-[10px] font-semibold text-primary bg-indigo-50/80 px-2 py-0.5 rounded-md shrink-0">${m.telegram_handle}</span>` : ''}
+          </label>
+        `;
+      }).join('');
+    }
+  }
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeProServiceMastersModal() {
+  const modal = document.getElementById('proServiceMastersModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function saveProServiceMastersEdit() {
+  const idxInput = document.getElementById('editServiceIdxInput');
+  const idx = parseInt(idxInput?.value || '-1', 10);
+  const data = getProSalonData();
+  const svc = data.services[idx];
+
+  if (!svc) {
+    showToast('Услуга не найдена');
+    return;
+  }
+
+  // Получаем отмеченные чекбоксы мастеров
+  const checkedBoxes = document.querySelectorAll('input[name="assignMasterIds"]:checked');
+  const selectedMasterIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+  // Обновляем список мастеров для данной услуги
+  svc.masterIds = selectedMasterIds;
+
+  saveProSalonData(data);
+  syncProSalonUI();
+  renderProServicesList();
+  if (typeof renderProMastersList === 'function') {
+    renderProMastersList();
+  }
+  closeProServiceMastersModal();
+  showToast(`Мастера для услуги «${svc.name}» закреплены ✓`);
 }
 
 // ------------------------------------------
