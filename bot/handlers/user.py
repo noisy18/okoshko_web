@@ -221,29 +221,35 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                     import json
                     from bot.database.models import Master
 
-                    if user_salon.admin_tag is not None:
-                        params.append(f"admin_tag={urllib.parse.quote(user_salon.admin_tag)}")
-                    if user_salon.name:
-                        params.append(f"salon_name={urllib.parse.quote(user_salon.name)}")
-                    if user_salon.address is not None:
-                        params.append(f"address={urllib.parse.quote(user_salon.address)}")
-                    if user_salon.region_name is not None:
-                        params.append(f"city={urllib.parse.quote(user_salon.region_name)}")
-                    if user_salon.latitude is not None:
+                    if user_salon.admin_tag and user_salon.admin_tag.strip():
+                        params.append(f"admin_tag={urllib.parse.quote(user_salon.admin_tag.strip())}")
+                    if user_salon.name and user_salon.name.strip():
+                        params.append(f"salon_name={urllib.parse.quote(user_salon.name.strip())}")
+                    if user_salon.address and user_salon.address.strip():
+                        params.append(f"address={urllib.parse.quote(user_salon.address.strip())}")
+                    if user_salon.region_name and user_salon.region_name.strip():
+                        params.append(f"city={urllib.parse.quote(user_salon.region_name.strip())}")
+                    if user_salon.latitude is not None and user_salon.latitude != 0:
                         params.append(f"lat={user_salon.latitude}")
-                    if user_salon.longitude is not None:
+                    if user_salon.longitude is not None and user_salon.longitude != 0:
                         params.append(f"lon={user_salon.longitude}")
                     salon_phone = getattr(user_salon, "phone", None)
-                    if salon_phone is not None:
-                        params.append(f"phone={urllib.parse.quote(salon_phone)}")
-                    if getattr(user_salon, "logo_url", None):
-                        params.append(f"avatar_url={urllib.parse.quote(user_salon.logo_url)}")
-                    if getattr(user_salon, "cover_image_url", None):
-                        params.append(f"cover_url={urllib.parse.quote(user_salon.cover_image_url)}")
+                    if salon_phone and salon_phone.strip():
+                        params.append(f"phone={urllib.parse.quote(salon_phone.strip())}")
+                    if getattr(user_salon, "logo_url", None) and user_salon.logo_url.strip() and len(user_salon.logo_url) < 1000:
+                        params.append(f"avatar_url={urllib.parse.quote(user_salon.logo_url.strip())}")
+                    if getattr(user_salon, "cover_image_url", None) and user_salon.cover_image_url.strip() and len(user_salon.cover_image_url) < 1000:
+                        params.append(f"cover_url={urllib.parse.quote(user_salon.cover_image_url.strip())}")
                     if user_salon.id:
                         params.append(f"salon_id={user_salon.id}")
-                    import time
-                    params.append(f"v={int(time.time() * 1000)}")
+
+                    updated_ts = 0
+                    if getattr(user_salon, "updated_at", None):
+                        updated_ts = int(user_salon.updated_at.timestamp() * 1000)
+                    elif getattr(user_salon, "created_at", None):
+                        updated_ts = int(user_salon.created_at.timestamp() * 1000)
+                    if updated_ts > 0:
+                        params.append(f"v={updated_ts}")
 
                     # Передаем список услуг салона из БД в Mini App
                     if getattr(user_salon, "services_json", None):

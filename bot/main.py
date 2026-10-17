@@ -72,6 +72,14 @@ async def main():
     except Exception as e:
         logger.warning(f"Не удалось настроить персональную MenuButton для владельца: {e}")
 
+    # Запуск локального API сервера для синхронизации Mini App с PostgreSQL
+    api_runner = None
+    try:
+        from bot.api_server import start_api_server
+        api_runner = await start_api_server(bot=bot, port=8080)
+    except Exception as e:
+        logger.warning(f"Не удалось запустить локальный HTTP API сервер: {e}")
+
     bot_info = await bot.get_me()
     print("\n" + "=" * 55)
     print(f"🚀 Бот «Окошко» успешно запущен!")
@@ -82,6 +90,8 @@ async def main():
     try:
         await dp.start_polling(bot)
     finally:
+        if api_runner:
+            await api_runner.cleanup()
         await bot.session.close()
 
 

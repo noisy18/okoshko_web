@@ -3,6 +3,9 @@
 // ==========================================
 
 const PRO_DATA_STORAGE_KEY = 'okoshko_pro_salon_data_v1';
+const PRO_CLOUD_META_KEY = 'okoshko_pro_salon_meta_v1';
+const PRO_CLOUD_SERVICES_KEY = 'okoshko_pro_services_v1';
+const PRO_CLOUD_MASTERS_KEY = 'okoshko_pro_masters_v1';
 const PRO_APPOINTMENTS_STORAGE_KEY = 'okoshko_pro_clients_appointments_v1';
 const BOT_LINK = 'https://t.me/okooshko_bot';
 
@@ -98,33 +101,52 @@ function saveProSalonData(data) {
     if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
       const curUrl = new URL(window.location.href);
       if (data.name) curUrl.searchParams.set('salon_name', data.name);
-      if (data.address !== undefined) curUrl.searchParams.set('address', data.address);
-      if (data.phone !== undefined) curUrl.searchParams.set('phone', data.phone);
+      if (data.address) curUrl.searchParams.set('address', data.address);
+      if (data.phone) curUrl.searchParams.set('phone', data.phone);
       if (data.city) curUrl.searchParams.set('city', data.city);
-      if (data.latitude) curUrl.searchParams.set('lat', data.latitude);
-      if (data.longitude) curUrl.searchParams.set('lon', data.longitude);
-      if (data.adminTag !== undefined) curUrl.searchParams.set('admin_tag', data.adminTag);
+      if (data.latitude) curUrl.searchParams.set('lat', String(data.latitude));
+      if (data.longitude) curUrl.searchParams.set('lon', String(data.longitude));
+      if (data.adminTag) curUrl.searchParams.set('admin_tag', data.adminTag);
       curUrl.searchParams.set('v', String(data.updatedAt));
       window.history.replaceState(null, '', curUrl.toString());
     }
   } catch (e) { }
 
-  // Sync to Telegram CloudStorage across devices (PC <-> Mobile)
+  // 1. Sync compact metadata to Telegram CloudStorage (<4KB limit guaranteed!)
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.setItem) {
-      window.Telegram.WebApp.CloudStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(data), (err, stored) => {
-        if (!err && stored) {
-          console.log('[PRO] Salon data synced to Telegram CloudStorage');
-        }
+      const cloudMeta = {
+        id: data.id || 1,
+        name: data.name || '',
+        address: data.address || '',
+        phone: data.phone || '',
+        city: data.city || 'Москва',
+        cityKey: data.cityKey || 'moscow',
+        latitude: data.latitude,
+        longitude: data.longitude,
+        adminTag: data.adminTag || '',
+        creatorTag: data.creatorTag || '@maximtepin',
+        notificationsEnabled: !!data.notificationsEnabled,
+        updatedAt: data.updatedAt
+      };
+      window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_META_KEY, JSON.stringify(cloudMeta), (err, stored) => {
+        if (!err && stored) console.log('[PRO] Salon meta synced to Telegram CloudStorage');
       });
+      if (data.services && data.services.length) {
+        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_SERVICES_KEY, JSON.stringify(data.services), () => {});
+      }
+      if (data.masters && data.masters.length) {
+        window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_MASTERS_KEY, JSON.stringify(data.masters), () => {});
+      }
     }
   } catch (e) { }
 
-  // Send update to Telegram bot backend (supports both sendData and direct Bot API for desktop/mobile clients)
+  // 2. Direct real-time sync with local PostgreSQL API backend (port 8080)
+  const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
   const updatePayload = {
-    action: 'pro_salon_updated',
     salon_id: data.id || 1,
-    salon_name: data.name,
+    user_id: userTgId,
+    salon_name: data.name || '',
     address: data.address || '',
     phone: data.phone || '',
     city: data.city || 'Москва',
@@ -133,32 +155,52 @@ function saveProSalonData(data) {
     avatar_url: data.avatarUrl || '',
     cover_url: data.coverUrl || '',
     admin_tag: data.adminTag || '',
-    creator_tag: data.creatorTag || '',
+    creator_tag: data.creatorTag || '@maximtepin',
     masters: data.masters || [],
     services: data.services || []
   };
 
   try {
-    if (window.Telegram?.WebApp?.sendData) {
-      window.Telegram.WebApp.sendData(JSON.stringify(updatePayload));
-    }
-  } catch (e) {
-    console.log('sendData not available or ignored by client:', e);
-  }
+    fetch('http://127.0.0.1:8080/api/pro_salon_update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatePayload)
+    }).then(res => res.json())
+      .then(res => console.log('[PRO] PostgreSQL sync response:', res))
+      .catch(err => {
+        console.log('[PRO] Local API sync skipped/unavailable:', err.message);
+      });
+  } catch (e) { }
 
-  // Backup sync via Bot API for Telegram Desktop and Mobile when opened via MenuButton or direct URL
+  // 3. Update MenuButton in Telegram via Bot API so the bot menu button opens with latest saved address and phone
   try {
-    const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
     const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
     if (userTgId && botToken) {
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      const baseUrl = 'https://noisy18.github.io/okoshko_web/';
+      const freshParams = new URLSearchParams();
+      freshParams.set('is_pro', '1');
+      if (data.name) freshParams.set('salon_name', data.name);
+      if (data.address) freshParams.set('address', data.address);
+      if (data.phone) freshParams.set('phone', data.phone);
+      if (data.city) freshParams.set('city', data.city);
+      if (data.latitude) freshParams.set('lat', String(data.latitude));
+      if (data.longitude) freshParams.set('lon', String(data.longitude));
+      if (data.adminTag) freshParams.set('admin_tag', data.adminTag);
+      freshParams.set('v', String(data.updatedAt));
+
+      const updatedMenuUrl = `${baseUrl}?${freshParams.toString()}`;
+      fetch(`https://api.telegram.org/bot${botToken}/setChatMenuButton`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: userTgId,
-          text: JSON.stringify(updatePayload)
+          menu_button: {
+            type: 'web_app',
+            text: '💅 Окошко',
+            web_app: { url: updatedMenuUrl }
+          }
         })
-      }).catch(err => console.warn('Direct Bot API sync error:', err));
+      }).catch(() => {});
     }
   } catch (e) { }
 
@@ -196,21 +238,48 @@ function saveProAppointments(appts) {
 
 function applyUrlParamsToData(data, urlParams, timestamp) {
   if (!data || !urlParams) return;
-  if (urlParams.has('admin_tag')) data.adminTag = urlParams.get('admin_tag');
-  if (urlParams.has('salon_name')) data.name = urlParams.get('salon_name');
-  if (urlParams.has('address')) data.address = urlParams.get('address');
-  if (urlParams.has('phone')) data.phone = urlParams.get('phone');
-  if (urlParams.has('city')) data.city = urlParams.get('city');
-  if (urlParams.has('lat')) data.latitude = parseFloat(urlParams.get('lat'));
-  if (urlParams.has('lon')) data.longitude = parseFloat(urlParams.get('lon'));
-  if (urlParams.has('avatar_url')) data.avatarUrl = urlParams.get('avatar_url') || '';
-  if (urlParams.has('cover_url')) data.coverUrl = urlParams.get('cover_url') || '';
+  if (urlParams.has('admin_tag')) {
+    const at = urlParams.get('admin_tag');
+    if (at !== null) data.adminTag = at;
+  }
+  if (urlParams.has('salon_name')) {
+    const sn = urlParams.get('salon_name');
+    if (sn && sn.trim()) data.name = sn.trim();
+  }
+  if (urlParams.has('address')) {
+    const addr = urlParams.get('address');
+    if (addr && addr.trim()) data.address = addr.trim();
+  }
+  if (urlParams.has('phone')) {
+    const ph = urlParams.get('phone');
+    if (ph && ph.trim()) data.phone = ph.trim();
+  }
+  if (urlParams.has('city')) {
+    const ct = urlParams.get('city');
+    if (ct && ct.trim()) data.city = ct.trim();
+  }
+  if (urlParams.has('lat')) {
+    const lat = parseFloat(urlParams.get('lat'));
+    if (!isNaN(lat) && lat !== 0) data.latitude = lat;
+  }
+  if (urlParams.has('lon')) {
+    const lon = parseFloat(urlParams.get('lon'));
+    if (!isNaN(lon) && lon !== 0) data.longitude = lon;
+  }
+  if (urlParams.has('avatar_url')) {
+    const av = urlParams.get('avatar_url');
+    if (av && av.trim()) data.avatarUrl = av.trim();
+  }
+  if (urlParams.has('cover_url')) {
+    const cv = urlParams.get('cover_url');
+    if (cv && cv.trim()) data.coverUrl = cv.trim();
+  }
   if (timestamp) data.updatedAt = timestamp;
 
   if (urlParams.has('services_json')) {
     try {
       const sv = JSON.parse(urlParams.get('services_json'));
-      if (Array.isArray(sv)) {
+      if (Array.isArray(sv) && sv.length) {
         data.services = sv;
       }
     } catch (e) {
@@ -265,13 +334,13 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
   }
 }
 
-// Cross-device synchronization on launch from Telegram CloudStorage and URL params
+// Cross-device synchronization on launch from Telegram CloudStorage, local API and URL params
 function initProCloudSync() {
   let urlParams = null;
   let urlTime = 0;
   let hasUrlParams = false;
 
-  // 1. Считываем свежие URL параметры (если WebApp открыт по MenuButton со свежими данными из PostgreSQL)
+  // 1. Считываем свежие URL параметры (если WebApp открыт по MenuButton)
   try {
     if (window.location.search) {
       urlParams = new URLSearchParams(window.location.search);
@@ -288,8 +357,8 @@ function initProCloudSync() {
   let localData = getProSalonData();
   const localTime = Number(localData.updatedAt) || 0;
 
-  // Если в URL пришли параметры и они новее локального кеша (или локальный профиль пуст)
-  if (hasUrlParams && urlParams && (urlTime >= localTime || !localData.name)) {
+  // Применяем параметры только если они содержат реальные данные
+  if (hasUrlParams && urlParams && (urlTime >= localTime || !localData.address || !localData.name)) {
     applyUrlParamsToData(localData, urlParams, urlTime);
     try {
       localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(localData));
@@ -303,59 +372,122 @@ function initProCloudSync() {
   if (typeof renderProMastersList === 'function') renderProMastersList();
   if (typeof renderProServicesList === 'function') renderProServicesList();
 
-  // 2. Синхронизация из CloudStorage Telegram с правильным сравнением временных меток
+  // 2. Асинхронно запрашиваем актуальные данные из PostgreSQL через локальный API сервер
+  const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+  try {
+    fetch(`http://127.0.0.1:8080/api/pro_salon_get?user_id=${userTgId}`)
+      .then(res => res.json())
+      .then(dbData => {
+        if (dbData && dbData.id) {
+          const currentData = getProSalonData();
+          const curTime = Number(currentData.updatedAt) || 0;
+          const dbTime = Number(dbData.updatedAt) || 0;
+
+          // Восстанавливаем данные из базы, если они свежее или если локальный профиль пуст (например, после чистки кеша)
+          if (dbTime >= curTime || !currentData.address || !currentData.name || !currentData.avatarUrl) {
+            if (dbData.name) currentData.name = dbData.name;
+            if (dbData.address) currentData.address = dbData.address;
+            if (dbData.phone) currentData.phone = dbData.phone;
+            if (dbData.city) currentData.city = dbData.city;
+            if (dbData.cityKey) currentData.cityKey = dbData.cityKey;
+            if (dbData.latitude) currentData.latitude = dbData.latitude;
+            if (dbData.longitude) currentData.longitude = dbData.longitude;
+            if (dbData.avatar_url) currentData.avatarUrl = dbData.avatar_url;
+            if (dbData.cover_url) currentData.coverUrl = dbData.cover_url;
+            if (dbData.admin_tag) currentData.adminTag = dbData.admin_tag;
+            if (dbData.services && dbData.services.length) currentData.services = dbData.services;
+            if (dbData.masters && dbData.masters.length) currentData.masters = dbData.masters;
+            if (dbTime) currentData.updatedAt = dbTime;
+
+            localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(currentData));
+            sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(currentData));
+            syncProSalonUI();
+            syncVenuesWithProSalon(currentData);
+            if (typeof renderProMastersList === 'function') renderProMastersList();
+            if (typeof renderProServicesList === 'function') renderProServicesList();
+          }
+        }
+      })
+      .catch(() => {});
+  } catch (e) { }
+
+  // 3. Синхронизация из CloudStorage Telegram (сохраняется в облаке Telegram даже при полной чистке кеша)
   try {
     if (window.Telegram?.WebApp?.CloudStorage?.getItems) {
-      window.Telegram.WebApp.CloudStorage.getItems([PRO_DATA_STORAGE_KEY, PRO_APPOINTMENTS_STORAGE_KEY], (err, values) => {
+      window.Telegram.WebApp.CloudStorage.getItems([
+        PRO_CLOUD_META_KEY,
+        PRO_CLOUD_SERVICES_KEY,
+        PRO_CLOUD_MASTERS_KEY,
+        PRO_DATA_STORAGE_KEY,
+        PRO_APPOINTMENTS_STORAGE_KEY
+      ], (err, values) => {
         if (!err && values) {
           let updated = false;
-          if (values[PRO_DATA_STORAGE_KEY]) {
-            try {
-              const cloudSalon = JSON.parse(values[PRO_DATA_STORAGE_KEY]);
-              if (cloudSalon && typeof cloudSalon === 'object') {
-                const currentData = getProSalonData();
-                const curTime = Number(currentData.updatedAt) || 0;
-                const cloudTime = Number(cloudSalon.updatedAt) || 0;
+          let cloudMeta = null;
 
-                let merged;
-                // Сравниваем метки времени между устройствами:
-                if (cloudTime > curTime && cloudTime > urlTime) {
-                  // Данные в CloudStorage новее текущего устройства
-                  merged = Object.assign({}, DEFAULT_PRO_SALON, currentData, cloudSalon);
-                } else if (urlTime > cloudTime && hasUrlParams && urlParams) {
-                  // Параметры из URL свежее данных в CloudStorage
-                  merged = Object.assign({}, DEFAULT_PRO_SALON, cloudSalon, currentData);
-                  applyUrlParamsToData(merged, urlParams, urlTime);
-                } else if (!currentData.name && (cloudSalon.name || cloudSalon.address || (cloudSalon.masters && cloudSalon.masters.length))) {
-                  // Локальный кеш был очищен, восстанавливаем из CloudStorage
-                  merged = Object.assign({}, DEFAULT_PRO_SALON, cloudSalon);
-                } else {
-                  merged = currentData;
-                }
-
-                localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
-                sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(merged));
-                syncProSalonUI();
-                syncVenuesWithProSalon(merged);
-                updated = true;
-              }
-            } catch (e) { }
+          if (values[PRO_CLOUD_META_KEY]) {
+            try { cloudMeta = JSON.parse(values[PRO_CLOUD_META_KEY]); } catch(e) {}
           }
+          if (!cloudMeta && values[PRO_DATA_STORAGE_KEY]) {
+            try { cloudMeta = JSON.parse(values[PRO_DATA_STORAGE_KEY]); } catch(e) {}
+          }
+
+          if (cloudMeta && typeof cloudMeta === 'object') {
+            const currentData = getProSalonData();
+            const curTime = Number(currentData.updatedAt) || 0;
+            const cloudTime = Number(cloudMeta.updatedAt) || 0;
+
+            if (cloudTime > curTime || !currentData.address || !currentData.name) {
+              if (cloudMeta.name) currentData.name = cloudMeta.name;
+              if (cloudMeta.address) currentData.address = cloudMeta.address;
+              if (cloudMeta.phone) currentData.phone = cloudMeta.phone;
+              if (cloudMeta.city) currentData.city = cloudMeta.city;
+              if (cloudMeta.cityKey) currentData.cityKey = cloudMeta.cityKey;
+              if (cloudMeta.latitude) currentData.latitude = cloudMeta.latitude;
+              if (cloudMeta.longitude) currentData.longitude = cloudMeta.longitude;
+              if (cloudMeta.adminTag) currentData.adminTag = cloudMeta.adminTag;
+              if (cloudMeta.creatorTag) currentData.creatorTag = cloudMeta.creatorTag;
+              if (cloudTime) currentData.updatedAt = cloudTime;
+              updated = true;
+            }
+
+            if (values[PRO_CLOUD_SERVICES_KEY]) {
+              try {
+                const sv = JSON.parse(values[PRO_CLOUD_SERVICES_KEY]);
+                if (Array.isArray(sv) && sv.length) {
+                  currentData.services = sv;
+                  updated = true;
+                }
+              } catch(e) {}
+            }
+
+            if (values[PRO_CLOUD_MASTERS_KEY]) {
+              try {
+                const ms = JSON.parse(values[PRO_CLOUD_MASTERS_KEY]);
+                if (Array.isArray(ms) && ms.length) {
+                  currentData.masters = ms;
+                  updated = true;
+                }
+              } catch(e) {}
+            }
+
+            if (updated) {
+              localStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(currentData));
+              sessionStorage.setItem(PRO_DATA_STORAGE_KEY, JSON.stringify(currentData));
+              syncProSalonUI();
+              syncVenuesWithProSalon(currentData);
+              if (typeof renderProMastersList === 'function') renderProMastersList();
+              if (typeof renderProServicesList === 'function') renderProServicesList();
+            }
+          }
+
           if (values[PRO_APPOINTMENTS_STORAGE_KEY]) {
             try {
               const cloudAppts = JSON.parse(values[PRO_APPOINTMENTS_STORAGE_KEY]);
               if (Array.isArray(cloudAppts)) {
                 localStorage.setItem(PRO_APPOINTMENTS_STORAGE_KEY, values[PRO_APPOINTMENTS_STORAGE_KEY]);
-                updated = true;
               }
             } catch (e) { }
-          }
-          if (updated) {
-            syncProSalonUI();
-            if (typeof renderProAppointments === 'function') renderProAppointments();
-            if (typeof renderProStats === 'function') renderProStats();
-            if (typeof renderProMastersList === 'function') renderProMastersList();
-            if (typeof renderProServicesList === 'function') renderProServicesList();
           }
         }
       });
@@ -1081,13 +1213,23 @@ function openImageCropper(imageSource, type) {
   initCropperEventListeners();
   cropperState.type = type;
 
+  // 1. Показываем модальное окно сразу, чтобы элементы получили реальные размеры в DOM
+  const modal = document.getElementById('imageCropperModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
   const viewport = document.getElementById('cropperViewport');
-  const viewW = viewport ? viewport.clientWidth : window.innerWidth;
-  const viewH = viewport ? viewport.clientHeight : (window.innerHeight - 150);
+  // Безопасное вычисление размеров области кадрирования
+  const screenW = window.innerWidth || document.documentElement.clientWidth || 360;
+  const screenH = window.innerHeight || document.documentElement.clientHeight || 640;
+  const viewW = (viewport && viewport.clientWidth > 50) ? viewport.clientWidth : screenW;
+  const viewH = (viewport && viewport.clientHeight > 50) ? viewport.clientHeight : (screenH - 160);
 
   if (type === 'avatar') {
-    // 1:1 Aspect Ratio (Square with circle guide)
-    const boxSize = Math.min(270, Math.floor(viewW * 0.78), Math.floor(viewH * 0.6));
+    // 1:1 Aspect Ratio (Квадрат с круглой направляющей)
+    const boxSize = Math.max(220, Math.min(280, Math.floor(viewW * 0.75), Math.floor(viewH * 0.55)));
     cropperState.cropBoxW = boxSize;
     cropperState.cropBoxH = boxSize;
     const titleEl = document.getElementById('cropperTitle');
@@ -1097,8 +1239,8 @@ function openImageCropper(imageSource, type) {
     document.getElementById('cropperCircleGuide')?.classList.remove('hidden');
     document.getElementById('cropperGuideBorder')?.classList.add('rounded-full');
   } else {
-    // 16:9 Aspect Ratio (Cover Banner)
-    const boxW = Math.min(340, Math.floor(viewW * 0.92));
+    // 16:9 Aspect Ratio (Широкая обложка витрины)
+    const boxW = Math.max(270, Math.min(340, Math.floor(viewW * 0.90)));
     const boxH = Math.round(boxW * 9 / 16);
     cropperState.cropBoxW = boxW;
     cropperState.cropBoxH = boxH;
@@ -1119,14 +1261,17 @@ function openImageCropper(imageSource, type) {
   const img = new Image();
   img.onload = function() {
     cropperState.rawImage = img;
-    cropperState.imgWidth = img.naturalWidth || img.width;
-    cropperState.imgHeight = img.naturalHeight || img.height;
+    cropperState.imgWidth = img.naturalWidth || img.width || 800;
+    cropperState.imgHeight = img.naturalHeight || img.height || 600;
     cropperState.rotation = 0;
 
-    // Base scale fits image to cover the crop box completely
+    // Базовый масштаб гарантированно заполняет рамку обрезки
     const scaleX = cropperState.cropBoxW / cropperState.imgWidth;
     const scaleY = cropperState.cropBoxH / cropperState.imgHeight;
     cropperState.baseScale = Math.max(scaleX, scaleY);
+    if (!cropperState.baseScale || cropperState.baseScale <= 0 || isNaN(cropperState.baseScale)) {
+      cropperState.baseScale = 1;
+    }
     cropperState.scale = cropperState.baseScale;
     cropperState.x = 0;
     cropperState.y = 0;
@@ -1139,15 +1284,12 @@ function openImageCropper(imageSource, type) {
       cropperImgEl.src = imageSource;
       cropperImgEl.style.width = cropperState.imgWidth + 'px';
       cropperImgEl.style.height = cropperState.imgHeight + 'px';
+      cropperImgEl.style.maxWidth = 'none';
+      cropperImgEl.style.maxHeight = 'none';
+      cropperImgEl.style.display = 'block';
     }
 
     updateCropperTransform();
-
-    const modal = document.getElementById('imageCropperModal');
-    if (modal) {
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
   };
   img.src = imageSource;
 }
