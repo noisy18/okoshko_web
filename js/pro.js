@@ -956,6 +956,7 @@ function openSalonAvatarOptions() {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    modal.style.display = 'flex';
   }
 }
 
@@ -964,6 +965,7 @@ function closeSalonAvatarOptions() {
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    modal.style.display = 'none';
   }
 }
 
@@ -978,6 +980,7 @@ function openSalonCoverOptions() {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    modal.style.display = 'flex';
   }
 }
 
@@ -986,6 +989,7 @@ function closeSalonCoverOptions() {
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    modal.style.display = 'none';
   }
 }
 
@@ -999,6 +1003,7 @@ function confirmDeleteSalonAvatar(event) {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    modal.style.display = 'flex';
   }
 }
 
@@ -1007,12 +1012,18 @@ function closeConfirmDeleteAvatarModal() {
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    modal.style.display = 'none';
   }
 }
 
 function executeRemoveSalonAvatar() {
-  removeSalonAvatar();
   closeConfirmDeleteAvatarModal();
+  closeSalonAvatarOptions();
+  try {
+    removeSalonAvatar();
+  } catch (err) {
+    console.error('Error removing salon avatar:', err);
+  }
 }
 
 function confirmDeleteSalonCover(event) {
@@ -1025,6 +1036,7 @@ function confirmDeleteSalonCover(event) {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    modal.style.display = 'flex';
   }
 }
 
@@ -1033,12 +1045,18 @@ function closeConfirmDeleteCoverModal() {
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    modal.style.display = 'none';
   }
 }
 
 function executeRemoveSalonCover() {
-  removeSalonCover();
   closeConfirmDeleteCoverModal();
+  closeSalonCoverOptions();
+  try {
+    removeSalonCover();
+  } catch (err) {
+    console.error('Error removing salon cover:', err);
+  }
 }
 
 function openAvatarCropperPicker() {
@@ -1085,7 +1103,7 @@ function removeSalonAvatar(event) {
   if (input) input.value = '';
   saveProSalonData(data);
   showToast('Аватарка салона удалена 🗑️');
-  renderProProfile();
+  syncProSalonUI();
   if (typeof updateBizCardAvatar === 'function') {
     updateBizCardAvatar();
   }
@@ -1103,7 +1121,13 @@ function removeSalonCover(event) {
   if (input) input.value = '';
   saveProSalonData(data);
   showToast('Фон профиля удален 🗑️');
-  renderProProfile();
+  syncProSalonUI();
+}
+
+function renderProProfile() {
+  if (typeof syncProSalonUI === 'function') {
+    syncProSalonUI();
+  }
 }
 
 // ------------------------------------------
@@ -1375,7 +1399,7 @@ function applyCroppedImage() {
   }
 
   closeImageCropper();
-  renderProProfile();
+  syncProSalonUI();
   if (typeof updateBizCardAvatar === 'function') {
     updateBizCardAvatar();
   }
