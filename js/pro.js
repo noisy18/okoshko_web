@@ -36,6 +36,7 @@ const DEFAULT_PRO_SALON = {
   salonType: '',
   searchKeywords: [],
   isPromoted: false,
+  top: false,
   schedule: {
     days: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
     workFrom: '07:00',
@@ -194,6 +195,13 @@ function syncVenuesWithProSalon(data) {
         photoCount: (data.photos && data.photos.length) ? data.photos.length : 1,
         photos: Array.isArray(data.photos) ? data.photos : [],
         img: data.avatarUrl || '',
+        avatarUrl: data.avatarUrl || '',
+        coverUrl: data.coverUrl || '',
+        cover_image_url: data.coverUrl || '',
+        top: !!data.top,
+        creatorTag: data.creatorTag || '@maximtepin',
+        adminTag: data.adminTag || '',
+        owner_id: data.owner_id || null,
         coords: [lat, lon],
         description: data.description || '',
         services: data.services || [],
@@ -274,6 +282,8 @@ function saveProSalonData(data) {
       }
       if (data.isPromoted) curUrl.searchParams.set('is_promoted', '1');
       else curUrl.searchParams.delete('is_promoted');
+      if (data.top) curUrl.searchParams.set('top', '1');
+      else curUrl.searchParams.delete('top');
       if (data.services && Array.isArray(data.services) && data.services.length) {
         curUrl.searchParams.set('services_json', JSON.stringify(data.services));
       }
@@ -384,6 +394,7 @@ function saveProSalonData(data) {
     filter_tags: data.filterTags || [],
     search_keywords: data.searchKeywords || [],
     is_promoted: !!data.isPromoted,
+    top: !!data.top,
     schedule: data.schedule || {},
     photos: Array.isArray(data.photos) ? data.photos.filter(p => typeof p === 'string' && (p.startsWith('http') || p.length < 500)) : []
   };
@@ -445,6 +456,7 @@ function saveProSalonData(data) {
         freshParams.set('search_keywords_json', JSON.stringify(data.searchKeywords));
       }
       if (data.isPromoted) freshParams.set('is_promoted', '1');
+      if (data.top) freshParams.set('top', '1');
       if (data.photos && Array.isArray(data.photos) && data.photos.length) {
         const cdnPhotos = data.photos.filter(p => typeof p === 'string' && p.startsWith('http'));
         if (cdnPhotos.length && JSON.stringify(cdnPhotos).length < 1500) {
@@ -621,6 +633,9 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
   if (urlParams.has('is_promoted')) {
     data.isPromoted = (urlParams.get('is_promoted') === '1');
   }
+  if (urlParams.has('top')) {
+    data.top = (urlParams.get('top') === '1');
+  }
   if (urlParams.has('photos_json')) {
     try {
       const ph = JSON.parse(urlParams.get('photos_json'));
@@ -766,6 +781,7 @@ function initProCloudSync() {
             if (dbData.cover_url) currentData.coverUrl = dbData.cover_url;
             if (dbData.admin_tag) currentData.adminTag = dbData.admin_tag;
             if (dbData.schedule && typeof dbData.schedule === 'object') currentData.schedule = dbData.schedule;
+            if (dbData.top !== undefined) currentData.top = !!dbData.top;
             if (dbData.services && dbData.services.length) currentData.services = dbData.services;
             if (dbData.masters && dbData.masters.length) currentData.masters = dbData.masters;
             if (dbTime) currentData.updatedAt = dbTime;

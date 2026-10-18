@@ -83,6 +83,40 @@
       return hasUserReviewedTarget(salonId);
     }
 
+    function isCurrentUserOwnerOfSalon(salonId) {
+      const targetId = salonId || state.activeSalon || 'beauty';
+      const currentUserId = state.user?.id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      const currentUsername = state.user?.username || window.Telegram?.WebApp?.initDataUnsafe?.user?.username;
+      const currentTag = currentUsername ? `@${currentUsername.toLowerCase().replace('@', '')}` : null;
+
+      const proData = (typeof getProSalonData === 'function') ? getProSalonData() : null;
+      const venue = (typeof venues !== 'undefined') ? (venues.find(v => v.id === targetId) || venues[0]) : null;
+
+      if (state.isProMode) {
+        if (!venue || venue.id === 'salon_1' || (proData && venue.name === proData.name)) {
+          return true;
+        }
+      }
+
+      if (proData && venue) {
+        if (venue.id === 'salon_1' || venue.id === proData.id || (proData.name && venue.name === proData.name)) {
+          return true;
+        }
+      }
+
+      if (venue) {
+        if (currentUserId && (venue.owner_id === currentUserId || venue.ownerId === currentUserId)) {
+          return true;
+        }
+        if (currentTag) {
+          if (venue.creatorTag && venue.creatorTag.toLowerCase() === currentTag) return true;
+          if (venue.adminTag && venue.adminTag.toLowerCase() === currentTag) return true;
+        }
+      }
+
+      return false;
+    }
+
     // Calculate arithmetic mean rating for salon
     function calculateSalonAverageRating(salonId) {
       const reviews = getSalonReviewsList(salonId);
@@ -156,24 +190,42 @@
       if (sBadge) sBadge.textContent = `(${count})`;
       if (sNotice) sNotice.textContent = `Средний балл ${avg.toFixed(1)} на основе ${count} отзывов`;
 
+      const isOwner = isCurrentUserOwnerOfSalon(targetId);
       const userAlreadyReviewed = hasUserReviewedTarget(targetId);
       const topBtn = document.getElementById('openAddReviewTopBtn');
       const bottomBanner = document.getElementById('addReviewBottomBanner');
 
       if (topBtn) {
-        if (userAlreadyReviewed) {
+        if (isOwner) {
+          topBtn.disabled = true;
+          topBtn.classList.add('opacity-40', 'cursor-not-allowed');
+          topBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">block</span><span>Недоступно</span>';
+        } else if (userAlreadyReviewed) {
           topBtn.disabled = true;
           topBtn.classList.add('opacity-50', 'cursor-not-allowed');
           topBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">check</span><span>Отзыв оставлен</span>';
         } else {
           topBtn.disabled = false;
-          topBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          topBtn.classList.remove('opacity-40', 'opacity-50', 'cursor-not-allowed');
           topBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">rate_review</span><span>Написать</span>';
         }
       }
 
       if (bottomBanner) {
-        if (userAlreadyReviewed) {
+        if (isOwner) {
+          bottomBanner.innerHTML = `
+            <div class="flex items-center gap-3 w-full py-0.5 text-slate-700">
+              <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                <span class="material-symbols-outlined text-[18px]">info</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-xs font-bold text-slate-800">Вы владелец этого салона</span>
+                <span class="text-[11px] text-slate-500 mt-0.5">Вы не можете оставлять отзывы своему же заведению</span>
+              </div>
+            </div>
+          `;
+          bottomBanner.className = 'rounded-2xl p-3.5 bg-slate-50 border border-slate-200 flex items-center justify-between';
+        } else if (userAlreadyReviewed) {
           bottomBanner.innerHTML = `
             <div class="flex items-center gap-2 text-emerald-800">
               <span class="material-symbols-outlined text-emerald-600">verified</span>
@@ -339,6 +391,11 @@
 
       if (hasUserReviewedTarget(targetId)) {
         showToast(isMaster ? 'Вы уже оставили отзыв об этом мастере ⚠️ (лимит: 1 отзыв)' : 'Вы уже оставили отзыв об этом салоне ⚠️ (лимит: 1 отзыв)');
+        return;
+      }
+
+      if (!isMaster && isCurrentUserOwnerOfSalon(targetId)) {
+        showToast('Вы являетесь владельцем этого салона и не можете оставлять отзыв самому себе ⚠️');
         return;
       }
 

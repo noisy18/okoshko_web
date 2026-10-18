@@ -298,6 +298,9 @@ async def handle_web_app_data(message: Message):
                             from bot.database import sync_salon_masters
                             await sync_salon_masters(session, salon.id, s_masters)
 
+                        if "top" in data:
+                            salon.top = bool(data["top"])
+
                         # Также обновляем пользователя как владельца/PRO
                         if user:
                             user.is_pro = True

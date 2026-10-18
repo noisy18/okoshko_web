@@ -18,6 +18,7 @@ class Salon(Base):
     photos_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")
     schedule_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
     is_promoted: Mapped[bool] = mapped_column(Boolean, default=False)
+    top: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     region: Mapped[str] = mapped_column(String(64), nullable=False)
     region_name: Mapped[str] = mapped_column(String(128), nullable=False)
     address: Mapped[str] = mapped_column(String(256), nullable=False)

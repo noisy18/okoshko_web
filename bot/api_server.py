@@ -89,6 +89,7 @@ async def handle_get_salon(request: web.Request) -> web.Response:
             "cover_url": salon.cover_image_url or "",
             "admin_tag": salon.admin_tag or "",
             "schedule": salon.schedule_json or "{}",
+            "top": bool(getattr(salon, "top", False)),
             "masters": db_masters,
             "services": services,
             "updatedAt": updated_time,
@@ -192,6 +193,9 @@ async def handle_update_salon(request: web.Request) -> web.Response:
             s_promoted = data.get("is_promoted") if "is_promoted" in data else data.get("isPromoted")
             if s_promoted is not None:
                 salon.is_promoted = bool(s_promoted)
+
+            if "top" in data:
+                salon.top = bool(data["top"])
 
             s_photos = data.get("photos")
             if s_photos is not None:

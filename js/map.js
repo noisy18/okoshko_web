@@ -437,20 +437,44 @@
       // 1. Hero Image & Badges
       const heroImg = document.getElementById('salonHeroImg');
       const heroFallback = document.getElementById('salonHeroFallback');
-      const coverSrc = salon.coverUrl || salon.cover_image_url || '';
+      const proData = (typeof getProSalonData === 'function') ? getProSalonData() : null;
+      const isProSalon = proData && (salon.id === 'salon_1' || salon.id === proData.id || salon.name === proData.name);
+      const coverSrc = salon.coverUrl || salon.cover_image_url || salon.cover || (isProSalon ? proData.coverUrl : '') || '';
+
       if (coverSrc) {
         if (heroImg) {
           heroImg.src = coverSrc;
           heroImg.alt = salon.name;
           heroImg.classList.remove('hidden');
+          heroImg.style.display = 'block';
         }
-        if (heroFallback) heroFallback.classList.add('hidden');
+        if (heroFallback) {
+          heroFallback.classList.add('hidden');
+          heroFallback.style.display = 'none';
+        }
       } else {
         if (heroImg) {
           heroImg.src = '';
           heroImg.classList.add('hidden');
+          heroImg.style.display = 'none';
         }
-        if (heroFallback) heroFallback.classList.remove('hidden');
+        if (heroFallback) {
+          heroFallback.classList.remove('hidden');
+          heroFallback.style.display = 'flex';
+        }
+      }
+
+      // Top Badge: ОКОШКО РЕКОМЕНДУЕТ (только если salon.top === true)
+      const topBadge = document.getElementById('salonBadgeTop');
+      if (topBadge) {
+        if (salon.top || (isProSalon && proData.top)) {
+          topBadge.textContent = 'ОКОШКО РЕКОМЕНДУЕТ';
+          topBadge.classList.remove('hidden');
+          topBadge.style.display = 'inline-flex';
+        } else {
+          topBadge.classList.add('hidden');
+          topBadge.style.display = 'none';
+        }
       }
 
       // Distance Badge - only visible if salon is in the selected city filter (not 'all')
@@ -571,15 +595,7 @@
 
       const bottomBtn = document.getElementById('salonBottomBarBtn');
       if (bottomBtn) {
-        bottomBtn.onclick = () => openDirectBooking({
-          salon: salon.name,
-          address: salon.address,
-          master: firstMaster.name,
-          service: firstService.name,
-          price: firstService.price,
-          date: 'Сегодня',
-          time: earliestSlot
-        });
+        bottomBtn.onclick = () => openSalonQuickBookingModal();
       }
 
       // 6. Schedule Section (График работы)
@@ -709,7 +725,7 @@
               <span class="text-[11px] text-slate-400 mt-0.5 truncate">${svc.desc || '~' + (svc.duration || 60) + ' мин'}</span>
               <span class="text-xs font-bold text-primary mt-1">${(svc.price || 0).toLocaleString('ru-RU')} ₽</span>
             </div>
-            <button onclick="openServiceSlotsModal('${encodeURIComponent(svc.name)}', ${svc.price || 0}, ${svc.duration || 60})" class="shrink-0 px-3.5 py-2 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all shadow-2xs">
+            <button onclick="openServiceSlotsModal('${encodeURIComponent(svc.name)}', ${svc.price || 0}, ${svc.duration || 60}, '${encodeURIComponent(svc.id || '')}')" class="shrink-0 px-3.5 py-2 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all shadow-2xs">
               Посмотреть окошки
             </button>
           </div>
@@ -755,20 +771,52 @@
     // SERVICE WINDOWS BOTTOM SHEET MODAL LOGIC
     // ------------------------------------------
     let currentSvcModalService = null;
+    let currentSvcModalServiceId = '';
+    let currentSvcModalServiceObj = null;
     let currentSvcModalPrice = 0;
     let currentSvcModalDuration = 60;
     let currentSvcModalMaster = null;
     let currentSvcModalDate = null;
     let currentSvcModalTime = null;
 
-    function openServiceSlotsModal(encodedServiceName, price, duration = 60) {
+    // Helper: checks whether a master is assigned to a given service
+    function isMasterAssignedToService(master, service) {
+      if (!master || !service) return false;
+      // 1. Check service.masterIds array
+      if (Array.isArray(service.masterIds) && service.masterIds.length > 0) {
+        if (master.id && service.masterIds.includes(master.id)) return true;
+        if (master.name && service.masterIds.includes(master.name)) return true;
+        if (master.id && service.masterIds.some(id => String(id) === String(master.id))) return true;
+        if (master.name && service.masterIds.some(id => String(id).toLowerCase() === String(master.name).toLowerCase())) return true;
+      }
+      // 2. Check master.services array
+      if (Array.isArray(master.services) && master.services.length > 0) {
+        if (master.services.some(s => (s.id && (s.id === service.id || String(s.id) === String(service.id))) || (s.name && s.name === service.name))) return true;
+      }
+      return false;
+    }
+
+    function openServiceSlotsModal(encodedServiceName, price, duration = 60, encodedServiceId = '') {
       const serviceName = decodeURIComponent(encodedServiceName);
       currentSvcModalService = serviceName;
+      currentSvcModalServiceId = encodedServiceId ? decodeURIComponent(encodedServiceId) : '';
       currentSvcModalPrice = price;
       currentSvcModalDuration = duration;
       currentSvcModalMaster = null; // По умолчанию пустая, как просил пользователь!
       currentSvcModalDate = 'Сегодня';
       currentSvcModalTime = null;
+
+      const salon = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) || venues[0] : null;
+      currentSvcModalServiceObj = null;
+      if (salon && Array.isArray(salon.services)) {
+        currentSvcModalServiceObj = salon.services.find(s => (currentSvcModalServiceId && s.id === currentSvcModalServiceId) || s.name === serviceName) || null;
+      }
+      if (!currentSvcModalServiceObj) {
+        const proData = (typeof getProSalonData === 'function') ? getProSalonData() : null;
+        if (proData && Array.isArray(proData.services)) {
+          currentSvcModalServiceObj = proData.services.find(s => (currentSvcModalServiceId && s.id === currentSvcModalServiceId) || s.name === serviceName) || null;
+        }
+      }
 
       const titleEl = document.getElementById('svcSlotsModalTitle');
       const priceEl = document.getElementById('svcSlotsModalPrice');
@@ -833,10 +881,23 @@
       const rail = document.getElementById('svcSlotsMasterPickerRail');
       if (!rail) return;
       const salon = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) || venues[0] : null;
-      const masters = salon?.masters || [];
+      const allMasters = salon?.masters || [];
+
+      // Filter masters assigned to the selected service
+      let masters = allMasters;
+      if (currentSvcModalServiceObj) {
+        masters = allMasters.filter(m => isMasterAssignedToService(m, currentSvcModalServiceObj));
+      }
+
+      // If currently selected master is not in filtered masters, reset
+      if (currentSvcModalMaster && !masters.some(m => m.id === currentSvcModalMaster.id)) {
+        currentSvcModalMaster = null;
+        renderSvcSlotsMasterCard();
+        renderSvcSlotsCalendar();
+      }
 
       if (masters.length === 0) {
-        rail.innerHTML = '<span class="text-xs text-slate-400 py-1 px-2">В студии пока нет добавленных мастеров</span>';
+        rail.innerHTML = '<span class="text-xs text-slate-400 py-2 px-2">К этой услуге пока не привязаны мастера салона</span>';
         return;
       }
 
@@ -1009,6 +1070,318 @@
         time: currentSvcModalTime || '14:00'
       });
     }
+
+    // ------------------------------------------
+    // SALON QUICK BOOKING BOTTOM SHEET MODAL (Ближайшее окошко)
+    // ------------------------------------------
+    let quickBookActiveSalon = null;
+    let quickBookSelectedService = null;
+    let quickBookSelectedMaster = null;
+    let quickBookSelectedDate = 'Сегодня';
+    let quickBookSelectedTime = null;
+
+    function openSalonQuickBookingModal() {
+      const salon = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) || venues[0] : null;
+      quickBookActiveSalon = salon;
+      quickBookSelectedService = null;
+      quickBookSelectedMaster = null;
+      quickBookSelectedDate = 'Сегодня';
+      quickBookSelectedTime = null;
+
+      const titleEl = document.getElementById('quickBookSalonTitle');
+      if (titleEl) {
+        titleEl.textContent = salon?.name ? `Запись в «${salon.name}»` : 'Запись в салон';
+      }
+
+      const calSec = document.getElementById('quickBookCalendarSection');
+      if (calSec) calSec.classList.add('hidden');
+
+      renderQuickBookServices();
+      renderQuickBookMasters();
+
+      const modal = document.getElementById('salonQuickBookingModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+      } catch (e) { }
+    }
+
+    function closeSalonQuickBookingModal() {
+      const modal = document.getElementById('salonQuickBookingModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function renderQuickBookServices() {
+      const rail = document.getElementById('quickBookServicesRail');
+      const hint = document.getElementById('quickBookServiceHint');
+      if (!rail) return;
+
+      const services = quickBookActiveSalon?.services || [];
+      if (hint) {
+        if (quickBookSelectedService) {
+          hint.textContent = 'Выбрана ✅';
+          hint.className = 'text-[10px] text-emerald-600 font-semibold';
+        } else {
+          hint.textContent = 'Обязательно';
+          hint.className = 'text-[10px] text-primary font-semibold';
+        }
+      }
+
+      if (services.length === 0) {
+        rail.innerHTML = '<span class="text-xs text-slate-400 py-2 px-1">Услуги салона уточняются</span>';
+        return;
+      }
+
+      rail.innerHTML = services.map(svc => {
+        const isSelected = (quickBookSelectedService && (quickBookSelectedService.id === svc.id || quickBookSelectedService.name === svc.name));
+        return `
+          <div onclick="selectQuickBookService('${encodeURIComponent(svc.id || svc.name)}')"
+            class="flex flex-col justify-between p-3 rounded-2xl border transition-all active:scale-95 cursor-pointer shrink-0 min-w-[130px] max-w-[170px] ${isSelected ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary' : 'border-slate-200 bg-white hover:border-slate-300'}">
+            <span class="text-xs ${isSelected ? 'font-bold text-primary' : 'font-semibold text-on-surface'} truncate w-full">${svc.name}</span>
+            <span class="text-[10px] text-slate-400 truncate mt-0.5">~${svc.duration || 60} мин</span>
+            <span class="text-xs font-bold text-primary mt-1.5">${(svc.price || 0).toLocaleString('ru-RU')} ₽</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectQuickBookService(encodedKey) {
+      const key = decodeURIComponent(encodedKey);
+      const services = quickBookActiveSalon?.services || [];
+      const found = services.find(s => s.id === key || s.name === key);
+      if (found) {
+        quickBookSelectedService = found;
+        quickBookSelectedMaster = null;
+        quickBookSelectedTime = null;
+
+        const calSec = document.getElementById('quickBookCalendarSection');
+        if (calSec) calSec.classList.add('hidden');
+
+        renderQuickBookServices();
+        renderQuickBookMasters();
+
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+          }
+        } catch (e) { }
+      }
+    }
+
+    function renderQuickBookMasters() {
+      const rail = document.getElementById('quickBookMastersRail');
+      const hint = document.getElementById('quickBookMasterHint');
+      if (!rail) return;
+
+      if (!quickBookSelectedService) {
+        rail.innerHTML = '<span class="text-xs text-slate-400 py-2 px-1">Сначала выберите услугу выше</span>';
+        if (hint) {
+          hint.textContent = 'Сначала выберите услугу';
+          hint.className = 'text-[10px] text-slate-400 font-semibold';
+        }
+        return;
+      }
+
+      const allMasters = quickBookActiveSalon?.masters || [];
+      const assigned = allMasters.filter(m => isMasterAssignedToService(m, quickBookSelectedService));
+
+      if (hint) {
+        if (quickBookSelectedMaster) {
+          hint.textContent = 'Выбран ✅';
+          hint.className = 'text-[10px] text-emerald-600 font-semibold';
+        } else if (assigned.length === 0) {
+          hint.textContent = 'Нет мастеров';
+          hint.className = 'text-[10px] text-slate-400 font-semibold';
+        } else {
+          hint.textContent = 'Обязательно';
+          hint.className = 'text-[10px] text-primary font-semibold';
+        }
+      }
+
+      if (assigned.length === 0) {
+        rail.innerHTML = '<span class="text-xs text-slate-400 py-2 px-1">К этой услуге пока не привязаны мастера</span>';
+        return;
+      }
+
+      rail.innerHTML = assigned.map(m => {
+        const isSelected = (quickBookSelectedMaster && quickBookSelectedMaster.id === m.id);
+        return `
+          <div onclick="selectQuickBookMaster('${m.id}')"
+            class="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border transition-all active:scale-95 cursor-pointer shrink-0 ${isSelected ? 'border-primary bg-primary/10 ring-1 ring-primary shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'}">
+            <div class="w-8 h-8 rounded-full overflow-hidden bg-indigo-50 border border-slate-200 flex items-center justify-center shrink-0">
+              ${m.avatar_url ? `<img src="${m.avatar_url}" class="w-full h-full object-cover" />` : `<span class="material-symbols-outlined text-[18px] text-primary">person</span>`}
+            </div>
+            <div class="flex flex-col text-left">
+              <span class="text-xs ${isSelected ? 'font-bold text-primary' : 'font-semibold text-slate-700'} leading-tight">${m.name}</span>
+              <span class="text-[10px] text-slate-400 leading-tight mt-0.5">${m.role_title || 'Специалист'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectQuickBookMaster(masterId) {
+      const allMasters = quickBookActiveSalon?.masters || [];
+      const found = allMasters.find(m => m.id === masterId);
+      if (found) {
+        quickBookSelectedMaster = found;
+        renderQuickBookMasters();
+
+        const calSec = document.getElementById('quickBookCalendarSection');
+        if (calSec) calSec.classList.remove('hidden');
+
+        renderQuickBookCalendar();
+
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+          }
+        } catch (e) { }
+      }
+    }
+
+    function renderQuickBookCalendar() {
+      if (!quickBookSelectedMaster) return;
+
+      const durationEl = document.getElementById('quickBookDurationText');
+      if (durationEl) {
+        durationEl.textContent = `~${quickBookSelectedService?.duration || 60} мин`;
+      }
+
+      const dateLabel = document.getElementById('quickBookSelectedDateLabel');
+      if (dateLabel) dateLabel.textContent = quickBookSelectedDate || 'Сегодня';
+
+      const datesStrip = document.getElementById('quickBookDatesStrip');
+      const daysList = [
+        { key: 'Сегодня', title: 'Сегодня', sub: getFormattedDateSub(0) },
+        { key: 'Завтра', title: 'Завтра', sub: getFormattedDateSub(1) },
+        { key: getFormattedDateSub(2), title: getDayOfWeekName(2), sub: getFormattedDateSub(2) },
+        { key: getFormattedDateSub(3), title: getDayOfWeekName(3), sub: getFormattedDateSub(3) },
+        { key: getFormattedDateSub(4), title: getDayOfWeekName(4), sub: getFormattedDateSub(4) },
+        { key: getFormattedDateSub(5), title: getDayOfWeekName(5), sub: getFormattedDateSub(5) },
+        { key: getFormattedDateSub(6), title: getDayOfWeekName(6), sub: getFormattedDateSub(6) }
+      ];
+
+      if (datesStrip) {
+        datesStrip.innerHTML = daysList.map(d => {
+          const isSelected = (quickBookSelectedDate === d.key);
+          return `
+            <button type="button" onclick="selectQuickBookDate('${d.key}')"
+              class="flex flex-col items-center justify-center min-w-[70px] py-2 px-2.5 rounded-2xl border transition-all active:scale-95 shrink-0 ${isSelected ? 'bg-primary text-white border-primary shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}">
+              <span class="text-[10px] uppercase font-bold tracking-tight ${isSelected ? 'text-white/80' : 'text-slate-400'}">${d.title}</span>
+              <span class="text-xs font-extrabold mt-0.5">${d.sub}</span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      const timeContainer = document.getElementById('quickBookTimeContainer');
+      const availableSlots = (quickBookSelectedMaster.slots && quickBookSelectedMaster.slots.length)
+        ? quickBookSelectedMaster.slots
+        : ['10:00', '12:00', '14:30', '16:00', '18:00'];
+
+      if (!quickBookSelectedTime || !availableSlots.includes(quickBookSelectedTime)) {
+        quickBookSelectedTime = availableSlots[0] || '10:00';
+      }
+
+      if (timeContainer) {
+        timeContainer.innerHTML = availableSlots.map(t => {
+          const isSelected = (quickBookSelectedTime === t);
+          return `
+            <button type="button" onclick="selectQuickBookTime('${t}')"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 ${isSelected ? 'bg-primary text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}">
+              ${isSelected ? '<span class="material-symbols-outlined text-[14px]">check</span>' : ''}
+              <span>${t}</span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      const submitText = document.getElementById('quickBookSubmitBtnText');
+      if (submitText) {
+        submitText.textContent = `Записаться на ${quickBookSelectedDate} в ${quickBookSelectedTime}`;
+      }
+    }
+
+    function selectQuickBookDate(dateKey) {
+      quickBookSelectedDate = dateKey;
+      renderQuickBookCalendar();
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+      } catch (e) { }
+    }
+
+    function selectQuickBookTime(timeSlot) {
+      quickBookSelectedTime = timeSlot;
+      renderQuickBookCalendar();
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+      } catch (e) { }
+    }
+
+    function confirmQuickBooking() {
+      if (!quickBookSelectedService) {
+        showToast('Сначала выберите услугу ⚠️');
+        return;
+      }
+      if (!quickBookSelectedMaster) {
+        showToast('Сначала выберите мастера для записи ⚠️');
+        return;
+      }
+      if (!quickBookSelectedTime) {
+        showToast('Выберите доступное время записи ⚠️');
+        return;
+      }
+
+      const salon = quickBookActiveSalon || ((typeof venues !== 'undefined') ? (venues.find(v => v.id === state.activeSalon) || venues[0]) : null);
+      const salonName = salon?.name || 'Салон красоты';
+      const salonAddr = salon?.address || 'Адрес уточняется';
+
+      closeSalonQuickBookingModal();
+
+      openDirectBooking({
+        salon: salonName,
+        address: salonAddr,
+        master: quickBookSelectedMaster.name,
+        service: quickBookSelectedService.name,
+        price: quickBookSelectedService.price || 0,
+        date: quickBookSelectedDate || 'Сегодня',
+        time: quickBookSelectedTime || '10:00'
+      });
+    }
+
+    // Expose all modal functions globally
+    window.isMasterAssignedToService = isMasterAssignedToService;
+    window.openServiceSlotsModal = openServiceSlotsModal;
+    window.closeServiceSlotsModal = closeServiceSlotsModal;
+    window.renderSvcSlotsMasterPicker = renderSvcSlotsMasterPicker;
+    window.selectSvcModalMaster = selectSvcModalMaster;
+    window.toggleSvcSlotsMasterPicker = toggleSvcSlotsMasterPicker;
+    window.selectSvcModalDate = selectSvcModalDate;
+    window.selectSvcModalTime = selectSvcModalTime;
+    window.confirmServiceSlotBooking = confirmServiceSlotBooking;
+    window.openSalonQuickBookingModal = openSalonQuickBookingModal;
+    window.closeSalonQuickBookingModal = closeSalonQuickBookingModal;
+    window.renderQuickBookServices = renderQuickBookServices;
+    window.selectQuickBookService = selectQuickBookService;
+    window.renderQuickBookMasters = renderQuickBookMasters;
+    window.selectQuickBookMaster = selectQuickBookMaster;
+    window.renderQuickBookCalendar = renderQuickBookCalendar;
+    window.selectQuickBookDate = selectQuickBookDate;
+    window.selectQuickBookTime = selectQuickBookTime;
+    window.confirmQuickBooking = confirmQuickBooking;
 
     // Open master details page dynamically
     function openMasterDetails(masterId) {

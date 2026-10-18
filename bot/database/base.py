@@ -45,6 +45,7 @@ async def init_db():
             await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS photos_json TEXT DEFAULT '[]';"))
             await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS schedule_json TEXT DEFAULT '{}';"))
             await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS is_promoted BOOLEAN DEFAULT FALSE;"))
+            await conn.execute(text("ALTER TABLE salons ADD COLUMN IF NOT EXISTS top BOOLEAN DEFAULT FALSE;"))
             await conn.execute(text("ALTER TABLE salons ALTER COLUMN salon_type DROP NOT NULL;"))
             # Миграции колонок masters
             await conn.execute(text("ALTER TABLE masters ADD COLUMN IF NOT EXISTS last_name VARCHAR(128);"))
