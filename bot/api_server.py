@@ -239,6 +239,60 @@ async def handle_update_salon(request: web.Request) -> web.Response:
     return web.json_response({"error": "Salon not found"}, status=404, headers=CORS_HEADERS)
 
 
+async def handle_update_user_phone(request: web.Request) -> web.Response:
+    """Обновляет номер телефона пользователя в PostgreSQL"""
+    bot = request.app.get("bot")
+    try:
+        data = await request.json()
+    except Exception as e:
+        return web.json_response({"error": f"Invalid JSON: {e}"}, status=400, headers=CORS_HEADERS)
+
+    user_id = data.get("user_id") or 1205557089
+    phone = (data.get("phone") or "").strip()
+
+    async with async_session_maker() as session:
+        res = await session.execute(select(User).where(User.telegram_id == user_id))
+        user = res.scalar_one_or_none()
+        if not user:
+            user = User(telegram_id=user_id, phone=phone)
+            session.add(user)
+        else:
+            user.phone = phone
+        await session.commit()
+        logger.info(f"✅ [API] Телефон пользователя {user_id} обновлен в PostgreSQL: {phone}")
+
+    # Обновляем MenuButton для пользователя со свежим номером телефона
+    if bot:
+        try:
+            fresh_url = await get_user_app_url(user_id)
+            await bot.set_chat_menu_button(
+                chat_id=user_id,
+                menu_button=MenuButtonWebApp(
+                    text="💅 Окошко",
+                    web_app=WebAppInfo(url=fresh_url),
+                ),
+            )
+        except Exception as m_err:
+            logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
+
+    return web.json_response({"status": "ok", "phone": phone}, headers=CORS_HEADERS)
+
+
+async def handle_get_user_phone(request: web.Request) -> web.Response:
+    """Возвращает номер телефона пользователя из PostgreSQL"""
+    user_id_str = request.query.get("user_id", "1205557089")
+    try:
+        user_id = int(user_id_str)
+    except ValueError:
+        user_id = 1205557089
+
+    async with async_session_maker() as session:
+        res = await session.execute(select(User).where(User.telegram_id == user_id))
+        user = res.scalar_one_or_none()
+        phone = user.phone if user else ""
+        return web.json_response({"user_id": user_id, "phone": phone or ""}, headers=CORS_HEADERS)
+
+
 async def start_api_server(bot, host="0.0.0.0", port=8080):
     """Запускает HTTP сервер для прямого взаимодействия с Mini App"""
     app = web.Application()
@@ -247,10 +301,14 @@ async def start_api_server(bot, host="0.0.0.0", port=8080):
     app.router.add_post("/api/pro_salon_update", handle_update_salon)
     app.router.add_options("/api/pro_salon_get", handle_cors_options)
     app.router.add_get("/api/pro_salon_get", handle_get_salon)
+    app.router.add_options("/api/user_phone_update", handle_cors_options)
+    app.router.add_post("/api/user_phone_update", handle_update_user_phone)
+    app.router.add_options("/api/user_phone_get", handle_cors_options)
+    app.router.add_get("/api/user_phone_get", handle_get_user_phone)
 
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
-    logger.info(f"🚀 Локальный HTTP API сервер запущен на http://127.0.0.1:{port} (эндпоинты /api/pro_salon_update, /api/pro_salon_get)")
+    logger.info(f"🚀 Локальный HTTP API сервер запущен на http://127.0.0.1:{port} (эндпоинты /api/pro_salon_update, /api/pro_salon_get, /api/user_phone_update, /api/user_phone_get)")
     return runner

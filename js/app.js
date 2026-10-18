@@ -311,20 +311,25 @@
       }
     }
 
-    function updateProfilePhoneUI() {
+    function updateProfilePhoneUI(overridePhone) {
       let savedPhone = '';
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlPhone = urlParams.get('user_phone') || urlParams.get('phone');
-        if (urlPhone) {
-          savedPhone = urlPhone;
-          localStorage.setItem('okoshko_user_phone', urlPhone);
+        if (overridePhone !== undefined) {
+          savedPhone = overridePhone;
         } else {
           savedPhone = localStorage.getItem('okoshko_user_phone') || '';
+          if (!savedPhone) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlPhone = urlParams.get('user_phone');
+            if (urlPhone) {
+              savedPhone = urlPhone;
+              localStorage.setItem('okoshko_user_phone', urlPhone);
+            }
+          }
         }
       } catch (e) { }
 
-      // Sync from CloudStorage if available
+      // Sync from CloudStorage if available and not yet loaded
       try {
         if (!savedPhone && window.Telegram?.WebApp?.CloudStorage?.getItem) {
           window.Telegram.WebApp.CloudStorage.getItem('okoshko_user_phone', (err, val) => {
@@ -338,6 +343,25 @@
           });
         }
       } catch (e) { }
+
+      // Also try fetching from API server if still empty
+      if (!savedPhone) {
+        try {
+          const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+          fetch(`http://127.0.0.1:8080/api/user_phone_get?user_id=${userTgId}`)
+            .then(r => r.json())
+            .then(data => {
+              if (data && data.phone) {
+                localStorage.setItem('okoshko_user_phone', data.phone);
+                const pSub = document.getElementById('profilePhoneSub');
+                const pBadge = document.getElementById('profilePhoneBadge');
+                if (pSub) pSub.textContent = data.phone;
+                if (pBadge) pBadge.textContent = 'Изменить';
+              }
+            })
+            .catch(() => {});
+        } catch (e) { }
+      }
 
       const pSub = document.getElementById('profilePhoneSub');
       const pBadge = document.getElementById('profilePhoneBadge');
@@ -359,6 +383,10 @@
       let savedPhone = '';
       try {
         savedPhone = localStorage.getItem('okoshko_user_phone') || '';
+        if (!savedPhone) {
+          const urlParams = new URLSearchParams(window.location.search);
+          savedPhone = urlParams.get('user_phone') || '';
+        }
       } catch (e) { }
 
       const input = document.getElementById('modalPhoneInput');
@@ -423,7 +451,16 @@
         localStorage.setItem('okoshko_user_phone', formatted);
       } catch (e) { }
 
-      // 1. Sync to Telegram CloudStorage for cross-device support (Desktop <-> Mobile)
+      // Update current browser search params so refresh keeps user_phone
+      try {
+        if (window.history && window.history.replaceState) {
+          const curUrl = new URL(window.location.href);
+          curUrl.searchParams.set('user_phone', formatted);
+          window.history.replaceState({}, '', curUrl.toString());
+        }
+      } catch (e) { }
+
+      // 1. Sync to Telegram CloudStorage
       try {
         if (window.Telegram?.WebApp?.CloudStorage?.setItem) {
           window.Telegram.WebApp.CloudStorage.setItem('okoshko_user_phone', formatted, (err, ok) => {
@@ -432,32 +469,59 @@
         }
       } catch (e) { }
 
-      // 2. Sync to Backend DB via Telegram sendData or Direct Bot API
-      const phonePayload = {
-        action: 'user_phone_updated',
-        phone: formatted
-      };
+      const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+      const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+      const groupChatId = -5590032342;
+
+      // 2. Direct HTTP API sync to PostgreSQL (localhost / tunnel)
       try {
-        if (window.Telegram?.WebApp?.sendData) {
-          window.Telegram.WebApp.sendData(JSON.stringify(phonePayload));
-        }
+        fetch('http://127.0.0.1:8080/api/user_phone_update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userTgId,
+            phone: formatted
+          })
+        }).then(r => r.json()).then(res => console.log('[App] Phone saved via API:', res))
+          .catch(err => console.log('[App] Local API phone sync skipped:', err.message));
       } catch (e) { }
+
+      // 3. Sync to PostgreSQL via Bot Group channel (works anywhere on mobile/cloud)
       try {
-        const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
-        const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
-        if (userTgId && botToken) {
+        if (botToken) {
           fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              chat_id: userTgId,
-              text: JSON.stringify(phonePayload)
+              chat_id: groupChatId,
+              text: `#user_phone_update|${userTgId}|${formatted}`,
+              disable_notification: true
             })
-          }).catch(err => console.warn('Direct Bot API sync error for phone:', err));
+          }).catch(err => console.warn('Group Bot API sync error for phone:', err));
         }
       } catch (e) { }
 
-      updateProfilePhoneUI();
+      // 4. Update Telegram MenuButton URL directly so next open has user_phone
+      try {
+        if (userTgId && botToken) {
+          const menuUrl = new URL(window.location.href);
+          menuUrl.searchParams.set('user_phone', formatted);
+          fetch(`https://api.telegram.org/bot${botToken}/setChatMenuButton`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: userTgId,
+              menu_button: {
+                type: 'web_app',
+                text: '💅 Окошко',
+                web_app: { url: menuUrl.toString() }
+              }
+            })
+          }).catch(() => {});
+        }
+      } catch (e) { }
+
+      updateProfilePhoneUI(formatted);
       closePhoneModal();
       showToast('Номер сохранен 📱');
       try {
@@ -478,31 +542,63 @@
         }
       } catch (e) { }
 
-      const phonePayload = {
-        action: 'user_phone_updated',
-        phone: ''
-      };
       try {
-        if (window.Telegram?.WebApp?.sendData) {
-          window.Telegram.WebApp.sendData(JSON.stringify(phonePayload));
+        if (window.history && window.history.replaceState) {
+          const curUrl = new URL(window.location.href);
+          curUrl.searchParams.delete('user_phone');
+          window.history.replaceState({}, '', curUrl.toString());
         }
       } catch (e) { }
+
+      const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
+      const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
+      const groupChatId = -5590032342;
+
       try {
-        const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
-        const botToken = '8949973080:AAHxM52F3FGr2agJEw9xm8526ffvVubsYMI';
-        if (userTgId && botToken) {
+        fetch('http://127.0.0.1:8080/api/user_phone_update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userTgId,
+            phone: ''
+          })
+        }).catch(() => {});
+      } catch (e) { }
+
+      try {
+        if (botToken) {
           fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              chat_id: userTgId,
-              text: JSON.stringify(phonePayload)
+              chat_id: groupChatId,
+              text: `#user_phone_update|${userTgId}|`,
+              disable_notification: true
             })
-          }).catch(err => console.warn('Direct Bot API sync error for phone:', err));
+          }).catch(() => {});
         }
       } catch (e) { }
 
-      updateProfilePhoneUI();
+      try {
+        if (userTgId && botToken) {
+          const menuUrl = new URL(window.location.href);
+          menuUrl.searchParams.delete('user_phone');
+          fetch(`https://api.telegram.org/bot${botToken}/setChatMenuButton`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: userTgId,
+              menu_button: {
+                type: 'web_app',
+                text: '💅 Окошко',
+                web_app: { url: menuUrl.toString() }
+              }
+            })
+          }).catch(() => {});
+        }
+      } catch (e) { }
+
+      updateProfilePhoneUI('');
       closePhoneModal();
       showToast('Номер удален');
       try {

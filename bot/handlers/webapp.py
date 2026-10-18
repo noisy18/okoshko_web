@@ -954,3 +954,53 @@ async def handle_salon_update_info_message(message: Message, bot: Bot):
         logger.error(f"Ошибка в handle_salon_update_info_message: {e}")
 
 
+@webapp_router.message(F.text.startswith("#user_phone_update"))
+async def handle_user_phone_update_message(message: Message, bot: Bot):
+    """
+    Обновляет номер телефона пользователя в PostgreSQL из Mini App
+    Формат: #user_phone_update|user_id|phone
+    """
+    try:
+        parts = message.text.split("|", 2)
+        if len(parts) >= 3:
+            user_id = int(parts[1]) if parts[1].isdigit() else None
+            phone = parts[2].strip()
+            if user_id:
+                from bot.database.base import async_session_maker
+                from bot.database.models import User
+                from bot.handlers.user import get_user_app_url
+                from aiogram.types import MenuButtonWebApp, WebAppInfo
+                from sqlalchemy import select
+
+                async with async_session_maker() as session:
+                    res = await session.execute(select(User).where(User.telegram_id == user_id))
+                    user = res.scalar_one_or_none()
+                    if not user:
+                        user = User(telegram_id=user_id, phone=phone)
+                        session.add(user)
+                    else:
+                        user.phone = phone
+                    await session.commit()
+                    logger.info(f"✅ Телефон пользователя {user_id} обновлен в PostgreSQL через #user_phone_update: {phone}")
+
+                # Обновляем MenuButton для пользователя со свежим номером
+                try:
+                    fresh_url = await get_user_app_url(user_id)
+                    await bot.set_chat_menu_button(
+                        chat_id=user_id,
+                        menu_button=MenuButtonWebApp(
+                            text="💅 Окошко",
+                            web_app=WebAppInfo(url=fresh_url),
+                        ),
+                    )
+                except Exception as m_err:
+                    logger.warning(f"Не удалось обновить MenuButton для {user_id}: {m_err}")
+
+        try:
+            await message.delete()
+        except Exception:
+            pass
+    except Exception as e:
+        logger.error(f"Ошибка в handle_user_phone_update_message: {e}")
+
+
