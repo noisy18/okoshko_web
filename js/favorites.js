@@ -126,19 +126,38 @@
         return;
       }
 
-      container.innerHTML = favVenues.map(v => `
+      container.innerHTML = favVenues.map(v => {
+        const reviewsCount = parseInt(v.reviewsCount, 10) || 0;
+        const enterpriseType = v.salonType || v.type || 'Салон красоты';
+        const ratingHtml = reviewsCount > 0 ? `
+          <div class="flex items-center gap-0.5 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/40">
+            <span class="material-symbols-outlined text-amber-500 text-[13px]" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="text-xs font-bold text-amber-900">${v.rating}</span>
+            <span class="text-[10px] text-amber-700/70">(${reviewsCount})</span>
+          </div>
+        ` : `
+          <div class="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 text-[10px] font-medium">
+            <span>Нет отзывов</span>
+          </div>
+        `;
+
+        return `
         <div id="fav-card-${v.id}" class="rounded-3xl bg-white p-4 shadow-xs border border-slate-200/70 flex flex-col gap-3 relative overflow-hidden animate-in fade-in duration-200">
           <div class="flex items-center justify-between">
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
-              <span class="material-symbols-outlined text-[12px]">location_on</span>
-              <span>${v.regionName || v.address}</span>
-            </span>
-            <div class="flex items-center gap-1.5">
-              <div class="flex items-center gap-0.5 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/40">
-                <span class="material-symbols-outlined text-amber-500 text-[13px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                <span class="text-xs font-bold text-amber-900">${v.rating}</span>
-                <span class="text-[10px] text-amber-700/70">(${v.reviewsCount})</span>
-              </div>
+            <div class="flex flex-col items-start gap-1">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
+                <span class="material-symbols-outlined text-[12px]">location_on</span>
+                <span>${v.regionName || 'Город не указан'}</span>
+              </span>
+              ${v.address ? `
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium" title="${v.address}">
+                <span class="material-symbols-outlined text-[12px]">location_on</span>
+                <span>${v.address}</span>
+              </span>
+              ` : ''}
+            </div>
+            <div class="flex items-center gap-1.5 self-start">
+              ${ratingHtml}
               <!-- Heart toggle button -->
               <button onclick="toggleFavoriteSalon(this, '${v.id}')" aria-label="Убрать из избранного" class="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-500 flex items-center justify-center active:scale-90 transition-all shadow-2xs">
                 <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
@@ -148,7 +167,7 @@
 
           <!-- Studio Info Row -->
           <div class="flex gap-3.5 items-center cursor-pointer" onclick="openVenueDetails('${v.id}')">
-            <div class="relative w-16 h-16 rounded-2xl overflow-hidden bg-surface-container shrink-0 shadow-xs">
+            <div class="relative w-16 h-16 rounded-2xl overflow-hidden bg-surface-container shrink-0 shadow-xs self-start">
               <img class="w-full h-full object-cover" alt="${v.name}" src="${v.img}"/>
               <div class="absolute bottom-1 right-1 px-1 py-0.2 rounded-full bg-black/60 backdrop-blur-sm text-white text-[9px] flex items-center gap-0.5">
                 <span class="material-symbols-outlined text-[9px]">photo_camera</span>
@@ -157,8 +176,7 @@
             </div>
             <div class="flex flex-col min-w-0 flex-1 justify-center">
               <h2 class="font-bold text-sm text-on-surface truncate">${v.name}</h2>
-              <span class="text-[11px] text-primary font-medium mt-0.5 truncate">${v.type}</span>
-              <p class="text-[11px] text-slate-400 mt-0.5 truncate">${v.categoryText}</p>
+              <p class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">${enterpriseType}</p>
             </div>
           </div>
 
@@ -177,7 +195,8 @@
             </div>
           </div>
         </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     // Quick Options Dropdown in Top Header

@@ -324,17 +324,25 @@
 
       container.innerHTML = visibleVenues.map((v) => {
         const isActive = (v.id === state.activeSalon);
-        const slotsHtml = v.slots.map((slot, sIdx) => `
-          <button onclick="event.stopPropagation(); selectVenueSlot('${v.id}', '${slot}', this)" class="venue-slot-btn py-1.5 px-2 rounded-xl ${sIdx === 0 ? 'bg-primary-fixed text-primary font-bold' : 'bg-surface-container-low text-on-surface'} text-xs active:scale-95 transition-all text-center">
-            ${slot}
-          </button>
-        `).join('');
+        const enterpriseType = v.salonType || v.type || 'Салон красоты';
+        const reviewsCount = parseInt(v.reviewsCount, 10) || 0;
+        const ratingHtml = reviewsCount > 0 ? `
+          <div class="flex items-center gap-0.5 shrink-0 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200/40">
+            <span class="material-symbols-outlined text-amber-500 text-[13px]" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="text-[11px] font-bold text-amber-900">${v.rating}</span>
+            <span class="text-[10px] text-amber-700/70">(${reviewsCount})</span>
+          </div>
+        ` : `
+          <div class="flex items-center gap-1 shrink-0 bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 text-[10px] font-medium">
+            <span>Нет отзывов</span>
+          </div>
+        `;
 
         return `
           <div id="venue-card-${v.id}" onclick="selectMapPin('${v.id}', true)" class="venue-card-item ${isActive ? 'active' : ''} rounded-3xl p-4 flex flex-col gap-3 cursor-pointer">
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-primary' : 'text-slate-400'}">
-                ${isActive ? '● Выбрано на карте' : v.type}
+                ${isActive ? '● Выбрано на карте' : enterpriseType}
               </span>
               <div class="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
                 <span class="material-symbols-outlined text-[13px]">near_me</span>
@@ -343,7 +351,7 @@
             </div>
 
             <div class="flex items-start gap-3.5" onclick="event.stopPropagation(); openVenueDetails('${v.id}')">
-              <div class="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-surface-container shadow-xs">
+              <div class="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-surface-container shadow-xs self-start">
                 <img class="w-full h-full object-cover" alt="${v.name}" src="${v.img}"/>
                 <div class="absolute bottom-1 right-1 px-1 py-0.2 rounded-full bg-black/60 backdrop-blur-sm text-white text-[9px] flex items-center gap-0.5">
                   <span class="material-symbols-outlined text-[9px]">photo_camera</span>
@@ -354,29 +362,21 @@
               <div class="flex flex-col min-w-0 flex-1 justify-center">
                 <div class="flex items-center justify-between gap-1">
                   <h2 class="font-bold text-sm text-on-surface truncate">${v.name}</h2>
-                  <div class="flex items-center gap-0.5 shrink-0 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200/40">
-                    <span class="material-symbols-outlined text-amber-500 text-[13px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                    <span class="text-[11px] font-bold text-amber-900">${v.rating}</span>
-                    <span class="text-[10px] text-amber-700/70">(${v.reviewsCount})</span>
-                  </div>
+                  ${ratingHtml}
                 </div>
-                <p class="text-[11px] text-on-surface-variant mt-0.5 truncate">${v.categoryText}</p>
-                <div class="flex items-center gap-1.5 mt-1">
+                <p class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">${enterpriseType}</p>
+                <div class="flex flex-col items-start gap-1 mt-1.5">
                   <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium truncate max-w-[210px]">
                     <span class="material-symbols-outlined text-[11px]">location_on</span>
-                    <span class="truncate">${v.regionName || v.address}</span>
+                    <span class="truncate">${v.regionName || 'Город не указан'}</span>
                   </span>
+                  ${v.address ? `
+                  <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium truncate max-w-[210px]" title="${v.address}">
+                    <span class="material-symbols-outlined text-[11px]">location_on</span>
+                    <span class="truncate">${v.address}</span>
+                  </span>
+                  ` : ''}
                 </div>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-1 pt-1 border-t border-slate-100">
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Ближайшие окошки</span>
-                <span class="text-[10px] text-primary font-bold">${v.priceFrom}</span>
-              </div>
-              <div class="grid grid-cols-3 gap-1.5">
-                ${slotsHtml}
               </div>
             </div>
 
@@ -481,13 +481,29 @@
       if (nameEl) nameEl.textContent = salon.name;
 
       const subEl = document.getElementById('salonCategorySub');
-      if (subEl) subEl.textContent = salon.categoryText || salon.type;
+      if (subEl) subEl.textContent = salon.salonType || salon.type || salon.categoryText || 'Салон красоты';
 
+      const reviewsCount = parseInt(salon.reviewsCount, 10) || 0;
+      const ratingBadge = document.querySelector('#screen-salon .bg-amber-50');
       const ratingEl = document.getElementById('salonRating');
-      if (ratingEl) ratingEl.textContent = salon.rating || '5.0';
-
       const reviewsEl = document.getElementById('salonReviewsCount');
-      if (reviewsEl) reviewsEl.textContent = `(${salon.reviewsCount || 100})`;
+      if (reviewsCount > 0) {
+        if (ratingEl) {
+          ratingEl.textContent = salon.rating || '5.0';
+          ratingEl.classList.remove('hidden');
+        }
+        if (reviewsEl) reviewsEl.textContent = `(${reviewsCount})`;
+        const starEl = ratingBadge?.querySelector('.text-amber-500');
+        if (starEl) starEl.classList.remove('hidden');
+      } else {
+        if (ratingEl) {
+          ratingEl.textContent = '';
+          ratingEl.classList.add('hidden');
+        }
+        const starEl = ratingBadge?.querySelector('.text-amber-500');
+        if (starEl) starEl.classList.add('hidden');
+        if (reviewsEl) reviewsEl.textContent = 'Нет отзывов';
+      }
 
       const descEl = document.getElementById('salonDescText');
       if (descEl) {
