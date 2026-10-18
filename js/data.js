@@ -27,3 +27,24 @@ const venues = [];
 let currentFilterCategory = 'all';
 let currentSearchQuery = '';
 let visibleVenues = [...venues];
+
+// Check if venue is considered "nearby" based on active region filter
+function isSalonNearUser(v) {
+  if (!v) return false;
+  // If user selected "All" (Все города) or no filter is active, distance badge is NOT shown
+  if (!currentFilterRegion || currentFilterRegion === 'all') {
+    return false;
+  }
+  // If user selected a specific city, match salon region or address with the city
+  if (v.region === currentFilterRegion) return true;
+  if (typeof CITY_CONFIG !== 'undefined' && CITY_CONFIG[currentFilterRegion]) {
+    const cfg = CITY_CONFIG[currentFilterRegion];
+    const text = `${v.regionName || ''} ${v.address || ''} ${v.region || ''}`.toLowerCase();
+    const shortLower = (cfg.short || '').toLowerCase();
+    const nameLower = (cfg.name || '').toLowerCase();
+    if ((shortLower && text.includes(shortLower)) || (nameLower && text.includes(nameLower))) {
+      return true;
+    }
+  }
+  return false;
+}

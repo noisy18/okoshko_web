@@ -178,8 +178,10 @@
 
     .venue-card-item {
       scroll-snap-align: start;
-      flex: 0 0 calc(100% - 44px);
-      max-width: 360px;
+      flex: 0 0 100%;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       border: 1px solid rgba(0, 0, 0, 0.08);
       background: #ffffff;

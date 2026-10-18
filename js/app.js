@@ -1078,8 +1078,7 @@
           }
         } else if (screen === 'salon') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
-          const currentVenue = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) : null;
-          headerTitle.textContent = currentVenue ? currentVenue.name : 'Салон красоты';
+          headerTitle.textContent = 'Окошко';
           if (globalNav) { globalNav.classList.add('hidden'); globalNav.style.display = 'none'; }
         } else if (screen === 'master') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';

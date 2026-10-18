@@ -188,7 +188,9 @@ function syncVenuesWithProSalon(data) {
         target: 'salon',
         photoCount: (data.photos && data.photos.length) ? data.photos.length : 1,
         photos: Array.isArray(data.photos) ? data.photos : [],
-        img: data.avatarUrl || '',
+        avatarUrl: data.avatarUrl || '',
+        coverUrl: data.coverUrl || '',
+        img: data.coverUrl || data.avatarUrl || '',
         coords: [lat, lon],
         description: data.description || '',
         services: data.services || [],
@@ -519,6 +521,7 @@ function saveProAppointments(appts) {
 
   renderProAppointments();
   renderProStats();
+  syncVenuesWithProSalon(data);
 }
 
 function applyUrlParamsToData(data, urlParams, timestamp) {
@@ -1189,6 +1192,7 @@ function syncProSalonUI() {
   if (typeof updateBizCardAvatar === 'function') {
     updateBizCardAvatar();
   }
+  syncVenuesWithProSalon(data);
 }
 
 // ------------------------------------------

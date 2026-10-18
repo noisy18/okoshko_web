@@ -344,15 +344,17 @@
               <span class="text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-primary' : 'text-slate-400'}">
                 ${isActive ? '● Выбрано на карте' : enterpriseType}
               </span>
+              ${(typeof isSalonNearUser === 'function' && isSalonNearUser(v)) ? `
               <div class="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
                 <span class="material-symbols-outlined text-[13px]">near_me</span>
-                <span>${v.distance}</span>
+                <span>${v.distance || 'рядом'}</span>
               </div>
+              ` : ''}
             </div>
 
             <div class="flex items-start gap-3.5" onclick="event.stopPropagation(); openVenueDetails('${v.id}')">
               <div class="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-surface-container shadow-xs self-start">
-                <img class="w-full h-full object-cover" alt="${v.name}" src="${v.img}"/>
+                <img class="w-full h-full object-cover" alt="${v.name}" src="${v.avatarUrl || v.img}"/>
                 <div class="absolute bottom-1 right-1 px-1 py-0.2 rounded-full bg-black/60 backdrop-blur-sm text-white text-[9px] flex items-center gap-0.5">
                   <span class="material-symbols-outlined text-[9px]">photo_camera</span>
                   <span>${v.photoCount}</span>
@@ -365,17 +367,11 @@
                   ${ratingHtml}
                 </div>
                 <p class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">${enterpriseType}</p>
-                <div class="flex flex-col items-start gap-1 mt-1.5">
-                  <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium truncate max-w-[210px]">
+                <div class="flex items-start gap-1 mt-1.5">
+                  <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium truncate">
                     <span class="material-symbols-outlined text-[11px]">location_on</span>
                     <span class="truncate">${v.regionName || 'Город не указан'}</span>
                   </span>
-                  ${v.address ? `
-                  <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium truncate max-w-[210px]" title="${v.address}">
-                    <span class="material-symbols-outlined text-[11px]">location_on</span>
-                    <span class="truncate">${v.address}</span>
-                  </span>
-                  ` : ''}
                 </div>
               </div>
             </div>
@@ -441,7 +437,7 @@
       // 1. Hero Image & Badges
       const heroImg = document.getElementById('salonHeroImg');
       const heroFallback = document.getElementById('salonHeroFallback');
-      const coverSrc = salon.coverUrl || salon.cover_image_url || salon.img || '';
+      const coverSrc = salon.coverUrl || salon.cover_image_url || '';
       if (coverSrc) {
         if (heroImg) {
           heroImg.src = coverSrc;
@@ -456,13 +452,24 @@
         }
         if (heroFallback) heroFallback.classList.remove('hidden');
       }
-      const distText = document.getElementById('salonDistanceText');
-      if (distText) distText.textContent = salon.distance ? `${salon.distance} от вас` : 'Рядом с вами';
+
+      // Distance Badge - only visible if salon is in the selected city filter (not 'all')
+      const isNearby = (typeof isSalonNearUser === 'function') ? isSalonNearUser(salon) : false;
+      const distBadge = document.getElementById('salonDistanceBadge');
+      if (distBadge) {
+        if (isNearby) {
+          distBadge.classList.remove('hidden');
+          const distText = document.getElementById('salonDistanceText');
+          if (distText) distText.textContent = salon.distance ? `${salon.distance} от вас` : 'Рядом с вами';
+        } else {
+          distBadge.classList.add('hidden');
+        }
+      }
 
       // 2. Title, Subtitle, Avatar, Rating, Reviews
       const salonAvImg = document.getElementById('salonAvatarImg');
       const salonAvFallback = document.getElementById('salonAvatarFallback');
-      const avatarSrc = salon.avatarUrl || salon.avatar_url || salon.logo_url || '';
+      const avatarSrc = salon.avatarUrl || salon.avatar_url || salon.logo_url || salon.img || '';
       if (avatarSrc) {
         if (salonAvImg) {
           salonAvImg.src = avatarSrc;

@@ -206,6 +206,9 @@
       closeCityModal();
 
       applyCombinedFilters();
+      if (typeof state !== 'undefined' && state.activeSalon && typeof renderSalonDetails === 'function') {
+        renderSalonDetails(state.activeSalon);
+      }
 
       // Pan & Zoom map to selected region or venue
       if (yandexMapInstance) {

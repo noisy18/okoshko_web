@@ -522,20 +522,20 @@
     <section id="screen-salon" class="screen pb-44">
       <!-- Hero Section -->
       <div class="relative px-3.5 pt-2">
-        <div class="relative w-full h-[220px] rounded-3xl overflow-hidden shadow-sm bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900">
+        <div class="relative w-full h-32 rounded-3xl overflow-hidden shadow-sm bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900">
           <img id="salonHeroImg" alt="Обложка салона"
             class="hidden w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
             src="" />
           <div id="salonHeroFallback" class="w-full h-full flex flex-col items-center justify-center text-white/40">
-            <div class="w-16 h-16 rounded-3xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white/70 border border-white/20 mb-2 shadow-inner">
-              <span class="material-symbols-outlined text-[32px]">storefront</span>
+            <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white/70 border border-white/20 mb-1.5 shadow-inner">
+              <span class="material-symbols-outlined text-[26px]">storefront</span>
             </div>
-            <span class="text-xs font-semibold text-white/50 tracking-wider uppercase">Окошко • Салон</span>
+            <span class="text-[11px] font-semibold text-white/50 tracking-wider uppercase">Окошко • Салон</span>
           </div>
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none"></div>
 
           <!-- Top Badges Overlay -->
-          <div class="absolute top-3 left-3 right-3 flex items-center justify-between">
+          <div class="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between">
             <div class="flex items-center gap-1.5">
               <span id="salonBadgeOpen"
                 class="px-2.5 py-1 rounded-full text-[11px] font-semibold text-emerald-700 bg-white/95 flex items-center gap-1 shadow-xs">
@@ -555,9 +555,9 @@
           </div>
 
           <!-- Bottom Distance Badge -->
-          <div class="absolute bottom-3 left-3">
+          <div class="absolute bottom-2.5 left-2.5">
             <span id="salonDistanceBadge"
-              class="text-white px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-black/40 backdrop-blur-md border border-white/20">
+              class="hidden text-white px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-black/40 backdrop-blur-md border border-white/20">
               <span class="material-symbols-outlined text-[14px]">near_me</span>
               <span id="salonDistanceText">350 м от вас</span>
             </span>
@@ -569,8 +569,8 @@
       <div class="px-4 pt-3.5 pb-2">
         <div class="flex items-start justify-between">
           <div class="flex items-center gap-3 min-w-0 pr-2">
-            <div id="salonAvatarContainer" class="w-13 h-13 rounded-2xl bg-indigo-50 border border-slate-200/80 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative">
-              <img id="salonAvatarImg" src="" alt="Аватарка салона" class="hidden w-full h-full object-cover rounded-2xl" />
+            <div id="salonAvatarContainer" class="w-14 h-14 rounded-full bg-indigo-50 border-2 border-white shadow-md overflow-hidden flex items-center justify-center shrink-0 relative aspect-square">
+              <img id="salonAvatarImg" src="" alt="Аватарка салона" class="hidden w-full h-full object-cover rounded-full aspect-square" />
               <div id="salonAvatarFallback" class="w-full h-full flex items-center justify-center bg-indigo-50 text-primary">
                 <span class="material-symbols-outlined text-[26px]">storefront</span>
               </div>
@@ -605,27 +605,6 @@
           <button onclick="router.navigate('map')"
             class="text-primary font-semibold px-2.5 py-1 rounded-lg bg-primary-fixed text-xs hover:bg-primary-fixed/80 active:scale-95 transition-all shrink-0">
             Карта
-          </button>
-        </div>
-      </div>
-
-      <!-- Hot Slot Alert Banner -->
-      <div class="px-4 my-2">
-        <div
-          class="glass-panel bg-primary-fixed/30 border border-primary-fixed p-3 rounded-2xl flex items-center justify-between shadow-xs">
-          <div class="flex items-center space-x-2.5">
-            <div
-              class="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm">
-              ⚡
-            </div>
-            <div>
-              <div class="text-[10px] font-semibold text-primary uppercase tracking-wider">Быстрая запись</div>
-              <div id="salonHotSlotText" class="text-xs font-bold text-on-surface">Ближайшее окно: Уточняется</div>
-            </div>
-          </div>
-          <button id="salonHotSlotBtn"
-            class="px-3.5 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold shadow-xs active:scale-95 transition-transform">
-            Занять
           </button>
         </div>
       </div>
