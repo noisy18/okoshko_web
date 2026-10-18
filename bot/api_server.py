@@ -88,6 +88,7 @@ async def handle_get_salon(request: web.Request) -> web.Response:
             "avatar_url": salon.logo_url or "",
             "cover_url": salon.cover_image_url or "",
             "admin_tag": salon.admin_tag or "",
+            "schedule": salon.schedule_json or "{}",
             "masters": db_masters,
             "services": services,
             "updatedAt": updated_time,
@@ -198,6 +199,13 @@ async def handle_update_salon(request: web.Request) -> web.Response:
                     salon.photos_json = json.dumps(s_photos, ensure_ascii=False)
                 elif isinstance(s_photos, str):
                     salon.photos_json = s_photos
+
+            s_schedule = data.get("schedule") or data.get("schedule_json")
+            if s_schedule is not None:
+                if isinstance(s_schedule, (dict, list)):
+                    salon.schedule_json = json.dumps(s_schedule, ensure_ascii=False)
+                elif isinstance(s_schedule, str):
+                    salon.schedule_json = s_schedule
 
             now = datetime.utcnow()
             if hasattr(salon, "updated_at"):

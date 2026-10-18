@@ -501,6 +501,20 @@
       background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
     }
 
+    /* Schedule day toggle buttons (style from screenshot 2) */
+    .pro-day-btn {
+      background-color: #1e293b;
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+    }
+    .pro-day-btn.active {
+      background-color: #0284c7 !important;
+      color: #ffffff !important;
+      border-color: #38bdf8 !important;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
+    }
+
     /* Custom thin scrollbar for lists with visible indicator */
     .custom-scrollbar::-webkit-scrollbar {
       width: 5px;

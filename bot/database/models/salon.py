@@ -16,6 +16,7 @@ class Salon(Base):
     filter_tags_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")
     search_keywords_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")
     photos_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")
+    schedule_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
     is_promoted: Mapped[bool] = mapped_column(Boolean, default=False)
     region: Mapped[str] = mapped_column(String(64), nullable=False)
     region_name: Mapped[str] = mapped_column(String(128), nullable=False)

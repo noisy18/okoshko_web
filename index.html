@@ -609,6 +609,41 @@
         </div>
       </div>
 
+      <!-- Salon Schedule Card -->
+      <div id="salonScheduleSection" class="px-4 mt-3">
+        <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-primary-fixed/60 text-primary flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[15px]">schedule</span>
+              </div>
+              <span class="text-xs font-bold text-on-surface">График работы</span>
+            </div>
+            <span id="salonScheduleStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+              Открыто до 21:00
+            </span>
+          </div>
+          
+          <div class="flex items-center justify-between pt-1 text-xs">
+            <div id="salonScheduleDaysPills" class="flex items-center gap-1">
+              <!-- Rendered dynamically by renderSalonDetails() -->
+            </div>
+            <span id="salonScheduleHoursText" class="font-bold text-slate-700 text-xs tracking-tight">07:00 – 21:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Salon Photo Gallery Section -->
+      <div id="salonGallerySection" class="mt-4">
+        <div class="px-4 flex items-center justify-between mb-2.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Фотогалерея</h2>
+          <span id="salonGalleryCountLabel" class="text-xs text-primary font-semibold">Все (0)</span>
+        </div>
+        <div id="salonGalleryRail" class="flex space-x-2.5 overflow-x-auto no-scrollbar px-4 pb-1">
+          <!-- Populated dynamically by renderSalonDetails() -->
+        </div>
+      </div>
+
       <!-- Masters Rail -->
       <div class="mt-4">
         <div class="px-4 flex items-center justify-between mb-2.5">
@@ -645,7 +680,7 @@
             <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
           </button>
         </div>
-        <div class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs">
+        <div id="salonReviewCardContainer" class="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center space-x-2">
               <div id="salonReviewAvatar"
@@ -1797,6 +1832,28 @@
           </div>
         </div>
 
+        <!-- Schedule Section (График работы) -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">График работы</span>
+          <div class="rounded-2xl bg-white shadow-xs border border-slate-200/60 overflow-hidden flex flex-col text-xs">
+            <div class="p-3.5 flex items-center justify-between active:bg-slate-50 cursor-pointer" onclick="openProScheduleModal()">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="material-symbols-outlined text-primary text-[20px] shrink-0">schedule</span>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-semibold text-on-surface">Режим работы</span>
+                  <span id="proProfileScheduleSummary" class="text-[11px] text-slate-500 truncate max-w-[210px]">Пн-Вс: 07:00 – 21:00</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="event.stopPropagation(); openProScheduleModal()"
+                  class="px-3 py-1 rounded-lg bg-primary-fixed text-primary font-bold text-[11px] hover:bg-primary hover:text-white active:scale-95 transition-all">
+                  Редактировать
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Management Buttons (Каталог и персонал) -->
         <div class="flex flex-col gap-1.5">
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Каталог и персонал</span>
@@ -2029,6 +2086,168 @@
       </div>
     </nav>
 
+  <!-- ======================================================== -->
+  <!-- MODAL: PRO SCHEDULE EDIT (График работы салона) -->
+  <!-- ======================================================== -->
+  <div id="proScheduleModal" onclick="if(event.target === this) closeProScheduleModal()"
+    class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-end justify-center transition-all">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-[440px] bg-white rounded-t-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom duration-200 max-h-[90vh] overflow-y-auto">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto shrink-0"></div>
+
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-on-surface">График работы</h3>
+          <p class="text-xs text-slate-400">Настройка рабочих дней и часов студии</p>
+        </div>
+        <button type="button" onclick="closeProScheduleModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">✕</button>
+      </div>
+
+      <!-- Рабочие дни (Стиль как на 2 скрине) -->
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-bold text-slate-700">Рабочие дни</label>
+        <div class="grid grid-cols-6 gap-2">
+          <button type="button" onclick="toggleProScheduleDay('пн', this)" id="btnDay-пн" class="pro-day-btn active h-11 rounded-xl font-bold text-xs flex items-center justify-center transition-all">ПН</button>
+          <button type="button" onclick="toggleProScheduleDay('вт', this)" id="btnDay-вт" class="pro-day-btn active h-11 rounded-xl font-bold text-xs flex items-center justify-center transition-all">ВТ</button>
+          <button type="button" onclick="toggleProScheduleDay('ср', this)" id="btnDay-ср" class="pro-day-btn active h-11 rounded-xl font-bold text-xs flex items-center justify-center transition-all">СР</button>
+          <button type="button" onclick="toggleProScheduleDay('чт', this)" id="btnDay-чт" class="pro-day-btn active h-11 rounded-xl font-bold text-xs flex items-center justify-center transition-all">ЧТ</button>
+          <button type="button" onclick="toggleProScheduleDay('пт', this)" id="btnDay-пт" class="pro-day-btn active h-11 rounded-xl font-bold text-xs flex items-center justify-center transition-all">ПТ</button>
+          <button type="button" onclick="toggleProScheduleDay('сб', this)" id="btnDay-сб" class="pro-day-btn active h-11 rounded-xl font-bold text-xs flex items-center justify-center transition-all">СБ</button>
+        </div>
+        <div class="grid grid-cols-6 gap-2">
+          <button type="button" onclick="toggleProScheduleDay('вс', this)" id="btnDay-вс" class="pro-day-btn active h-11 rounded-xl font-bold text-xs flex items-center justify-center transition-all">ВС</button>
+        </div>
+      </div>
+
+      <!-- Часы работы (Стиль как на 2 скрине) -->
+      <div class="flex flex-col gap-2.5">
+        <label class="text-xs font-bold text-slate-700">Часы работы</label>
+        <div class="flex flex-col gap-2">
+          <div class="bg-slate-900 rounded-2xl p-3 flex items-center justify-between text-white shadow-xs">
+            <span class="text-xs text-slate-400 font-medium pl-1">Открытие (с)</span>
+            <input type="time" id="proScheduleWorkFrom" value="07:00"
+              class="bg-transparent text-white font-bold text-base focus:outline-none cursor-pointer tracking-wider text-right pr-1" />
+          </div>
+          <div class="bg-slate-900 rounded-2xl p-3 flex items-center justify-between text-white shadow-xs">
+            <span class="text-xs text-slate-400 font-medium pl-1">Закрытие (до)</span>
+            <input type="time" id="proScheduleWorkTo" value="21:00"
+              class="bg-transparent text-white font-bold text-base focus:outline-none cursor-pointer tracking-wider text-right pr-1" />
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button type="button" onclick="saveProScheduleWithConfirm()"
+          class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5">
+          <span class="material-symbols-outlined text-[17px]">check</span>
+          <span>Сохранить график</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: SERVICE WINDOWS BOTTOM SHEET (Посмотреть окошки) -->
+  <!-- ======================================================== -->
+  <div id="serviceSlotsModal" onclick="if(event.target === this) closeServiceSlotsModal()"
+    class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-end justify-center transition-all">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-[440px] bg-white rounded-t-3xl p-5 shadow-2xl flex flex-col gap-3.5 animate-in slide-in-from-bottom duration-200 max-h-[90vh] overflow-y-auto">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto shrink-0"></div>
+
+      <!-- Service Info Header -->
+      <div class="flex items-center justify-between">
+        <div class="min-w-0 pr-2">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary-fixed/60 px-2 py-0.5 rounded-full">Услуга</span>
+          <h3 id="svcSlotsModalTitle" class="text-base font-bold text-on-surface truncate mt-1">Название услуги</h3>
+          <p id="svcSlotsModalDesc" class="text-xs text-slate-400">~60 мин • Выберите удобное время</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span id="svcSlotsModalPrice" class="font-extrabold text-base text-primary">2 500 ₽</span>
+          <button type="button" onclick="closeServiceSlotsModal()"
+            class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">✕</button>
+        </div>
+      </div>
+
+      <!-- Master Selection Card (По умолчанию пустая с подсказкой «Выбери мастера») -->
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center justify-between px-0.5">
+          <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Мастер</span>
+          <span id="svcSlotsMasterHint" class="text-[11px] text-primary font-semibold">Обязательно</span>
+        </div>
+
+        <div id="svcSlotsMasterCard" onclick="toggleSvcSlotsMasterPicker()"
+          class="p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:border-primary/50 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all">
+          <div class="flex items-center gap-3 min-w-0">
+            <div id="svcSlotsMasterAvatarContainer" class="w-11 h-11 rounded-full bg-indigo-50 border border-slate-200 flex items-center justify-center text-primary shrink-0 overflow-hidden shadow-2xs">
+              <span id="svcSlotsMasterAvatarFallback" class="material-symbols-outlined text-[22px]">person_add</span>
+              <img id="svcSlotsMasterAvatarImg" src="" alt="Мастер" class="hidden w-full h-full object-cover" />
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span id="svcSlotsMasterName" class="text-xs font-bold text-on-surface truncate">Выбери мастера</span>
+              <span id="svcSlotsMasterSub" class="text-[11px] text-slate-400 truncate">Нажмите, чтобы выбрать мастера</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 text-slate-400">
+            <span id="svcSlotsMasterChangeBtn" class="text-[11px] font-semibold text-primary hidden">Сменить</span>
+            <span id="svcSlotsMasterChevron" class="material-symbols-outlined text-[18px]">expand_more</span>
+          </div>
+        </div>
+
+        <!-- Master Picker Container (Rail of masters to pick from) -->
+        <div id="svcSlotsMasterPickerRail" class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+          <!-- Populated dynamically with available masters -->
+        </div>
+      </div>
+
+      <!-- Calendar & Free Slots Section (Появляются после выбора мастера) -->
+      <div id="svcSlotsCalendarSection" class="flex flex-col gap-2 pt-1">
+        <!-- Placeholder when master is not picked yet -->
+        <div id="svcSlotsNoMasterPlaceholder" class="py-6 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center flex flex-col items-center">
+          <div class="w-10 h-10 rounded-full bg-primary-fixed/50 text-primary flex items-center justify-center mb-1.5">
+            <span class="material-symbols-outlined text-[22px]">event_available</span>
+          </div>
+          <span class="text-xs font-bold text-on-surface">Окошки мастера</span>
+          <p class="text-[11px] text-slate-400 mt-0.5">Выберите мастера выше, чтобы открыть его календарь и доступные окошки</p>
+        </div>
+
+        <!-- Active Calendar & Slots (shown when master is picked) -->
+        <div id="svcSlotsActiveCalendar" class="hidden flex flex-col gap-2.5">
+          <!-- Dates Carousel / Strip -->
+          <div class="flex items-center justify-between px-0.5">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Дата записи</span>
+            <span id="svcSlotsSelectedDateLabel" class="text-[11px] text-primary font-semibold">Сегодня</span>
+          </div>
+          <div id="svcSlotsDatesStrip" class="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <!-- Dynamically populated dates -->
+          </div>
+
+          <!-- Free Slots for Selected Date -->
+          <div class="mt-1 bg-surface-container-low/60 rounded-2xl p-3 border border-slate-200/50">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-on-surface">Свободные окошки</span>
+              <span class="text-[11px] text-slate-400 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">schedule</span>
+                <span id="svcSlotsDurationText">~60 мин</span>
+              </span>
+            </div>
+            <div id="svcSlotsTimeContainer" class="flex flex-wrap gap-2">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Booking Button -->
+          <div class="pt-2">
+            <button type="button" id="svcSlotsSubmitBtn" onclick="confirmServiceSlotBooking()"
+              class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-[0_8px_20px_rgba(95,58,221,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-1.5">
+              <span class="material-symbols-outlined text-[17px]">verified</span>
+              <span id="svcSlotsSubmitBtnText">Записаться</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ======================================================== -->

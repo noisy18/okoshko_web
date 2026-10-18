@@ -926,6 +926,13 @@ async def handle_salon_update_info_message(message: Message, bot: Bot):
                     elif isinstance(photos, str):
                         salon.photos_json = photos
 
+                schedule = payload.get("schedule") or payload.get("schedule_json")
+                if schedule is not None:
+                    if isinstance(schedule, (dict, list)):
+                        salon.schedule_json = json.dumps(schedule, ensure_ascii=False)
+                    elif isinstance(schedule, str):
+                        salon.schedule_json = schedule
+
                 salon.updated_at = datetime.utcnow()
                 await session.commit()
                 logger.info(f"✅ Данные салона id={salon.id} обновлены в БД: name='{salon.name}', city='{salon.region_name}', addr='{salon.address}', coords=[{salon.latitude}, {salon.longitude}]")

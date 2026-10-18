@@ -582,55 +582,123 @@
         });
       }
 
-      // 6. Masters Rail
+      // 6. Schedule Section (График работы)
+      const sched = salon.schedule || (typeof getProSalonData === 'function' ? getProSalonData().schedule : null) || {
+        days: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
+        workFrom: '07:00',
+        workTo: '21:00'
+      };
+      const daysPillsContainer = document.getElementById('salonScheduleDaysPills');
+      const hoursText = document.getElementById('salonScheduleHoursText');
+      const statusBadge = document.getElementById('salonScheduleStatusBadge');
+
+      if (daysPillsContainer) {
+        const allDays = [
+          { k: 'пн', label: 'ПН' },
+          { k: 'вт', label: 'ВТ' },
+          { k: 'ср', label: 'СР' },
+          { k: 'чт', label: 'ЧТ' },
+          { k: 'пт', label: 'ПТ' },
+          { k: 'сб', label: 'СБ' },
+          { k: 'вс', label: 'ВС' }
+        ];
+        const activeDays = Array.isArray(sched.days) ? sched.days : ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+        daysPillsContainer.innerHTML = allDays.map(d => {
+          const isActive = activeDays.includes(d.k);
+          return isActive
+            ? `<span class="w-5 h-5 rounded-md bg-primary text-white text-[9px] font-bold flex items-center justify-center uppercase shadow-2xs">${d.label}</span>`
+            : `<span class="w-5 h-5 rounded-md bg-slate-100 text-slate-400 text-[9px] font-medium flex items-center justify-center uppercase">${d.label}</span>`;
+        }).join('');
+      }
+
+      const workFrom = sched.workFrom || '07:00';
+      const workTo = sched.workTo || '21:00';
+      if (hoursText) hoursText.textContent = `${workFrom} – ${workTo}`;
+
+      if (statusBadge) {
+        const now = new Date();
+        const dayMap = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+        const curDayKey = dayMap[now.getDay()];
+        const activeDays = Array.isArray(sched.days) ? sched.days : ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+        const curMinutes = now.getHours() * 60 + now.getMinutes();
+
+        const [fromH, fromM] = workFrom.split(':').map(Number);
+        const [toH, toM] = workTo.split(':').map(Number);
+        const openMin = (fromH || 7) * 60 + (fromM || 0);
+        const closeMin = (toH || 21) * 60 + (toM || 0);
+
+        if (activeDays.includes(curDayKey) && curMinutes >= openMin && curMinutes < closeMin) {
+          statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700';
+          statusBadge.textContent = `Открыто до ${workTo}`;
+        } else {
+          statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500';
+          statusBadge.textContent = 'Сейчас закрыто';
+        }
+      }
+
+      // 7. Photo Gallery
+      const photos = (Array.isArray(salon.photos) && salon.photos.length) ? salon.photos : ((typeof getProSalonData === 'function' && getProSalonData().photos) || []);
+      const galleryCount = photos.length;
+      const countLabel = document.getElementById('salonGalleryCountLabel');
+      if (countLabel) countLabel.textContent = `Все (${galleryCount})`;
+
+      const rail = document.getElementById('salonGalleryRail');
+      if (rail) {
+        if (galleryCount > 0) {
+          const safePhotosJson = JSON.stringify(photos).replace(/"/g, '&quot;');
+          rail.innerHTML = photos.map((p, idx) => `
+            <div onclick="openPhotoLightbox(${idx}, ${safePhotosJson})"
+              class="relative w-24 h-24 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200/80 shadow-xs cursor-pointer active:scale-95 transition-transform group">
+              <img src="${p}" alt="Фото салона" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            </div>
+          `).join('');
+        } else {
+          rail.innerHTML = `
+            <div class="py-4 px-3 w-full text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200/70">
+              Фотографии студии скоро появятся
+            </div>
+          `;
+        }
+      }
+
+      // 8. Masters Rail (без плашки "Любой мастер")
       const mastersRail = document.getElementById('salonMastersRail');
       const mastersCountLabel = document.getElementById('salonMastersCountLabel');
       const salonMasters = salon.masters || [];
       if (mastersCountLabel) mastersCountLabel.textContent = `Все (${salonMasters.length})`;
 
       if (mastersRail) {
-        let railHTML = '';
-
-        // "Express Any Master" card
-        railHTML += `
-          <div onclick="openDirectBooking({ salon: '${salon.name}', address: '${salon.address}', master: 'Любой свободный мастер', service: '${firstService.name}', price: ${firstService.price}, date: 'Сегодня', time: '${earliestSlot}' })" class="min-w-[130px] p-3 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform shrink-0">
-            <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-primary-container text-white flex items-center justify-center font-bold text-base shadow-xs mb-2">
-              ✨
-            </div>
-            <span class="text-xs font-bold text-on-surface">Любой мастер</span>
-            <span class="text-[10px] text-primary font-medium">Экспресс-запись</span>
-            <div class="mt-2 text-[10px] bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded-full">
-              сегодня ${earliestSlot}
-            </div>
-          </div>
-        `;
-
-        // Render each master card
-        salonMasters.forEach(m => {
-          const mSlotsText = (m.slots && m.slots.length) ? m.slots.slice(0, 2).join(', ') : earliestSlot;
-          const isTop = (m.grade_badge && m.grade_badge.includes('TOP'));
-          railHTML += `
-            <div onclick="openMasterDetails('${m.id}')" class="min-w-[130px] p-3 rounded-2xl bg-white ${isTop ? 'border-2 border-primary/40' : 'border border-slate-200'} shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform shrink-0 relative">
-              <div class="w-12 h-12 rounded-full overflow-hidden bg-indigo-50 border border-slate-200 mb-2 shadow-xs flex items-center justify-center text-primary">
-                ${m.avatar_url ? `<img class="w-full h-full object-cover" alt="${m.name}" src="${m.avatar_url}"/>` : `<span class="material-symbols-outlined text-[24px]">person</span>`}
+        if (salonMasters.length > 0) {
+          mastersRail.innerHTML = salonMasters.map(m => {
+            const mSlotsText = (m.slots && m.slots.length) ? m.slots.slice(0, 2).join(', ') : earliestSlot;
+            const isTop = (m.grade_badge && m.grade_badge.includes('TOP'));
+            return `
+              <div onclick="openMasterDetails('${m.id}')" class="min-w-[130px] p-3 rounded-2xl bg-white ${isTop ? 'border-2 border-primary/40' : 'border border-slate-200'} shadow-xs flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform shrink-0 relative">
+                <div class="w-12 h-12 rounded-full overflow-hidden bg-indigo-50 border border-slate-200 mb-2 shadow-xs flex items-center justify-center text-primary">
+                  ${m.avatar_url ? `<img class="w-full h-full object-cover" alt="${m.name}" src="${m.avatar_url}"/>` : `<span class="material-symbols-outlined text-[24px]">person</span>`}
+                </div>
+                <span class="text-xs font-bold text-on-surface truncate w-full">${m.name}</span>
+                <div class="flex items-center space-x-0.5 text-[10px] text-amber-500 font-bold">
+                  <span>⭐</span>
+                  <span>${m.rating || '5.0'}</span>
+                  <span class="text-slate-400 font-normal truncate">• ${m.grade_badge || 'PRO'}</span>
+                </div>
+                <div class="mt-2 text-[10px] bg-primary-fixed text-primary font-semibold px-2 py-0.5 rounded-full truncate max-w-full">
+                  ${mSlotsText}
+                </div>
               </div>
-              <span class="text-xs font-bold text-on-surface truncate w-full">${m.name}</span>
-              <div class="flex items-center space-x-0.5 text-[10px] text-amber-500 font-bold">
-                <span>⭐</span>
-                <span>${m.rating || '5.0'}</span>
-                <span class="text-slate-400 font-normal truncate">• ${m.grade_badge || 'PRO'}</span>
-              </div>
-              <div class="mt-2 text-[10px] bg-primary-fixed text-primary font-semibold px-2 py-0.5 rounded-full truncate max-w-full">
-                ${mSlotsText}
-              </div>
+            `;
+          }).join('');
+        } else {
+          mastersRail.innerHTML = `
+            <div class="py-4 px-3 w-full text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200/70">
+              Мастера студии уточняются
             </div>
           `;
-        });
-
-        mastersRail.innerHTML = railHTML;
+        }
       }
 
-      // 7. Services List
+      // 9. Services List (кнопка "Посмотреть окошки")
       const svcContainer = document.getElementById('salonServicesList');
       if (svcContainer) {
         const salonServices = salon.services || [];
@@ -641,31 +709,305 @@
               <span class="text-[11px] text-slate-400 mt-0.5 truncate">${svc.desc || '~' + (svc.duration || 60) + ' мин'}</span>
               <span class="text-xs font-bold text-primary mt-1">${(svc.price || 0).toLocaleString('ru-RU')} ₽</span>
             </div>
-            <button onclick="openDirectBooking({ salon: '${salon.name}', address: '${salon.address}', master: '${firstMaster.name}', service: '${svc.name}', price: ${svc.price}, date: 'Сегодня', time: '${earliestSlot}' })" class="shrink-0 px-3 py-1.5 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all">
-              + Окно
+            <button onclick="openServiceSlotsModal('${encodeURIComponent(svc.name)}', ${svc.price || 0}, ${svc.duration || 60})" class="shrink-0 px-3.5 py-2 rounded-xl border border-primary-fixed bg-primary-fixed/40 text-primary text-xs font-semibold active:bg-primary active:text-white transition-all shadow-2xs">
+              Посмотреть окошки
             </button>
           </div>
         `).join('');
       }
 
-      // 8. Reviews
-      const salonReviews = getSalonReviewsList(salon.id);
+      // 10. Reviews (если 0 отзывов - пишем "Пока еще нету отзывов")
+      const salonReviews = (typeof getSalonReviewsList === 'function') ? getSalonReviewsList(salon.id) : [];
       const revCount = salonReviews.length;
-      const latestRev = salonReviews[0] || salon.review || { author: 'Клиент', meta: 'Посетил салон недавно', text: '«Замечательный сервис, все стерильно, вернусь снова!»', rating: 5 };
-      const revAvatar = document.getElementById('salonReviewAvatar');
-      const revAuthor = document.getElementById('salonReviewAuthor');
-      const revMeta = document.getElementById('salonReviewMeta');
-      const revText = document.getElementById('salonReviewText');
       const revLabel = document.getElementById('salonReviewsLabel');
-
+      const revContainer = document.getElementById('salonReviewCardContainer');
       if (revLabel) revLabel.innerHTML = `<span>Все (${revCount})</span><span class="material-symbols-outlined text-[14px]">arrow_forward</span>`;
-      if (revAuthor) revAuthor.textContent = latestRev.author;
-      if (revMeta) revMeta.textContent = latestRev.meta || (latestRev.service ? `Услуга: ${latestRev.service}` : 'Проверенный отзыв');
-      if (revText) revText.textContent = latestRev.text;
-      if (revAvatar) {
-        const initials = latestRev.author.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'КЛ';
-        revAvatar.textContent = initials;
+
+      if (revContainer) {
+        if (revCount > 0) {
+          const latestRev = salonReviews[0];
+          const initials = latestRev.author ? latestRev.author.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase() : 'КЛ';
+          revContainer.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-xs">${initials}</div>
+                <div>
+                  <div class="text-xs font-bold text-on-surface">${latestRev.author}</div>
+                  <div class="text-[10px] text-slate-400">${latestRev.meta || (latestRev.service ? `Услуга: ${latestRev.service}` : 'Проверенный отзыв')}</div>
+                </div>
+              </div>
+              <div class="text-amber-500 text-xs font-bold">${'★'.repeat(latestRev.rating || 5)}</div>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">${latestRev.text}</p>
+          `;
+        } else {
+          revContainer.innerHTML = `
+            <div class="py-4 flex flex-col items-center justify-center text-center text-slate-400">
+              <span class="material-symbols-outlined text-[26px] text-slate-300 mb-1">rate_review</span>
+              <span class="text-xs font-medium">Пока еще нету отзывов</span>
+            </div>
+          `;
+        }
       }
+    }
+
+    // ------------------------------------------
+    // SERVICE WINDOWS BOTTOM SHEET MODAL LOGIC
+    // ------------------------------------------
+    let currentSvcModalService = null;
+    let currentSvcModalPrice = 0;
+    let currentSvcModalDuration = 60;
+    let currentSvcModalMaster = null;
+    let currentSvcModalDate = null;
+    let currentSvcModalTime = null;
+
+    function openServiceSlotsModal(encodedServiceName, price, duration = 60) {
+      const serviceName = decodeURIComponent(encodedServiceName);
+      currentSvcModalService = serviceName;
+      currentSvcModalPrice = price;
+      currentSvcModalDuration = duration;
+      currentSvcModalMaster = null; // По умолчанию пустая, как просил пользователь!
+      currentSvcModalDate = 'Сегодня';
+      currentSvcModalTime = null;
+
+      const titleEl = document.getElementById('svcSlotsModalTitle');
+      const priceEl = document.getElementById('svcSlotsModalPrice');
+      const descEl = document.getElementById('svcSlotsModalDesc');
+      if (titleEl) titleEl.textContent = serviceName;
+      if (priceEl) priceEl.textContent = `${(price || 0).toLocaleString('ru-RU')} ₽`;
+      if (descEl) descEl.textContent = `~${duration || 60} мин • Выберите удобное время`;
+
+      renderSvcSlotsMasterCard();
+      renderSvcSlotsMasterPicker();
+      renderSvcSlotsCalendar();
+
+      const modal = document.getElementById('serviceSlotsModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeServiceSlotsModal() {
+      const modal = document.getElementById('serviceSlotsModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function renderSvcSlotsMasterCard() {
+      const nameEl = document.getElementById('svcSlotsMasterName');
+      const subEl = document.getElementById('svcSlotsMasterSub');
+      const avImg = document.getElementById('svcSlotsMasterAvatarImg');
+      const avFallback = document.getElementById('svcSlotsMasterAvatarFallback');
+      const changeBtn = document.getElementById('svcSlotsMasterChangeBtn');
+      const chevron = document.getElementById('svcSlotsMasterChevron');
+      const hint = document.getElementById('svcSlotsMasterHint');
+
+      if (!currentSvcModalMaster) {
+        if (nameEl) nameEl.textContent = 'Выбери мастера';
+        if (subEl) subEl.textContent = 'Нажмите, чтобы выбрать мастера';
+        if (avImg) { avImg.src = ''; avImg.classList.add('hidden'); }
+        if (avFallback) avFallback.classList.remove('hidden');
+        if (changeBtn) changeBtn.classList.add('hidden');
+        if (chevron) chevron.classList.remove('hidden');
+        if (hint) { hint.textContent = 'Обязательно'; hint.className = 'text-[11px] text-primary font-semibold'; }
+      } else {
+        if (nameEl) nameEl.textContent = currentSvcModalMaster.name;
+        if (subEl) subEl.textContent = `${currentSvcModalMaster.role_title || 'Специалист'} • ⭐ ${currentSvcModalMaster.rating || '5.0'}`;
+        if (currentSvcModalMaster.avatar_url) {
+          if (avImg) { avImg.src = currentSvcModalMaster.avatar_url; avImg.classList.remove('hidden'); }
+          if (avFallback) avFallback.classList.add('hidden');
+        } else {
+          if (avImg) avImg.classList.add('hidden');
+          if (avFallback) avFallback.classList.remove('hidden');
+        }
+        if (changeBtn) changeBtn.classList.remove('hidden');
+        if (chevron) chevron.classList.add('hidden');
+        if (hint) { hint.textContent = 'Выбран ✅'; hint.className = 'text-[11px] text-emerald-600 font-semibold'; }
+      }
+    }
+
+    function renderSvcSlotsMasterPicker() {
+      const rail = document.getElementById('svcSlotsMasterPickerRail');
+      if (!rail) return;
+      const salon = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) || venues[0] : null;
+      const masters = salon?.masters || [];
+
+      if (masters.length === 0) {
+        rail.innerHTML = '<span class="text-xs text-slate-400 py-1 px-2">В студии пока нет добавленных мастеров</span>';
+        return;
+      }
+
+      rail.innerHTML = masters.map(m => {
+        const isSelected = (currentSvcModalMaster && currentSvcModalMaster.id === m.id);
+        return `
+          <div onclick="selectSvcModalMaster('${m.id}')"
+            class="flex items-center gap-2 px-3 py-2 rounded-xl border ${isSelected ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'} cursor-pointer active:scale-95 transition-all shrink-0">
+            <div class="w-7 h-7 rounded-full overflow-hidden bg-indigo-50 border border-slate-200 flex items-center justify-center shrink-0">
+              ${m.avatar_url ? `<img src="${m.avatar_url}" class="w-full h-full object-cover" />` : `<span class="material-symbols-outlined text-[16px] text-primary">person</span>`}
+            </div>
+            <div class="flex flex-col text-left">
+              <span class="text-xs ${isSelected ? 'font-bold' : 'font-semibold'} leading-tight">${m.name}</span>
+              <span class="text-[10px] text-slate-400 leading-tight">${m.role_title || 'Мастер'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleSvcSlotsMasterPicker() {
+      const rail = document.getElementById('svcSlotsMasterPickerRail');
+      if (rail) {
+        rail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function selectSvcModalMaster(masterId) {
+      const salon = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) || venues[0] : null;
+      const masters = salon?.masters || [];
+      const found = masters.find(m => m.id === masterId);
+      if (found) {
+        currentSvcModalMaster = found;
+        renderSvcSlotsMasterCard();
+        renderSvcSlotsMasterPicker();
+        renderSvcSlotsCalendar();
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+          }
+        } catch (e) { }
+      }
+    }
+
+    function getFormattedDateSub(offsetDays) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+      return `${d.getDate()} ${months[d.getMonth()]}`;
+    }
+
+    function getDayOfWeekName(offsetDays) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      return days[d.getDay()];
+    }
+
+    function renderSvcSlotsCalendar() {
+      const placeholder = document.getElementById('svcSlotsNoMasterPlaceholder');
+      const activeCal = document.getElementById('svcSlotsActiveCalendar');
+
+      if (!currentSvcModalMaster) {
+        if (placeholder) placeholder.classList.remove('hidden');
+        if (activeCal) activeCal.classList.add('hidden');
+        return;
+      }
+
+      if (placeholder) placeholder.classList.add('hidden');
+      if (activeCal) activeCal.classList.remove('hidden');
+
+      const datesStrip = document.getElementById('svcSlotsDatesStrip');
+      const dateLabel = document.getElementById('svcSlotsSelectedDateLabel');
+      const durationText = document.getElementById('svcSlotsDurationText');
+      if (durationText) durationText.textContent = `~${currentSvcModalDuration || 60} мин`;
+
+      const daysList = [
+        { key: 'Сегодня', title: 'Сегодня', sub: getFormattedDateSub(0) },
+        { key: 'Завтра', title: 'Завтра', sub: getFormattedDateSub(1) },
+        { key: getFormattedDateSub(2), title: getDayOfWeekName(2), sub: getFormattedDateSub(2) },
+        { key: getFormattedDateSub(3), title: getDayOfWeekName(3), sub: getFormattedDateSub(3) },
+        { key: getFormattedDateSub(4), title: getDayOfWeekName(4), sub: getFormattedDateSub(4) },
+        { key: getFormattedDateSub(5), title: getDayOfWeekName(5), sub: getFormattedDateSub(5) },
+        { key: getFormattedDateSub(6), title: getDayOfWeekName(6), sub: getFormattedDateSub(6) }
+      ];
+
+      if (!currentSvcModalDate) currentSvcModalDate = 'Сегодня';
+      if (dateLabel) dateLabel.textContent = currentSvcModalDate;
+
+      if (datesStrip) {
+        datesStrip.innerHTML = daysList.map(d => {
+          const isSelected = (currentSvcModalDate === d.key);
+          return `
+            <button type="button" onclick="selectSvcModalDate('${d.key}')"
+              class="flex flex-col items-center justify-center min-w-[70px] py-2 px-2.5 rounded-2xl border transition-all active:scale-95 shrink-0 ${isSelected ? 'bg-primary text-white border-primary shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}">
+              <span class="text-[10px] uppercase font-bold tracking-tight ${isSelected ? 'text-white/80' : 'text-slate-400'}">${d.title}</span>
+              <span class="text-xs font-extrabold mt-0.5">${d.sub}</span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      // Time slots for selected master
+      const timeContainer = document.getElementById('svcSlotsTimeContainer');
+      const availableSlots = (currentSvcModalMaster.slots && currentSvcModalMaster.slots.length)
+        ? currentSvcModalMaster.slots
+        : ['10:00', '12:00', '14:30', '16:00', '18:00'];
+
+      if (!currentSvcModalTime || !availableSlots.includes(currentSvcModalTime)) {
+        currentSvcModalTime = availableSlots[0] || '10:00';
+      }
+
+      if (timeContainer) {
+        timeContainer.innerHTML = availableSlots.map(t => {
+          const isSelected = (currentSvcModalTime === t);
+          return `
+            <button type="button" onclick="selectSvcModalTime('${t}')"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 ${isSelected ? 'bg-primary text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'}">
+              ${isSelected ? '<span class="material-symbols-outlined text-[14px]">check</span>' : ''}
+              <span>${t}</span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      const submitText = document.getElementById('svcSlotsSubmitBtnText');
+      if (submitText) {
+        submitText.textContent = `Записаться на ${currentSvcModalDate} в ${currentSvcModalTime}`;
+      }
+    }
+
+    function selectSvcModalDate(dateKey) {
+      currentSvcModalDate = dateKey;
+      renderSvcSlotsCalendar();
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+      } catch (e) { }
+    }
+
+    function selectSvcModalTime(timeSlot) {
+      currentSvcModalTime = timeSlot;
+      renderSvcSlotsCalendar();
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+      } catch (e) { }
+    }
+
+    function confirmServiceSlotBooking() {
+      if (!currentSvcModalMaster) {
+        showToast('Сначала выберите мастера для записи ⚠️');
+        return;
+      }
+      const salon = (typeof venues !== 'undefined') ? venues.find(v => v.id === state.activeSalon) || venues[0] : null;
+      const salonName = salon?.name || 'Салон красоты';
+      const salonAddr = salon?.address || 'Адрес уточняется';
+
+      closeServiceSlotsModal();
+
+      openDirectBooking({
+        salon: salonName,
+        address: salonAddr,
+        master: currentSvcModalMaster.name,
+        service: currentSvcModalService,
+        price: currentSvcModalPrice,
+        date: currentSvcModalDate || 'Сегодня',
+        time: currentSvcModalTime || '14:00'
+      });
     }
 
     // Open master details page dynamically

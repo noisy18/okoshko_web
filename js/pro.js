@@ -35,7 +35,12 @@ const DEFAULT_PRO_SALON = {
   filterTags: [],
   salonType: '',
   searchKeywords: [],
-  isPromoted: false
+  isPromoted: false,
+  schedule: {
+    days: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
+    workFrom: '07:00',
+    workTo: '21:00'
+  }
 };
 
 // Default initial client appointments for PRO partner (Clean baseline)
@@ -188,13 +193,16 @@ function syncVenuesWithProSalon(data) {
         target: 'salon',
         photoCount: (data.photos && data.photos.length) ? data.photos.length : 1,
         photos: Array.isArray(data.photos) ? data.photos : [],
-        avatarUrl: data.avatarUrl || '',
-        coverUrl: data.coverUrl || '',
-        img: data.coverUrl || data.avatarUrl || '',
+        img: data.avatarUrl || '',
         coords: [lat, lon],
         description: data.description || '',
         services: data.services || [],
-        masters: data.masters || []
+        masters: data.masters || [],
+        schedule: data.schedule || {
+          days: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
+          workFrom: '07:00',
+          workTo: '21:00'
+        }
       };
       if (venues.length === 0) {
         venues.push(salonObj);
@@ -292,6 +300,9 @@ function saveProSalonData(data) {
       } else {
         curUrl.searchParams.delete('photos_json');
       }
+      if (data.schedule && typeof data.schedule === 'object') {
+        curUrl.searchParams.set('schedule_json', JSON.stringify(data.schedule));
+      }
       curUrl.searchParams.set('v', String(data.updatedAt));
       window.history.replaceState(null, '', curUrl.toString());
     }
@@ -346,6 +357,9 @@ function saveProSalonData(data) {
       } else if (!data.coverUrl) {
         window.Telegram.WebApp.CloudStorage.setItem(PRO_CLOUD_COVER_KEY, '', () => {});
       }
+      if (data.schedule && typeof data.schedule === 'object') {
+        window.Telegram.WebApp.CloudStorage.setItem('okoshko_pro_schedule_v1', JSON.stringify(data.schedule), () => {});
+      }
     }
   } catch (e) { }
 
@@ -370,6 +384,7 @@ function saveProSalonData(data) {
     filter_tags: data.filterTags || [],
     search_keywords: data.searchKeywords || [],
     is_promoted: !!data.isPromoted,
+    schedule: data.schedule || {},
     photos: Array.isArray(data.photos) ? data.photos.filter(p => typeof p === 'string' && (p.startsWith('http') || p.length < 500)) : []
   };
 
@@ -435,6 +450,9 @@ function saveProSalonData(data) {
         if (cdnPhotos.length && JSON.stringify(cdnPhotos).length < 1500) {
           freshParams.set('photos_json', JSON.stringify(cdnPhotos));
         }
+      }
+      if (data.schedule && typeof data.schedule === 'object') {
+        freshParams.set('schedule_json', JSON.stringify(data.schedule));
       }
       freshParams.set('v', String(data.updatedAt));
 
@@ -521,7 +539,6 @@ function saveProAppointments(appts) {
 
   renderProAppointments();
   renderProStats();
-  syncVenuesWithProSalon(data);
 }
 
 function applyUrlParamsToData(data, urlParams, timestamp) {
@@ -612,6 +629,16 @@ function applyUrlParamsToData(data, urlParams, timestamp) {
       }
     } catch (e) {
       console.warn('[PRO] Error parsing photos_json:', e);
+    }
+  }
+  if (urlParams.has('schedule_json')) {
+    try {
+      const sc = JSON.parse(urlParams.get('schedule_json'));
+      if (sc && typeof sc === 'object') {
+        data.schedule = sc;
+      }
+    } catch (e) {
+      console.warn('[PRO] Error parsing schedule_json:', e);
     }
   }
   if (timestamp) data.updatedAt = timestamp;
@@ -738,6 +765,7 @@ function initProCloudSync() {
             if (dbData.avatar_url) currentData.avatarUrl = dbData.avatar_url;
             if (dbData.cover_url) currentData.coverUrl = dbData.cover_url;
             if (dbData.admin_tag) currentData.adminTag = dbData.admin_tag;
+            if (dbData.schedule && typeof dbData.schedule === 'object') currentData.schedule = dbData.schedule;
             if (dbData.services && dbData.services.length) currentData.services = dbData.services;
             if (dbData.masters && dbData.masters.length) currentData.masters = dbData.masters;
             if (dbTime) currentData.updatedAt = dbTime;
@@ -764,7 +792,8 @@ function initProCloudSync() {
         PRO_CLOUD_AVATAR_KEY,
         PRO_CLOUD_COVER_KEY,
         PRO_DATA_STORAGE_KEY,
-        PRO_APPOINTMENTS_STORAGE_KEY
+        PRO_APPOINTMENTS_STORAGE_KEY,
+        'okoshko_pro_schedule_v1'
       ], (err, values) => {
         if (!err && values) {
           let updated = false;
@@ -847,6 +876,15 @@ function initProCloudSync() {
               currentData.coverUrl = cloudCv;
               updated = true;
             }
+          }
+          if (values['okoshko_pro_schedule_v1']) {
+            try {
+              const sc = JSON.parse(values['okoshko_pro_schedule_v1']);
+              if (sc && typeof sc === 'object') {
+                currentData.schedule = sc;
+                updated = true;
+              }
+            } catch (e) {}
           }
 
           if (updated) {
@@ -1188,11 +1226,16 @@ function syncProSalonUI() {
     renderProGalleryGrid();
   }
 
+  // Schedule summary
+  const schedSummaryEl = document.getElementById('proProfileScheduleSummary');
+  if (schedSummaryEl) {
+    schedSummaryEl.textContent = formatScheduleSummary(data.schedule);
+  }
+
   // Sync client business card avatar
   if (typeof updateBizCardAvatar === 'function') {
     updateBizCardAvatar();
   }
-  syncVenuesWithProSalon(data);
 }
 
 // ------------------------------------------
@@ -1720,6 +1763,125 @@ function executeProConfirmedAction() {
     pendingProConfirmedAction();
   }
   closeProConfirmModal();
+}
+
+// ------------------------------------------
+// PRO SALON SCHEDULE (График работы)
+// ------------------------------------------
+function formatScheduleSummary(schedule) {
+  if (!schedule || !schedule.days || !Array.isArray(schedule.days) || !schedule.days.length) {
+    return 'Пн-Вс: 07:00 – 21:00';
+  }
+  const from = schedule.workFrom || '07:00';
+  const to = schedule.workTo || '21:00';
+  const days = schedule.days;
+
+  if (days.length === 7) {
+    return `Пн-Вс: ${from} – ${to}`;
+  }
+  const standardWeekdays = ['пн', 'вт', 'ср', 'чт', 'пт'];
+  if (days.length === 5 && standardWeekdays.every(d => days.includes(d))) {
+    return `Пн-Пт: ${from} – ${to}`;
+  }
+  const caps = days.map(d => d.charAt(0).toUpperCase() + d.slice(1));
+  return `${caps.join(', ')}: ${from} – ${to}`;
+}
+
+let tempScheduleDays = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+
+function openProScheduleModal() {
+  const data = getProSalonData();
+  const sc = data.schedule || { days: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'], workFrom: '07:00', workTo: '21:00' };
+  tempScheduleDays = Array.isArray(sc.days) && sc.days.length ? [...sc.days] : ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+
+  const allDays = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+  allDays.forEach(d => {
+    const btn = document.getElementById(`btnDay-${d}`);
+    if (btn) {
+      if (tempScheduleDays.includes(d)) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+  });
+
+  const fromInput = document.getElementById('proScheduleWorkFrom');
+  const toInput = document.getElementById('proScheduleWorkTo');
+  if (fromInput) fromInput.value = sc.workFrom || '07:00';
+  if (toInput) toInput.value = sc.workTo || '21:00';
+
+  const modal = document.getElementById('proScheduleModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.style.display = 'flex';
+  }
+}
+
+function closeProScheduleModal() {
+  const modal = document.getElementById('proScheduleModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.style.display = 'none';
+  }
+}
+
+function toggleProScheduleDay(dayKey, btnEl) {
+  if (tempScheduleDays.includes(dayKey)) {
+    if (tempScheduleDays.length <= 1) {
+      if (typeof showToast === 'function') showToast('Выберите хотя бы один рабочий день');
+      return;
+    }
+    tempScheduleDays = tempScheduleDays.filter(d => d !== dayKey);
+    btnEl.classList.remove('active');
+  } else {
+    tempScheduleDays.push(dayKey);
+    btnEl.classList.add('active');
+  }
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+  } catch (e) {}
+}
+
+function saveProScheduleWithConfirm() {
+  const fromInput = document.getElementById('proScheduleWorkFrom');
+  const toInput = document.getElementById('proScheduleWorkTo');
+  const from = fromInput ? fromInput.value : '07:00';
+  const to = toInput ? toInput.value : '21:00';
+
+  if (!tempScheduleDays.length) {
+    if (typeof showToast === 'function') showToast('Выберите хотя бы один рабочий день');
+    return;
+  }
+
+  const daysLabel = tempScheduleDays.map(d => d.toUpperCase()).join(', ');
+  confirmProAction(
+    'Сохранить график?',
+    `Установить режим работы: ${daysLabel} с ${from} до ${to}?`,
+    () => {
+      const data = getProSalonData();
+      data.schedule = {
+        days: [...tempScheduleDays],
+        workFrom: from,
+        workTo: to
+      };
+      saveProSalonData(data);
+      syncProSalonUI();
+      syncVenuesWithProSalon(data);
+      closeProScheduleModal();
+      if (typeof showToast === 'function') showToast('График работы сохранен ✨');
+    },
+    {
+      type: 'primary',
+      icon: 'schedule',
+      confirmText: 'Сохранить',
+      cancelText: 'Отмена'
+    }
+  );
 }
 
 // ------------------------------------------
@@ -4208,9 +4370,23 @@ function closeProGalleryPage() {
   window.scrollTo(0, 0);
 }
 
-function openPhotoLightbox(index = 0) {
+let activeLightboxPhotos = null;
+
+function getLightboxPhotos() {
+  if (Array.isArray(activeLightboxPhotos) && activeLightboxPhotos.length) {
+    return activeLightboxPhotos;
+  }
   const data = getProSalonData();
-  const photos = Array.isArray(data.photos) ? data.photos : [];
+  return Array.isArray(data.photos) ? data.photos : [];
+}
+
+function openPhotoLightbox(index = 0, customPhotos = null) {
+  if (Array.isArray(customPhotos) && customPhotos.length) {
+    activeLightboxPhotos = customPhotos;
+  } else {
+    activeLightboxPhotos = null;
+  }
+  const photos = getLightboxPhotos();
   if (!photos.length) return;
 
   lightboxCurrentIndex = Math.max(0, Math.min(index, photos.length - 1));
@@ -4221,6 +4397,16 @@ function openPhotoLightbox(index = 0) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.style.display = 'flex';
+
+    // Delete button in lightbox: only show in PRO mode and only when viewing salon's own gallery
+    const delBtn = modal.querySelector('button[onclick*="deleteCurrentLightboxPhoto"]');
+    if (delBtn) {
+      if (activeLightboxPhotos || !(typeof state !== 'undefined' && state.isProMode)) {
+        delBtn.style.display = 'none';
+      } else {
+        delBtn.style.display = 'flex';
+      }
+    }
   }
 
   window.addEventListener('keydown', handleLightboxKeydown);
@@ -4235,11 +4421,11 @@ function closePhotoLightbox() {
     modal.style.display = 'none';
   }
   window.removeEventListener('keydown', handleLightboxKeydown);
+  activeLightboxPhotos = null;
 }
 
 function updateLightboxView() {
-  const data = getProSalonData();
-  const photos = Array.isArray(data.photos) ? data.photos : [];
+  const photos = getLightboxPhotos();
   if (!photos.length) {
     closePhotoLightbox();
     return;
@@ -4270,8 +4456,7 @@ function updateLightboxView() {
 
 function lightboxPrev(e) {
   if (e) e.stopPropagation();
-  const data = getProSalonData();
-  const photos = Array.isArray(data.photos) ? data.photos : [];
+  const photos = getLightboxPhotos();
   if (photos.length <= 1) return;
   lightboxCurrentIndex = (lightboxCurrentIndex - 1 + photos.length) % photos.length;
   updateLightboxView();
@@ -4279,8 +4464,7 @@ function lightboxPrev(e) {
 
 function lightboxNext(e) {
   if (e) e.stopPropagation();
-  const data = getProSalonData();
-  const photos = Array.isArray(data.photos) ? data.photos : [];
+  const photos = getLightboxPhotos();
   if (photos.length <= 1) return;
   lightboxCurrentIndex = (lightboxCurrentIndex + 1) % photos.length;
   updateLightboxView();
@@ -4319,6 +4503,7 @@ function initLightboxTouchGestures() {
 }
 
 function deleteCurrentLightboxPhoto() {
+  if (activeLightboxPhotos || !(typeof state !== 'undefined' && state.isProMode)) return;
   confirmDeleteGalleryPhoto(lightboxCurrentIndex);
 }
 
