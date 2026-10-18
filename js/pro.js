@@ -3037,15 +3037,7 @@ function closeProMastersListModal() {
 }
 
 function openProAddMasterModal() {
-  const modal = document.getElementById('proAddMasterModal');
-  if (!modal) return;
-  uploadedMasterPortfolio = [];
-  uploadedMasterAvatar = '';
-  const img = document.getElementById('newMasterAvatarPreviewImg');
-  if (img) img.src = '';
-  renderMasterPortfolioPreview();
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  sendMasterInviteLink();
 }
 
 function closeProAddMasterModal() {
@@ -3461,9 +3453,9 @@ function openProServiceMastersModal(idx) {
             <span class="material-symbols-outlined text-[20px]">person_off</span>
           </div>
           <span class="text-xs text-slate-400 font-medium">В салоне пока нет добавленных мастеров</span>
-          <button type="button" onclick="closeProServiceMastersModal(); openProAddMasterModal();"
+          <button type="button" onclick="closeProServiceMastersModal(); sendMasterInviteLink();"
             class="text-[11px] text-primary font-bold hover:underline mt-1">
-            + Добавить мастера в команду
+            + Пригласить мастера по ссылке
           </button>
         </div>
       `;

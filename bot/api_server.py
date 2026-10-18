@@ -305,6 +305,145 @@ async def handle_get_user_phone(request: web.Request) -> web.Response:
         return web.json_response({"user_id": user_id, "phone": phone or ""}, headers=CORS_HEADERS)
 
 
+async def handle_get_master(request: web.Request) -> web.Response:
+    """Возвращает профиль мастера, услуги и график"""
+    user_id_raw = request.query.get("user_id") or request.query.get("telegram_id")
+    master_id_raw = request.query.get("master_id")
+    user_id = int(user_id_raw) if user_id_raw and user_id_raw.isdigit() else 1205557089
+    master_id = int(master_id_raw) if master_id_raw and master_id_raw.isdigit() else None
+
+    async with async_session_maker() as session:
+        master = None
+        if master_id:
+            res = await session.execute(select(Master).where(Master.id == master_id))
+            master = res.scalar_one_or_none()
+        if not master and user_id:
+            res = await session.execute(select(Master).where(Master.telegram_id == user_id))
+            master = res.scalar_one_or_none()
+
+        if not master:
+            return web.json_response({"error": "Master not found", "found": False}, status=404, headers=CORS_HEADERS)
+
+        services = []
+        if master.services_json:
+            try:
+                services = json.loads(master.services_json)
+            except Exception:
+                services = []
+
+        slots = []
+        if master.slots_json:
+            try:
+                slots = json.loads(master.slots_json)
+            except Exception:
+                slots = []
+
+        return web.json_response({
+            "found": True,
+            "id": master.id,
+            "salon_id": master.salon_id,
+            "name": master.name or "",
+            "lastName": master.last_name or "",
+            "role_title": master.role_title or "Специалист",
+            "experience": master.experience or "3 года",
+            "avatar_url": master.avatar_url or "",
+            "bio": master.bio or "",
+            "rating": master.rating or 5.0,
+            "services": services,
+            "slots": slots
+        }, headers=CORS_HEADERS)
+
+
+async def handle_update_master(request: web.Request) -> web.Response:
+    """Обновляет профиль мастера, его услуги и свободные окошки"""
+    try:
+        data = await request.json()
+    except Exception as e:
+        return web.json_response({"error": f"Invalid JSON: {e}"}, status=400, headers=CORS_HEADERS)
+
+    user_id = data.get("user_id") or data.get("telegram_id") or 1205557089
+    master_id = data.get("master_id")
+
+    async with async_session_maker() as session:
+        master = None
+        if master_id:
+            try:
+                res = await session.execute(select(Master).where(Master.id == int(master_id)))
+                master = res.scalar_one_or_none()
+            except Exception:
+                pass
+        if not master and user_id:
+            try:
+                res = await session.execute(select(Master).where(Master.telegram_id == int(user_id)))
+                master = res.scalar_one_or_none()
+            except Exception:
+                pass
+
+        if not master:
+            salon_id = data.get("salon_id") or 1
+            master = Master(
+                salon_id=salon_id,
+                name=data.get("name") or "Мастер",
+                last_name=data.get("lastName") or "",
+                role_title=data.get("role_title") or "Специалист",
+                telegram_id=int(user_id),
+                avatar_url=data.get("avatar_url") or "",
+                experience=data.get("experience") or "3 года",
+                bio=data.get("bio") or ""
+            )
+            session.add(master)
+            await session.flush()
+        else:
+            if "name" in data and data["name"]:
+                master.name = str(data["name"]).strip()
+            if "lastName" in data:
+                master.last_name = str(data["lastName"]).strip()
+            if "role_title" in data and data["role_title"]:
+                master.role_title = str(data["role_title"]).strip()
+            if "experience" in data:
+                master.experience = str(data["experience"]).strip()
+            if "bio" in data:
+                master.bio = str(data["bio"]).strip()
+            if "avatar_url" in data:
+                master.avatar_url = str(data["avatar_url"]).strip()
+
+        if "slots" in data and data["slots"] is not None:
+            master.slots_json = json.dumps(data["slots"], ensure_ascii=False)
+
+        if "services" in data and data["services"] is not None:
+            master.services_json = json.dumps(data["services"], ensure_ascii=False)
+            if master.salon_id:
+                s_res = await session.execute(select(Salon).where(Salon.id == master.salon_id))
+                salon = s_res.scalar_one_or_none()
+                if salon and salon.services_json:
+                    try:
+                        salon_services = json.loads(salon.services_json)
+                        for m_svc in data["services"]:
+                            existing = next((s for s in salon_services if s.get("id") == m_svc.get("id") or s.get("name") == m_svc.get("name")), None)
+                            if existing:
+                                existing["price"] = m_svc.get("price", existing.get("price", 0))
+                                existing["duration"] = m_svc.get("duration", existing.get("duration", 60))
+                                m_ids = existing.get("masterIds") or []
+                                if master.id not in m_ids and f"db_master_{master.id}" not in m_ids:
+                                    m_ids.append(master.id)
+                                existing["masterIds"] = m_ids
+                            else:
+                                new_svc = dict(m_svc)
+                                new_svc["masterIds"] = [master.id]
+                                salon_services.append(new_svc)
+                        salon.services_json = json.dumps(salon_services, ensure_ascii=False)
+                    except Exception as err:
+                        logger.warning(f"Ошибка синхронизации услуг мастера с салоном: {err}")
+
+        await session.commit()
+        return web.json_response({
+            "status": "ok",
+            "master_id": master.id,
+            "name": master.name,
+            "role_title": master.role_title
+        }, headers=CORS_HEADERS)
+
+
 async def start_api_server(bot, host="0.0.0.0", port=8080):
     """Запускает HTTP сервер для прямого взаимодействия с Mini App"""
     app = web.Application()
@@ -317,10 +456,14 @@ async def start_api_server(bot, host="0.0.0.0", port=8080):
     app.router.add_post("/api/user_phone_update", handle_update_user_phone)
     app.router.add_options("/api/user_phone_get", handle_cors_options)
     app.router.add_get("/api/user_phone_get", handle_get_user_phone)
+    app.router.add_options("/api/master_update", handle_cors_options)
+    app.router.add_post("/api/master_update", handle_update_master)
+    app.router.add_options("/api/master_get", handle_cors_options)
+    app.router.add_get("/api/master_get", handle_get_master)
 
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
-    logger.info(f"🚀 Локальный HTTP API сервер запущен на http://127.0.0.1:{port} (эндпоинты /api/pro_salon_update, /api/pro_salon_get, /api/user_phone_update, /api/user_phone_get)")
+    logger.info(f"🚀 Локальный HTTP API сервер запущен на http://127.0.0.1:{port} (эндпоинты /api/pro_salon_update, /api/pro_salon_get, /api/user_phone_update, /api/user_phone_get, /api/master_update, /api/master_get)")
     return runner

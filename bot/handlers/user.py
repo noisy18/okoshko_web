@@ -308,6 +308,43 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                     except Exception as me:
                         logger.warning(f"Ошибка получения списка мастеров салона {user_salon.id}: {me}")
 
+                # Проверяем, привязан ли пользователь как мастер салона
+                master_res = await session.execute(
+                    select(Master).where(Master.telegram_id == telegram_id)
+                )
+                user_master = master_res.scalar_one_or_none()
+                if not user_master and user.role == "master" and user.salon_id:
+                    m_salon_res = await session.execute(
+                        select(Master).where(Master.salon_id == user.salon_id)
+                    )
+                    user_master = m_salon_res.scalars().first()
+
+                if user_master:
+                    params.append("is_master=1")
+                    params.append(f"master_id={user_master.id}")
+                    if user_master.salon_id:
+                        params.append(f"master_salon_id={user_master.salon_id}")
+                    if user_master.name:
+                        params.append(f"master_name={urllib.parse.quote(user_master.name.strip())}")
+                    if user_master.last_name:
+                        params.append(f"master_lastname={urllib.parse.quote(user_master.last_name.strip())}")
+                    if user_master.role_title:
+                        params.append(f"master_role={urllib.parse.quote(user_master.role_title.strip())}")
+                    if user_master.avatar_url and len(user_master.avatar_url) < 1000:
+                        params.append(f"master_avatar={urllib.parse.quote(user_master.avatar_url.strip())}")
+                    if user_master.experience:
+                        params.append(f"master_exp={urllib.parse.quote(user_master.experience.strip())}")
+                    if user_master.bio and len(user_master.bio) < 1000:
+                        params.append(f"master_bio={urllib.parse.quote(user_master.bio.strip())}")
+                    if user_master.slots_json and len(user_master.slots_json) < 2000:
+                        params.append(f"master_slots={urllib.parse.quote(user_master.slots_json.strip())}")
+                    if user_master.services_json and len(user_master.services_json) < 2000:
+                        params.append(f"master_services={urllib.parse.quote(user_master.services_json.strip())}")
+                elif user.role == "master":
+                    params.append("is_master=1")
+                    if user.salon_id:
+                        params.append(f"master_salon_id={user.salon_id}")
+
                 user_phone = getattr(user, "phone", None) or (user_salon and getattr(user_salon, "phone", None))
                 if user_phone:
                     params.append(f"user_phone={urllib.parse.quote(user_phone)}")

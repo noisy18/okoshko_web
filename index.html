@@ -1084,6 +1084,23 @@
           </div>
           <span id="profileClientSince" class="text-[11px] text-slate-400 mt-0.5">В Окошке с 12 октября 2024</span>
 
+          <!-- Master Panel Entry Button (visible only if user is a master) -->
+          <div id="masterPanelEntryBlock" class="w-full mt-2.5 hidden">
+            <button type="button" onclick="switchToMasterMode()"
+              class="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-violet-200 flex items-center justify-between active:scale-95 transition-all">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[17px]">badge</span>
+                </div>
+                <div class="text-left">
+                  <div class="font-bold text-[12px] leading-tight">Перейти в панель мастера</div>
+                  <div id="masterPanelSalonSubtitle" class="text-[10px] text-white/80 font-normal leading-tight">Салон красоты</div>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
+          </div>
+
           <!-- Stats Capsule -->
           <div
             class="w-full mt-3 p-3 rounded-2xl bg-white shadow-xs border border-slate-200/60 flex items-center justify-around">
@@ -1878,10 +1895,10 @@
                 </div>
               </div>
               <div class="flex flex-col items-end gap-1 shrink-0">
-                <button type="button" onclick="event.stopPropagation(); openProAddMasterModal()"
+                <button type="button" onclick="event.stopPropagation(); sendMasterInviteLink()"
                   class="px-3 py-1 rounded-lg bg-primary text-white font-bold text-[11px] flex items-center gap-1 shadow-xs active:scale-95 transition-transform">
-                  <span class="material-symbols-outlined text-[13px]">add</span>
-                  <span>Добавить</span>
+                  <span class="material-symbols-outlined text-[13px]">share</span>
+                  <span>Пригласить</span>
                 </button>
                 <span id="proMastersCountBadge" class="font-bold text-primary bg-primary-fixed/60 px-2 py-0.5 rounded-full text-[10px]">0 мастеров</span>
               </div>
@@ -2005,6 +2022,267 @@
     </section>
 
     <!-- ======================================================== -->
+    <!-- SCREEN 11: MASTER STATS (Панель мастера - Статистика) -->
+    <!-- ======================================================== -->
+    <section id="screen-master-stats" class="screen flex-col flex-1 pb-24 overflow-y-auto hidden">
+      <div class="p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
+        <!-- Master Header Card -->
+        <div class="p-4 rounded-3xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-primary text-white shadow-md flex items-center justify-between relative overflow-hidden">
+          <div class="flex items-center gap-3.5 z-10">
+            <div class="w-13 h-13 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-xs overflow-hidden shrink-0 relative">
+              <img id="masterStatsAvatarImg" src="" alt="Мастер" class="hidden w-full h-full object-cover rounded-full" />
+              <div id="masterStatsAvatarFallback" class="w-full h-full flex items-center justify-center bg-white/10 text-white rounded-full">
+                <span class="material-symbols-outlined text-[26px]">person</span>
+              </div>
+            </div>
+            <div class="flex flex-col text-left">
+              <div class="flex items-center gap-1.5">
+                <span id="masterStatsName" class="font-bold text-sm tracking-tight">Мастер</span>
+                <span class="px-1.5 py-0.5 rounded-full bg-primary-fixed/30 text-primary-fixed text-[9px] font-extrabold uppercase">PRO</span>
+              </div>
+              <span id="masterStatsRole" class="text-xs text-white/80">Специалист салона</span>
+              <span id="masterStatsSalon" class="text-[11px] text-white/60 mt-0.5">Салон красоты</span>
+            </div>
+          </div>
+          <button type="button" onclick="confirmExitMasterMode()" title="Выйти в профиль клиента"
+            class="z-10 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 transition-colors flex items-center justify-center active:scale-95">
+            <span class="material-symbols-outlined text-[20px]">logout</span>
+          </button>
+        </div>
+
+        <!-- Period Filter Pills -->
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-xs font-bold text-slate-700">Период аналитики</span>
+            <span id="masterStatsPeriodLabel" class="text-[11px] text-primary font-semibold">за сегодня</span>
+          </div>
+          <div class="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-slate-200/60 backdrop-blur-xs">
+            <button type="button" onclick="setMasterStatsPeriod('day', this)"
+              class="master-stats-period-btn py-2 text-xs font-bold rounded-xl bg-white text-primary shadow-xs transition-all active:scale-95">День</button>
+            <button type="button" onclick="setMasterStatsPeriod('week', this)"
+              class="master-stats-period-btn py-2 text-xs font-medium rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95">Неделя</button>
+            <button type="button" onclick="setMasterStatsPeriod('month', this)"
+              class="master-stats-period-btn py-2 text-xs font-medium rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95">Месяц</button>
+            <button type="button" onclick="setMasterStatsPeriod('year', this)"
+              class="master-stats-period-btn py-2 text-xs font-medium rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-95">Год</button>
+          </div>
+        </div>
+
+        <!-- Chart Container Card (Диаграмма количества записей) -->
+        <div class="p-4 rounded-3xl bg-white shadow-xs border border-slate-200/70 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Количество записей</span>
+              <div class="flex items-baseline gap-2 mt-0.5">
+                <span id="masterStatsTotalAppts" class="text-2xl font-black text-on-surface">0</span>
+                <span class="text-xs text-slate-400">визитов</span>
+              </div>
+            </div>
+            <div class="flex flex-col items-end">
+              <span class="text-[11px] text-slate-400">Ориентир. выручка</span>
+              <span id="masterStatsTotalRevenue" class="text-sm font-extrabold text-emerald-600">0 ₽</span>
+            </div>
+          </div>
+
+          <!-- Vertical Bar Chart: Часы (день), Дни (неделя), Недели (месяц), Месяцы (год) -->
+          <div class="h-44 w-full pt-4 pb-1 border-t border-slate-100 flex items-end justify-between gap-2" id="masterStatsChartContainer">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Spacer for bottom dock -->
+        <div class="w-full h-16 pointer-events-none" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 12: MASTER APPOINTMENTS (Панель мастера - Записи) -->
+    <!-- ======================================================== -->
+    <section id="screen-master-appointments" class="screen flex-col flex-1 pb-24 overflow-y-auto hidden">
+      <div class="p-4 flex flex-col gap-3.5 max-w-md mx-auto w-full">
+        <!-- Header with Today Count -->
+        <div class="flex items-center justify-between px-1">
+          <div>
+            <h1 class="font-bold text-base text-on-surface">Календарь записей</h1>
+            <p class="text-xs text-slate-400">Визиты клиентов по времени</p>
+          </div>
+          <span id="masterApptsTodayCountBadge"
+            class="px-2.5 py-1 rounded-full bg-primary-fixed/50 text-primary text-xs font-bold">0 записей</span>
+        </div>
+
+        <!-- Google Calendar Day Strip (7 days horizontal scroll) -->
+        <div id="masterApptsDateStrip" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Google Calendar Timeline Container (Часы 09:00 - 20:00 с плашками) -->
+        <div class="p-3.5 rounded-3xl bg-white shadow-xs border border-slate-200/70 flex flex-col">
+          <div id="masterApptsTimelineContainer" class="flex flex-col divide-y divide-slate-100">
+            <!-- Hourly grid items rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Spacer for bottom dock -->
+        <div class="w-full h-16 pointer-events-none" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 13: MASTER WORK SCHEDULE (Панель мастера - Календарь работы) -->
+    <!-- ======================================================== -->
+    <section id="screen-master-schedule" class="screen flex-col flex-1 pb-24 overflow-y-auto hidden">
+      <div class="p-4 flex flex-col gap-3.5 max-w-md mx-auto w-full">
+        <!-- Header & Add Button -->
+        <div class="flex items-center justify-between px-1">
+          <div>
+            <h1 class="font-bold text-base text-on-surface">Календарь работы</h1>
+            <p class="text-xs text-slate-400">Настройка свободных окошек для записи</p>
+          </div>
+          <button type="button" onclick="openMasterAddSlotModal()"
+            class="py-2 px-3 rounded-xl bg-primary text-white font-bold text-xs shadow-xs active:scale-95 transition-all flex items-center gap-1">
+            <span class="material-symbols-outlined text-[16px]">add</span>
+            <span>Добавить</span>
+          </button>
+        </div>
+
+        <!-- Google Calendar Day Strip -->
+        <div id="masterScheduleDateStrip" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Selected Date Header -->
+        <div class="flex items-center justify-between px-1 pt-1">
+          <span class="text-xs font-bold text-slate-700" id="masterScheduleCurrentDateLabel">Сегодня</span>
+          <span class="text-[11px] text-slate-400">Нажмите на крестик для удаления</span>
+        </div>
+
+        <!-- Slots Grid -->
+        <div id="masterScheduleSlotsGrid" class="grid grid-cols-1 gap-2">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Spacer for bottom dock -->
+        <div class="w-full h-16 pointer-events-none" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 14: MASTER PROFILE (Панель мастера - Профиль) -->
+    <!-- ======================================================== -->
+    <section id="screen-master-profile" class="screen flex-col flex-1 pb-24 overflow-y-auto hidden">
+      <div class="p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
+        <!-- Avatar & Basic Info Card -->
+        <div class="p-5 rounded-3xl bg-white shadow-xs border border-slate-200/70 flex flex-col items-center text-center gap-3 relative">
+          <div class="relative group cursor-pointer" onclick="document.getElementById('masterProfileAvatarFileInput').click()">
+            <div class="w-20 h-20 rounded-full bg-primary-fixed/40 border-2 border-primary/30 flex items-center justify-center overflow-hidden shadow-xs">
+              <img id="masterProfileAvatarImg" src="" alt="Аватар мастера" class="hidden w-full h-full object-cover rounded-full" />
+              <div id="masterProfileAvatarFallback" class="w-full h-full flex items-center justify-center text-primary text-2xl font-bold">
+                <span class="material-symbols-outlined text-[36px]">face</span>
+              </div>
+            </div>
+            <div class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-md border-2 border-white">
+              <span class="material-symbols-outlined text-[15px]">photo_camera</span>
+            </div>
+          </div>
+          <input type="file" id="masterProfileAvatarFileInput" accept="image/*" class="hidden" onchange="handleMasterProfileAvatarUploaded(event)" />
+
+          <div class="flex flex-col items-center">
+            <span class="text-xs font-extrabold text-primary uppercase tracking-wider">Профиль мастера</span>
+            <div class="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500">
+              <span class="material-symbols-outlined text-[15px] text-slate-400">storefront</span>
+              <span id="masterProfileSalonName" class="font-semibold text-slate-700">Салон красоты</span>
+            </div>
+            <span id="masterProfileSalonAddress" class="text-[11px] text-slate-400 mt-0.5">Адрес уточняется</span>
+          </div>
+        </div>
+
+        <!-- Edit Master Info Inputs -->
+        <div class="p-4 rounded-3xl bg-white shadow-xs border border-slate-200/70 flex flex-col gap-3">
+          <span class="text-xs font-bold text-slate-700">Основная информация</span>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+              <label class="text-[11px] text-slate-400 font-medium">Имя</label>
+              <input type="text" id="masterProfileNameInput" placeholder="Имя"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-[11px] text-slate-400 font-medium">Фамилия</label>
+              <input type="text" id="masterProfileLastNameInput" placeholder="Фамилия"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary" />
+            </div>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] text-slate-400 font-medium">Специализация / Роль</label>
+            <input type="text" id="masterProfileRoleInput" placeholder="Например: Мастер ногтевого сервиса"
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] text-slate-400 font-medium">Опыт работы</label>
+            <input type="text" id="masterProfileExpInput" placeholder="Например: 4 года"
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] text-slate-400 font-medium">О себе</label>
+            <textarea id="masterProfileBioInput" rows="2" placeholder="Расскажите о своем опыте и подходе к работе"
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-primary resize-none"></textarea>
+          </div>
+          <button type="button" onclick="saveMasterProfileInfo()"
+            class="mt-1 w-full py-2.5 rounded-xl bg-primary text-white font-bold text-xs shadow-xs active:scale-95 transition-all">
+            Сохранить данные
+          </button>
+        </div>
+
+        <!-- Master Services Section (Синхронизация с салоном) -->
+        <div class="p-4 rounded-3xl bg-white shadow-xs border border-slate-200/70 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold text-slate-700">Мои услуги</span>
+              <p class="text-[10px] text-slate-400">Синхронизируются с профилем салона</p>
+            </div>
+            <button type="button" onclick="openAddMasterServiceModal()"
+              class="py-1.5 px-2.5 rounded-xl bg-primary-fixed/60 hover:bg-primary-fixed text-primary font-bold text-[11px] active:scale-95 transition-all flex items-center gap-1">
+              <span class="material-symbols-outlined text-[15px]">add</span>
+              <span>Добавить</span>
+            </button>
+          </div>
+          <div id="masterProfileServicesList" class="flex flex-col gap-2">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Settings: iOS Notifications Switch -->
+        <div class="p-4 rounded-3xl bg-white shadow-xs border border-slate-200/70 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-50 text-primary flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[20px]">notifications_active</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-xs font-bold text-slate-800">Уведомления о записях</span>
+              <span class="text-[10px] text-slate-400">Получать оповещения о новых клиентах</span>
+            </div>
+          </div>
+          <!-- iOS style switch -->
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="masterNotifyToggle" onchange="toggleMasterNotifications(this.checked)" class="sr-only peer" checked>
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+          </label>
+        </div>
+
+        <!-- Switch to Client Profile Button with Confirmation -->
+        <div class="pt-1">
+          <button type="button" onclick="confirmExitMasterMode()"
+            class="w-full py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-[18px]">person</span>
+            <span>Перейти в профиль клиента</span>
+          </button>
+        </div>
+
+        <!-- Spacer for bottom dock -->
+        <div class="w-full h-16 pointer-events-none" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
     <!-- GLOBAL BOTTOM NAVIGATION DOCK (Карта, Записи, Профиль) -->
     <!-- ======================================================== -->
     <!-- 1. Client Navigation Dock -->
@@ -2070,6 +2348,47 @@
             class="pro-nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
             <span class="material-symbols-outlined text-[23px] transition-transform">storefront</span>
             <span class="text-[11px] font-semibold tracking-tight">Профиль</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 3. Master Navigation Dock (Статистика, Записи, Календарь, Профиль) -->
+    <nav id="masterNav" class="master-nav-dock fixed bottom-0 inset-x-0 z-30 pb-safe max-w-[440px] mx-auto pointer-events-none px-4 pb-3 hidden" style="display: none;">
+      <div class="pointer-events-auto telegram-liquid-nav rounded-full px-2 py-1">
+        <!-- Floating glass bubble indicator for 4 tabs -->
+        <div id="masterNavActiveIndicator" class="telegram-nav-indicator" style="width: calc((100% - 16px) / 4); transform: translateX(0%);"></div>
+
+        <div class="relative z-10 flex justify-around items-center h-14">
+          <!-- Tab 1: Statistics -->
+          <button onclick="router.navigate('master-stats')" id="nav-master-stats"
+            class="master-nav-btn active flex-1 flex flex-col items-center justify-center gap-0.5 text-primary transition-all active:scale-95">
+            <span class="material-symbols-outlined text-[22px] transition-transform">monitoring</span>
+            <span class="text-[10px] font-bold tracking-tight">Статистика</span>
+          </button>
+
+          <!-- Tab 2: Appointments -->
+          <button onclick="router.navigate('master-appointments')" id="nav-master-appointments"
+            class="master-nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
+            <div class="relative">
+              <span class="material-symbols-outlined text-[22px] transition-transform">receipt_long</span>
+              <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-white"></span>
+            </div>
+            <span class="text-[10px] font-semibold tracking-tight">Записи</span>
+          </button>
+
+          <!-- Tab 3: Work Schedule -->
+          <button onclick="router.navigate('master-schedule')" id="nav-master-schedule"
+            class="master-nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
+            <span class="material-symbols-outlined text-[22px] transition-transform">calendar_month</span>
+            <span class="text-[10px] font-semibold tracking-tight">График</span>
+          </button>
+
+          <!-- Tab 4: Master Profile -->
+          <button onclick="router.navigate('master-profile')" id="nav-master-profile"
+            class="master-nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 text-slate-500 transition-all active:scale-95">
+            <span class="material-symbols-outlined text-[22px] transition-transform">badge</span>
+            <span class="text-[10px] font-semibold tracking-tight">Профиль</span>
           </button>
         </div>
       </div>
@@ -2853,106 +3172,52 @@
       </div>
 
       <div class="pt-2">
-        <button type="button" onclick="closeProMastersListModal(); openProAddMasterModal()"
+        <button type="button" onclick="sendMasterInviteLink()"
           class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm">
-          <span class="material-symbols-outlined text-[17px]">person_add</span>
-          <span>Добавить нового мастера</span>
+          <span class="material-symbols-outlined text-[17px]">share</span>
+          <span>Пригласить мастера по ссылке</span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- ======================================================== -->
-  <!-- MODAL: PRO ADD MASTER (Форма добавления нового мастера) -->
+  <!-- MODAL: PRO INVITE MASTER (Приглашение мастера по ссылке) -->
   <!-- ======================================================== -->
   <div id="proAddMasterModal" onclick="if(event.target === this) closeProAddMasterModal()"
     class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
     <div onclick="event.stopPropagation()"
-      class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col gap-4 max-h-[88vh] overflow-y-auto custom-scrollbar animate-in slide-in-from-bottom duration-200">
-      <!-- Header with 'Добавить мастера' and 'Пригласить мастера' on one single row -->
+      class="w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom duration-200">
       <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 min-w-0">
-          <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-primary shrink-0">
-            <span class="material-symbols-outlined text-[20px]">person_add</span>
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary shrink-0">
+            <span class="material-symbols-outlined text-[22px]">group_add</span>
           </div>
-          <h3 class="font-bold text-base text-on-surface truncate">Добавить мастера</h3>
+          <div class="flex flex-col">
+            <h3 class="font-bold text-base text-on-surface">Пригласить мастера</h3>
+            <span class="text-[11px] text-slate-400">Привязка через Telegram-ссылку</span>
+          </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <button type="button" onclick="sendMasterInviteLink()"
-            class="text-xs text-primary font-bold hover:underline flex items-center gap-1 bg-primary-fixed/50 hover:bg-primary-fixed px-2.5 py-1.5 rounded-xl transition-all whitespace-nowrap">
-            <span class="material-symbols-outlined text-[15px]">share</span>
-            <span>Пригласить мастера</span>
-          </button>
-          <button onclick="closeProAddMasterModal()"
-            class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
-        </div>
+        <button onclick="closeProAddMasterModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition-all">✕</button>
       </div>
 
-      <!-- Comprehensive Add New Master Form Fields -->
-      <div class="flex flex-col gap-3">
-        <!-- 1 & 2. Имя и Фамилия -->
-        <div>
-          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">ФИО мастера *</label>
-          <div class="grid grid-cols-2 gap-2">
-            <input id="newMasterFirstNameInput" type="text" placeholder="Имя *"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-slate-200 text-xs text-on-surface outline-none focus:border-primary font-medium" />
-            <input id="newMasterLastNameInput" type="text" placeholder="Фамилия"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-slate-200 text-xs text-on-surface outline-none focus:border-primary font-medium" />
-          </div>
-        </div>
+      <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-2.5">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Отправьте персональную ссылку мастеру. После перехода в Telegram-бот он автоматически привяжется к вашей команде и сможет управлять своим расписанием и записями.
+        </p>
+      </div>
 
-        <!-- Специализация и Опыт работы -->
-        <div>
-          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Специализация и опыт *</label>
-          <div class="grid grid-cols-2 gap-2">
-            <input id="newMasterRoleInput" type="text" placeholder="Специализация (Маникюр)"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-slate-200 text-xs text-on-surface outline-none focus:border-primary font-medium" />
-            <input id="newMasterExpInput" type="text" placeholder="Опыт (например: 3 года)"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-slate-200 text-xs text-on-surface outline-none focus:border-primary font-medium" />
-          </div>
-        </div>
-
-        <!-- Аватарка мастера -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase">Аватар мастера</label>
-            <button type="button" onclick="document.getElementById('newMasterAvatarInput').click()"
-              class="text-[11px] text-primary font-bold hover:underline flex items-center gap-1">
-              <span class="material-symbols-outlined text-[14px]">upload</span>
-              <span>Загрузить фото</span>
-            </button>
-            <input type="file" id="newMasterAvatarInput" accept="image/*" class="hidden" onchange="handleMasterAvatarUploaded(event)" />
-          </div>
-          <div class="flex items-center gap-3">
-            <div id="newMasterAvatarPreview" class="w-14 h-14 rounded-2xl overflow-hidden bg-indigo-50 border border-slate-300 shrink-0 flex items-center justify-center text-primary">
-              <img id="newMasterAvatarPreviewImg" src=""
-                class="w-full h-full object-cover hidden" alt="Preview" />
-              <span class="material-symbols-outlined text-[28px]">person</span>
-            </div>
-            <span class="text-[11px] text-slate-400">Форматы: JPG, PNG. Будет отображаться в карточке мастера и при записи</span>
-          </div>
-        </div>
-
-        <!-- Фотографии работ (портфолио) -->
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase">Фотографии работ (портфолио)</label>
-            <button type="button" onclick="document.getElementById('newMasterPortfolioInput').click()"
-              class="text-[11px] text-primary font-bold hover:underline flex items-center gap-1">
-              <span class="material-symbols-outlined text-[14px]">add_photo_alternate</span>
-              <span>Добавить работы</span>
-            </button>
-            <input type="file" id="newMasterPortfolioInput" accept="image/*" class="hidden" onchange="handleMasterPortfolioUploaded(event)" />
-          </div>
-          <div id="newMasterPortfolioPreview" class="flex items-center gap-2 overflow-x-auto py-1.5 empty:hidden custom-scrollbar">
-            <!-- Dynamic portfolio thumbnails -->
-          </div>
-        </div>
-
-        <button type="button" onclick="addProMaster()"
-          class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-md mt-1">
-          <span class="material-symbols-outlined text-[17px]">person_add</span>
-          <span>Сохранить и добавить мастера</span>
+      <div class="flex flex-col gap-2 pt-1">
+        <button type="button" onclick="sendMasterInviteLink()"
+          class="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">send</span>
+          <span>Отправить приглашение в Telegram</span>
+        </button>
+        <button type="button" onclick="copyMasterInviteLink()"
+          class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[17px]">content_copy</span>
+          <span>Скопировать ссылку</span>
         </button>
       </div>
     </div>
@@ -3639,6 +3904,277 @@
         </button>
       </div>
     </div>
+  <!-- ======================================================== -->
+  <!-- MODALS: MASTER PANEL SUBSYSTEM -->
+  <!-- ======================================================== -->
+
+  <!-- 1. MODAL: MASTER APPOINTMENT DETAILS (Детали записи с плашкой клиента) -->
+  <div id="masterAppointmentDetailsModal" onclick="if(event.target === this) closeMasterAppointmentDetailsModal()"
+    class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-end justify-center transition-all">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-[440px] bg-white rounded-t-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom duration-200 max-h-[90vh] overflow-y-auto">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto shrink-0"></div>
+
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-on-surface">Детали записи</h3>
+          <p class="text-xs text-slate-400">Информация о визите клиента</p>
+        </div>
+        <button type="button" onclick="closeMasterAppointmentDetailsModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">✕</button>
+      </div>
+
+      <!-- Info plaque -->
+      <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col gap-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5 text-xs text-slate-500">
+            <span class="material-symbols-outlined text-[17px] text-primary">calendar_month</span>
+            <span id="masterApptModalDate" class="font-bold text-slate-800">Сегодня, 18 октября</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-slate-500">
+            <span class="material-symbols-outlined text-[17px] text-primary">schedule</span>
+            <span id="masterApptModalTime" class="font-bold text-slate-800">11:00 – 12:30</span>
+          </div>
+        </div>
+        <div class="h-px bg-slate-200/70"></div>
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Услуга</span>
+            <span id="masterApptModalService" class="text-xs font-bold text-on-surface">Маникюр с покрытием гель-лак</span>
+          </div>
+          <div class="flex flex-col items-end">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Стоимость</span>
+            <span id="masterApptModalPrice" class="text-sm font-extrabold text-primary">2 500 ₽</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Client Plaque (Clickable - opens full screen client profile) -->
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs font-bold text-slate-700">Клиент (нажмите для просмотра профиля)</span>
+        <div onclick="openMasterClientProfileFromAppt()"
+          class="p-3.5 rounded-2xl bg-gradient-to-r from-violet-50/80 via-primary-fixed/30 to-indigo-50 border border-primary/20 shadow-xs flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all group">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-full bg-white border border-primary/30 flex items-center justify-center text-primary font-bold overflow-hidden shadow-2xs shrink-0">
+              <img id="masterApptModalClientAvatarImg" src="" alt="Клиент" class="hidden w-full h-full object-cover" />
+              <span id="masterApptModalClientAvatarFallback" class="text-sm font-bold">А</span>
+            </div>
+            <div class="flex flex-col">
+              <span id="masterApptModalClientName" class="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">Анна Смирнова</span>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span id="masterApptModalClientTg" class="text-[11px] text-primary font-medium">@anna_smirnova</span>
+                <span class="text-slate-300">•</span>
+                <span id="masterApptModalClientPhone" class="text-[11px] text-slate-500 font-medium">+7 (925) 345-67-89</span>
+              </div>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-[20px] text-primary group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button type="button" onclick="closeMasterAppointmentDetailsModal()"
+          class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all">
+          Закрыть
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MODAL: FULL SCREEN CLIENT PROFILE (Полноэкранный профиль клиента) -->
+  <div id="masterClientProfileModal"
+    class="fixed inset-0 z-[60] bg-slate-50 hidden flex-col animate-in fade-in duration-200 overflow-y-auto">
+    <!-- Top Sticky Bar -->
+    <header class="sticky top-0 z-20 ios-frosted-header px-4 py-3 flex items-center justify-between border-b border-slate-200/60">
+      <button type="button" onclick="closeMasterClientProfileModal()"
+        class="w-9 h-9 rounded-full bg-white/80 border border-slate-200/80 flex items-center justify-center text-slate-700 active:scale-90 transition-all shadow-2xs">
+        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+      </button>
+      <h2 class="text-sm font-bold text-on-surface">Профиль клиента</h2>
+      <div class="w-9"></div>
+    </header>
+
+    <div class="p-4 flex flex-col gap-4 max-w-md mx-auto w-full pb-10">
+      <!-- Client Header Card -->
+      <div class="p-6 rounded-3xl bg-white shadow-xs border border-slate-200/70 flex flex-col items-center text-center gap-3">
+        <div class="w-22 h-22 rounded-full bg-primary-fixed/50 border-2 border-primary/20 flex items-center justify-center overflow-hidden shadow-xs">
+          <img id="masterClientProfileAvatarImg" src="" alt="Клиент" class="hidden w-full h-full object-cover rounded-full" />
+          <span id="masterClientProfileAvatarFallback" class="text-2xl font-bold text-primary">К</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <h3 id="masterClientProfileName" class="text-base font-extrabold text-on-surface">Имя клиента</h3>
+          <span id="masterClientProfileTg" class="text-xs text-primary font-semibold mt-0.5">@telegram</span>
+          <span id="masterClientProfilePhone" class="text-xs text-slate-500 font-medium mt-0.5">+7 (999) 000-00-00</span>
+        </div>
+
+        <!-- Action Buttons: Написать клиенту & Позвонить -->
+        <div class="flex items-center gap-2.5 w-full mt-2">
+          <button type="button" id="masterClientProfileWriteBtn"
+            class="flex-1 py-3 px-3 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-xs shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-[17px]">send</span>
+            <span>Написать клиенту</span>
+          </button>
+          <button type="button" id="masterClientProfileCallBtn"
+            class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center active:scale-95 transition-all shrink-0">
+            <span class="material-symbols-outlined text-[20px]">call</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Visits History Section -->
+      <div class="p-4 rounded-3xl bg-white shadow-xs border border-slate-200/70 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700">История визитов клиента</span>
+          <span class="text-[10px] text-slate-400">У данного мастера</span>
+        </div>
+
+        <!-- Empty state (по умолчанию или если визитов не было) -->
+        <div id="masterClientProfileVisitsEmpty" class="py-8 flex flex-col items-center justify-center text-center text-slate-400 gap-1.5">
+          <span class="material-symbols-outlined text-[30px] text-slate-300">history_toggle_off</span>
+          <span class="text-xs font-semibold text-slate-600">История визитов пуста</span>
+          <p class="text-[11px] text-slate-400 max-w-[220px]">Клиент записывается к вам впервые. Предыдущих визитов не найдено.</p>
+        </div>
+
+        <!-- Visits List -->
+        <div id="masterClientProfileVisitsHistory" class="hidden flex flex-col gap-2">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MODAL: MASTER ADD WORK SLOT (Добавление окошка) -->
+  <div id="masterAddSlotModal" onclick="if(event.target === this) closeMasterAddSlotModal()"
+    class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-end justify-center transition-all">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-[440px] bg-white rounded-t-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom duration-200">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto shrink-0"></div>
+
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-on-surface">Добавить окошко</h3>
+          <p class="text-xs text-slate-400">Выберите время для свободной записи</p>
+        </div>
+        <button type="button" onclick="closeMasterAddSlotModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">✕</button>
+      </div>
+
+      <!-- Quick Preset Hours -->
+      <div class="flex flex-col gap-2">
+        <span class="text-xs font-bold text-slate-700">Быстрый выбор времени</span>
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" onclick="selectPresetSlotTime('09:00')" class="py-2 rounded-xl bg-slate-100 hover:bg-primary-fixed/50 hover:text-primary font-bold text-xs transition-all active:scale-95">09:00</button>
+          <button type="button" onclick="selectPresetSlotTime('11:00')" class="py-2 rounded-xl bg-slate-100 hover:bg-primary-fixed/50 hover:text-primary font-bold text-xs transition-all active:scale-95">11:00</button>
+          <button type="button" onclick="selectPresetSlotTime('13:00')" class="py-2 rounded-xl bg-slate-100 hover:bg-primary-fixed/50 hover:text-primary font-bold text-xs transition-all active:scale-95">13:00</button>
+          <button type="button" onclick="selectPresetSlotTime('14:30')" class="py-2 rounded-xl bg-slate-100 hover:bg-primary-fixed/50 hover:text-primary font-bold text-xs transition-all active:scale-95">14:30</button>
+          <button type="button" onclick="selectPresetSlotTime('16:00')" class="py-2 rounded-xl bg-slate-100 hover:bg-primary-fixed/50 hover:text-primary font-bold text-xs transition-all active:scale-95">16:00</button>
+          <button type="button" onclick="selectPresetSlotTime('17:30')" class="py-2 rounded-xl bg-slate-100 hover:bg-primary-fixed/50 hover:text-primary font-bold text-xs transition-all active:scale-95">17:30</button>
+          <button type="button" onclick="selectPresetSlotTime('19:00')" class="py-2 rounded-xl bg-slate-100 hover:bg-primary-fixed/50 hover:text-primary font-bold text-xs transition-all active:scale-95">19:00</button>
+          <button type="button" onclick="selectPresetSlotTime('20:30')" class="py-2 rounded-xl bg-slate-100 hover:bg-primary-fixed/50 hover:text-primary font-bold text-xs transition-all active:scale-95">20:30</button>
+        </div>
+      </div>
+
+      <!-- Custom Input -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-bold text-slate-700">Или введите точное время</label>
+        <div class="relative">
+          <input type="text" id="masterCustomSlotInput" placeholder="например: 15:45"
+            class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-primary pl-9" />
+          <span class="material-symbols-outlined text-[18px] text-slate-400 absolute left-2.5 top-2.5">schedule</span>
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center gap-2">
+        <button type="button" onclick="closeMasterAddSlotModal()"
+          class="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all">
+          Отмена
+        </button>
+        <button type="button" onclick="saveMasterNewSlot()"
+          class="flex-1 py-3 rounded-2xl bg-primary text-white font-bold text-xs shadow-md active:scale-95 transition-all">
+          Добавить
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MODAL: MASTER ADD / EDIT SERVICE (Добавление/редактирование услуги) -->
+  <div id="masterAddServiceModal" onclick="if(event.target === this) closeMasterAddServiceModal()"
+    class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-end justify-center transition-all">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-[440px] bg-white rounded-t-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom duration-200 max-h-[90vh] overflow-y-auto">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto shrink-0"></div>
+
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 id="masterServiceModalTitle" class="text-base font-bold text-on-surface">Добавить услугу</h3>
+          <p class="text-xs text-slate-400">Синхронизируется с профилем салона</p>
+        </div>
+        <button type="button" onclick="closeMasterAddServiceModal()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">✕</button>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold text-slate-700">Название услуги *</label>
+          <input type="text" id="masterServiceNameInput" placeholder="например: Сложное окрашивание AirTouch"
+            class="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold text-slate-700">Стоимость (₽)</label>
+            <input type="number" id="masterServicePriceInput" placeholder="2500"
+              class="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold text-slate-700">Длительность (мин)</label>
+            <input type="number" id="masterServiceDurationInput" value="60" placeholder="60"
+              class="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary" />
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold text-slate-700">Описание услуги</label>
+          <textarea id="masterServiceDescInput" rows="2" placeholder="Что входит в услугу, какие материалы используются..."
+            class="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-primary resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center gap-2">
+        <button type="button" onclick="closeMasterAddServiceModal()"
+          class="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all">
+          Отмена
+        </button>
+        <button type="button" onclick="saveMasterService()"
+          class="flex-1 py-3 rounded-2xl bg-primary text-white font-bold text-xs shadow-md active:scale-95 transition-all">
+          Сохранить
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MODAL: EXIT MASTER MODE CONFIRMATION (Подтверждение перехода в профиль клиента) -->
+  <div id="masterExitConfirmModal" onclick="if(event.target === this) closeMasterExitConfirmModal()"
+    class="fixed inset-0 z-[100] bg-black/65 backdrop-blur-xs hidden items-center justify-center p-4 transition-opacity">
+    <div onclick="event.stopPropagation()"
+      class="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-3 animate-in zoom-in-95 duration-150">
+      <div class="w-12 h-12 rounded-2xl bg-primary-fixed/60 text-primary flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">switch_account</span>
+      </div>
+      <h3 class="font-bold text-base text-on-surface">Перейти в профиль клиента?</h3>
+      <p class="text-xs text-slate-500 max-w-[260px]">Вы переключитесь в обычный режим приложения. Вы сможете вернуться в панель мастера в любой момент через свой профиль.</p>
+
+      <div class="flex items-center gap-2 w-full mt-2">
+        <button type="button" onclick="closeMasterExitConfirmModal()"
+          class="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all">
+          Остаться
+        </button>
+        <button type="button" onclick="exitMasterModeToClient()"
+          class="flex-1 py-3 rounded-2xl bg-primary text-white font-bold text-xs active:scale-95 transition-all shadow-md">
+          Перейти
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Toast Notification -->
@@ -3660,5 +4196,6 @@
   <script src="js/cities.js"></script>
   <script src="js/favorites.js"></script>
   <script src="js/pro.js"></script>
+  <script src="js/master.js"></script>
 </body>
 </html>
