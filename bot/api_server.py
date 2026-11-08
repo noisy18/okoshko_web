@@ -49,8 +49,17 @@ async def handle_get_salon(request: web.Request) -> web.Response:
         masters_res = await session.execute(
             select(Master).where(Master.salon_id == salon.id).order_by(Master.id)
         )
-        db_masters = [
-            {
+        db_masters = []
+        for m in masters_res.scalars().all():
+            m_slots = ["10:00", "12:00", "14:30", "16:00", "18:00"]
+            if m.slots_json:
+                try:
+                    parsed_s = json.loads(m.slots_json)
+                    if isinstance(parsed_s, list) and len(parsed_s) > 0:
+                        m_slots = parsed_s
+                except Exception:
+                    pass
+            db_masters.append({
                 "id": f"db_master_{m.id}",
                 "name": m.name,
                 "lastName": m.last_name or "",
@@ -59,9 +68,9 @@ async def handle_get_salon(request: web.Request) -> web.Response:
                 "avatar_url": m.avatar_url or "",
                 "telegram_handle": m.telegram_handle or "",
                 "telegram_id": m.telegram_id,
-            }
-            for m in masters_res.scalars().all()
-        ]
+                "bio": m.bio or "",
+                "slots": m_slots,
+            })
 
         services = []
         if salon.services_json:
@@ -338,6 +347,13 @@ async def handle_get_master(request: web.Request) -> web.Response:
             except Exception:
                 slots = []
 
+        portfolio_photos = []
+        if getattr(master, "portfolio_photos_json", None):
+            try:
+                portfolio_photos = json.loads(master.portfolio_photos_json)
+            except Exception:
+                portfolio_photos = []
+
         return web.json_response({
             "found": True,
             "id": master.id,
@@ -347,10 +363,12 @@ async def handle_get_master(request: web.Request) -> web.Response:
             "role_title": master.role_title or "Специалист",
             "experience": master.experience or "3 года",
             "avatar_url": master.avatar_url or "",
+            "telegram_handle": master.telegram_handle or "",
             "bio": master.bio or "",
             "rating": master.rating or 5.0,
             "services": services,
-            "slots": slots
+            "slots": slots,
+            "portfolio_photos": portfolio_photos
         }, headers=CORS_HEADERS)
 
 
@@ -387,6 +405,7 @@ async def handle_update_master(request: web.Request) -> web.Response:
                 last_name=data.get("lastName") or "",
                 role_title=data.get("role_title") or "Специалист",
                 telegram_id=int(user_id),
+                telegram_handle=data.get("telegram_handle") or "",
                 avatar_url=data.get("avatar_url") or "",
                 experience=data.get("experience") or "3 года",
                 bio=data.get("bio") or ""
@@ -406,9 +425,14 @@ async def handle_update_master(request: web.Request) -> web.Response:
                 master.bio = str(data["bio"]).strip()
             if "avatar_url" in data:
                 master.avatar_url = str(data["avatar_url"]).strip()
+            if "telegram_handle" in data:
+                master.telegram_handle = str(data["telegram_handle"]).strip()
 
         if "slots" in data and data["slots"] is not None:
             master.slots_json = json.dumps(data["slots"], ensure_ascii=False)
+
+        if "portfolio_photos" in data and data["portfolio_photos"] is not None:
+            master.portfolio_photos_json = json.dumps(data["portfolio_photos"], ensure_ascii=False)
 
         if "services" in data and data["services"] is not None:
             master.services_json = json.dumps(data["services"], ensure_ascii=False)

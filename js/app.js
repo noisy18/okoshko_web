@@ -158,6 +158,9 @@
         if (notifToggle && savedNotif !== null) {
           notifToggle.checked = (savedNotif === 'true');
         }
+        if (typeof checkAndRenderMasterPanelButton === 'function') {
+          checkAndRenderMasterPanelButton();
+        }
       } catch (e) { }
     }
 
@@ -1060,14 +1063,13 @@
           if (spanText) spanText.classList.replace('font-semibold', 'font-bold');
         }
 
-        // Master Nav bubble indicator (4 tabs: 0%, 100%, 200%, 300%)
+        // Master Nav bubble indicator (3 tabs: 0%, 100%, 200%)
         const masterIndicator = document.getElementById('masterNavActiveIndicator');
         if (masterIndicator) {
           const masterPositions = {
-            'master-stats': '0%',
+            'master-clients': '0%',
             'master-appointments': '100%',
-            'master-schedule': '200%',
-            'master-profile': '300%'
+            'master-profile': '200%'
           };
           if (masterPositions[screen] !== undefined) {
             masterIndicator.style.transform = `translateX(${masterPositions[screen]})`;
@@ -1165,21 +1167,17 @@
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
           headerTitle.textContent = 'Галерея';
           if (typeof renderProGalleryGrid === 'function') renderProGalleryGrid();
-        } else if (screen === 'master-stats') {
+        } else if (screen === 'master-clients') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
-          headerTitle.textContent = 'Панель мастера';
-          if (typeof renderMasterStats === 'function') renderMasterStats();
+          headerTitle.textContent = 'Все клиенты';
+          if (typeof renderMasterClients === 'function') renderMasterClients();
         } else if (screen === 'master-appointments') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
-          headerTitle.textContent = 'Панель мастера';
+          headerTitle.textContent = 'Записи и окошки';
           if (typeof renderMasterAppointments === 'function') renderMasterAppointments();
-        } else if (screen === 'master-schedule') {
-          if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
-          headerTitle.textContent = 'Панель мастера';
-          if (typeof renderMasterSchedule === 'function') renderMasterSchedule();
         } else if (screen === 'master-profile') {
           if (backIcon) backIcon.textContent = 'arrow_back_ios_new';
-          headerTitle.textContent = 'Панель мастера';
+          headerTitle.textContent = 'Профиль мастера';
           if (typeof renderMasterProfile === 'function') renderMasterProfile();
         }
       }

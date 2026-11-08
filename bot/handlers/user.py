@@ -290,8 +290,17 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                         )
                         db_masters = list(masters_res.scalars().all())
                         if db_masters:
-                            masters_list = [
-                                {
+                            masters_list = []
+                            for m in db_masters:
+                                m_slots = ["10:00", "12:00", "14:30", "16:00", "18:00"]
+                                if m.slots_json:
+                                    try:
+                                        parsed_slots = json.loads(m.slots_json)
+                                        if isinstance(parsed_slots, list) and len(parsed_slots) > 0:
+                                            m_slots = parsed_slots
+                                    except Exception:
+                                        pass
+                                masters_list.append({
                                     "id": f"db_master_{m.id}",
                                     "name": m.name,
                                     "lastName": m.last_name or "",
@@ -300,9 +309,8 @@ async def get_user_app_url(telegram_id: Optional[int], is_pro_entry: bool = Fals
                                     "avatar_url": m.avatar_url or "",
                                     "telegram_handle": m.telegram_handle or "",
                                     "telegram_id": m.telegram_id,
-                                }
-                                for m in db_masters
-                            ]
+                                    "slots": m_slots,
+                                })
                             masters_json_str = json.dumps(masters_list, ensure_ascii=False)
                             params.append(f"masters_json={urllib.parse.quote(masters_json_str)}")
                     except Exception as me:

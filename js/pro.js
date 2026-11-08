@@ -2725,6 +2725,14 @@ function applyCroppedImage() {
   // Отдельная ветка обработки для фото мастера
   if (isMaster) {
     uploadedMasterAvatar = croppedDataUrl;
+    if (typeof getMasterData === 'function' && typeof saveMasterData === 'function') {
+      const mData = getMasterData();
+      mData.avatar_url = croppedDataUrl;
+      saveMasterData(mData);
+      if (typeof renderMasterProfile === 'function') {
+        renderMasterProfile();
+      }
+    }
     const previewImg = document.getElementById('newMasterAvatarPreviewImg');
     if (previewImg) {
       previewImg.src = croppedDataUrl;

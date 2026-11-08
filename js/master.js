@@ -20,6 +20,10 @@ const DEFAULT_MASTER_DATA = {
   experience: '3 года',
   bio: 'Профессиональный уход и индивидуальный подход к каждому клиенту.',
   avatar_url: '',
+  cover_url: '',
+  phone: '+7 (999) 000-00-00',
+  telegram_handle: '@master',
+  portfolio_photos: [],
   notificationsEnabled: true,
   slots: ['10:00', '12:00', '14:30', '16:00', '18:00'],
   services: [
@@ -154,10 +158,31 @@ function saveMasterData(data) {
     }
   } catch (e) { }
 
-  // Sync to backend API if possible
+  // Sync to venues array so salon card and quick booking modals display updated master slots immediately!
+  try {
+    if (typeof venues !== 'undefined' && Array.isArray(venues)) {
+      for (const v of venues) {
+        if (v.masters && Array.isArray(v.masters)) {
+          const idx = v.masters.findIndex(m => m.id === data.id || m.name === data.name || (data.id && m.id === `db_master_${String(data.id).replace('db_master_', '')}`));
+          if (idx !== -1) {
+            v.masters[idx].slots = data.slots || [];
+            v.masters[idx].name = data.name;
+            v.masters[idx].lastName = data.lastName || '';
+            v.masters[idx].role_title = data.role_title;
+            v.masters[idx].avatar_url = data.avatar_url;
+            v.masters[idx].experience = data.experience;
+            v.masters[idx].bio = data.bio;
+          }
+        }
+      }
+    }
+  } catch (e) { }
+
+  // Sync to backend API (PostgreSQL database)
   try {
     const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
-    fetch('/api/master_update', {
+    const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8080' : '';
+    fetch(`${apiBase}/api/master_update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -169,9 +194,13 @@ function saveMasterData(data) {
         role_title: data.role_title,
         experience: data.experience,
         bio: data.bio,
+        phone: data.phone,
+        telegram_handle: data.telegram_handle,
         avatar_url: data.avatar_url,
+        cover_url: data.cover_url,
         slots: data.slots,
-        services: data.services
+        services: data.services,
+        portfolio_photos: data.portfolio_photos
       })
     }).catch(() => {});
   } catch (e) {}
@@ -223,8 +252,14 @@ function initMasterSubsystem() {
   const urlParams = new URLSearchParams(window.location.search);
   const data = getMasterData();
 
-  // 1. Detect if user is linked as a master
+  // 1. Detect if user is linked as a master or opened invite link
   let isMasterUser = false;
+  const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || urlParams.get('start') || urlParams.get('start_param') || urlParams.get('tgWebAppStartParam');
+  if (startParam && startParam.startsWith('bind_master_')) {
+    isMasterUser = true;
+    localStorage.setItem('okoshko_is_master', 'true');
+  }
+
   if (urlParams.get('is_master') === '1' || urlParams.get('pro_role') === 'master') {
     isMasterUser = true;
     localStorage.setItem('okoshko_is_master', 'true');
@@ -286,7 +321,8 @@ function initMasterSubsystem() {
 
   // Try background fetch from server
   const userTgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || (typeof state !== 'undefined' && state.user?.id) || 1205557089;
-  fetch(`/api/master_get?user_id=${userTgId}`)
+  const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8080' : '';
+  fetch(`${apiBase}/api/master_get?user_id=${userTgId}`)
     .then(r => r.json())
     .then(res => {
       if (res && res.found) {
@@ -299,8 +335,11 @@ function initMasterSubsystem() {
         if (res.avatar_url) cur.avatar_url = res.avatar_url;
         if (res.experience) cur.experience = res.experience;
         if (res.bio) cur.bio = res.bio;
+        if (res.telegram_handle) cur.telegram_handle = res.telegram_handle;
+        if (res.cover_url) cur.cover_url = res.cover_url;
         if (Array.isArray(res.services) && res.services.length) cur.services = res.services;
         if (Array.isArray(res.slots) && res.slots.length) cur.slots = res.slots;
+        if (Array.isArray(res.portfolio_photos) && res.portfolio_photos.length) cur.portfolio_photos = res.portfolio_photos;
         saveMasterData(cur);
         checkAndRenderMasterPanelButton();
       }
@@ -316,6 +355,11 @@ function checkAndRenderMasterPanelButton() {
   if (isMaster) {
     btnBlock.classList.remove('hidden');
     btnBlock.style.display = 'block';
+    const data = getMasterData();
+    const roleEl = document.getElementById('masterPanelRoleSubtitle');
+    const salonEl = document.getElementById('masterPanelSalonSubtitle');
+    if (roleEl) roleEl.textContent = `${data.name || 'Мастер'} • ${data.role_title || 'Специалист'}`;
+    if (salonEl) salonEl.textContent = `🏢 ${data.salonName || 'Салон красоты'}`;
   } else {
     btnBlock.classList.add('hidden');
     btnBlock.style.display = 'none';
@@ -333,7 +377,7 @@ function switchToMasterMode() {
   document.body.classList.add('master-mode-active');
   document.body.classList.remove('pro-mode-active');
 
-  router.navigate('master-stats');
+  router.navigate('master-appointments');
   showToast('Добро пожаловать в панель мастера! 💇‍♀️✨');
 
   try {
@@ -376,142 +420,284 @@ function exitMasterModeToClient() {
 }
 
 // ------------------------------------------
-// PAGE 1: MASTER STATISTICS (Диаграмма по периодам)
+// SECTION 1: MASTER CLIENTS (Раздел «Все клиенты»)
 // ------------------------------------------
-let currentMasterStatsPeriod = 'day';
+let masterClientsCache = [];
+let masterClientSearchQuery = '';
+let masterClientActiveFilter = 'all';
 
-function setMasterStatsPeriod(period, btn) {
-  currentMasterStatsPeriod = period;
-  document.querySelectorAll('.master-stats-period-btn').forEach(b => {
-    b.classList.remove('bg-white', 'text-primary', 'shadow-xs', 'font-bold');
-    b.classList.add('text-slate-500', 'font-medium');
-  });
-  if (btn) {
-    btn.classList.add('bg-white', 'text-primary', 'shadow-xs', 'font-bold');
-    btn.classList.remove('text-slate-500', 'font-medium');
-  }
-  renderMasterStats(period);
+async function fetchMasterClients() {
+  const localAppts = getMasterAppointments();
+  const master = getMasterData();
+  const masterName = (master.name || '').toLowerCase();
+  const masterId = String(master.id || '').replace('db_master_', '');
+
+  let apiBookings = [];
   try {
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-      window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8080' : '';
+    const res = await fetch(`${apiBase}/api/pro_bookings_get`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.bookings)) {
+        apiBookings = data.bookings;
+      }
     }
   } catch (e) { }
-}
 
-function renderMasterStats(period = currentMasterStatsPeriod) {
-  const master = getMasterData();
-  const appts = getMasterAppointments();
+  // Map to group by client phone or name
+  const clientsMap = new Map();
 
-  // Header master card
-  const avImg = document.getElementById('masterStatsAvatarImg');
-  const avFallback = document.getElementById('masterStatsAvatarFallback');
-  const nameEl = document.getElementById('masterStatsName');
-  const roleEl = document.getElementById('masterStatsRole');
-  const salonEl = document.getElementById('masterStatsSalon');
+  function processBooking(item) {
+    const cName = item.client?.name || item.clientName || 'Гость';
+    const cPhone = item.client?.phone || item.clientPhone || '';
+    const cTg = item.client?.telegram || item.clientHandle || '';
+    const cAvatar = item.client?.avatar || '';
+    const bPrice = Number(item.price) || 0;
+    const bService = item.service || 'Услуга';
+    const bDate = item.date || item.dateDisplay || 'Сегодня';
+    const bTime = item.time || '12:00';
+    const bStatus = item.status || 'confirmed';
 
-  if (nameEl) nameEl.textContent = `${master.name} ${master.lastName || ''}`.trim();
-  if (roleEl) roleEl.textContent = master.role_title || 'Специалист';
-  if (salonEl) salonEl.textContent = `Салон: ${master.salonName || 'Студия'}`;
+    // Unique key: phone if exists, otherwise lowercase name
+    const key = cPhone ? cPhone.replace(/\D/g, '') : cName.toLowerCase();
+    if (!key) return;
 
-  if (avImg && avFallback) {
-    if (master.avatar_url) {
-      avImg.src = master.avatar_url;
-      avImg.classList.remove('hidden');
-      avFallback.classList.add('hidden');
+    if (!clientsMap.has(key)) {
+      clientsMap.set(key, {
+        id: 'cli_' + (item.client?.id || Math.abs(key.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0))),
+        name: cName,
+        phone: cPhone,
+        telegram: cTg,
+        avatar: cAvatar,
+        visitsCount: 0,
+        totalSpent: 0,
+        nextVisit: null,
+        lastVisit: null,
+        history: []
+      });
+    }
+
+    const cObj = clientsMap.get(key);
+    cObj.visitsCount += 1;
+    cObj.totalSpent += bPrice;
+    if (!cObj.avatar && cAvatar) cObj.avatar = cAvatar;
+    if (!cObj.phone && cPhone) cObj.phone = cPhone;
+    if (!cObj.telegram && cTg) cObj.telegram = cTg;
+
+    cObj.history.push({
+      date: `${bDate} в ${bTime}`,
+      service: bService,
+      price: bPrice,
+      status: (bStatus === 'confirmed' || bStatus === 'active') ? 'Активна' : (bStatus === 'completed' ? 'Завершен' : 'Отменен')
+    });
+
+    if (bStatus === 'confirmed' || bStatus === 'active') {
+      if (!cObj.nextVisit) {
+        cObj.nextVisit = { date: bDate, time: bTime, service: bService };
+      }
     } else {
-      avImg.src = '';
-      avImg.classList.add('hidden');
-      avFallback.classList.remove('hidden');
+      if (!cObj.lastVisit) {
+        cObj.lastVisit = { date: bDate, time: bTime, service: bService };
+      }
     }
   }
 
-  // Chart configuration according to requirement:
-  // за день: Часы
-  // за неделю: Дни
-  // за месяц: Недели
-  // за год: Месяцы
-  let columns = [];
-  let totalAppts = 0;
-  let totalRevenue = 0;
+  // 1. Process local master appointments (including DEFAULT_MASTER_APPOINTMENTS)
+  localAppts.forEach(processBooking);
 
-  if (period === 'day') {
-    columns = [
-      { label: '09:00', count: 1 },
-      { label: '11:00', count: 2 },
-      { label: '13:00', count: 1 },
-      { label: '15:00', count: 3 },
-      { label: '17:00', count: 2 },
-      { label: '19:00', count: 1 },
-      { label: '21:00', count: 0 }
-    ];
-  } else if (period === 'week') {
-    columns = [
-      { label: 'Пн', count: 4 },
-      { label: 'Вт', count: 5 },
-      { label: 'Ср', count: 3 },
-      { label: 'Чт', count: 6 },
-      { label: 'Пт', count: 7 },
-      { label: 'Сб', count: 8 },
-      { label: 'Вс', count: 5 }
-    ];
-  } else if (period === 'month') {
-    columns = [
-      { label: '1-я нед', count: 24 },
-      { label: '2-я нед', count: 28 },
-      { label: '3-я нед', count: 31 },
-      { label: '4-я нед', count: 29 }
-    ];
-  } else if (period === 'year') {
-    columns = [
-      { label: 'Янв', count: 82 },
-      { label: 'Фев', count: 94 },
-      { label: 'Мар', count: 110 },
-      { label: 'Апр', count: 105 },
-      { label: 'Май', count: 118 },
-      { label: 'Июн', count: 124 },
-      { label: 'Июл', count: 130 },
-      { label: 'Авг', count: 128 },
-      { label: 'Сен', count: 115 },
-      { label: 'Окт', count: 108 },
-      { label: 'Ноя', count: 96 },
-      { label: 'Дек', count: 140 }
-    ];
+  // 2. Process API bookings that match this master
+  apiBookings.forEach(b => {
+    const bMasterName = (b.master || '').toLowerCase();
+    const bMasterId = String(b.master_id || '').replace('db_master_', '');
+    if (bMasterName.includes(masterName) || masterName.includes(bMasterName) || (bMasterId && bMasterId === masterId)) {
+      processBooking(b);
+    }
+  });
+
+  masterClientsCache = Array.from(clientsMap.values());
+  return masterClientsCache;
+}
+
+async function renderMasterClients() {
+  const clients = await fetchMasterClients();
+  const countBadge = document.getElementById('masterClientsTotalCountBadge');
+  if (countBadge) {
+    countBadge.textContent = `${clients.length} ${pluralize(clients.length, 'клиент', 'клиента', 'клиентов')}`;
+  }
+  filterMasterClients(masterClientSearchQuery);
+}
+
+function filterMasterClients(query = '') {
+  masterClientSearchQuery = (query || '').trim();
+  const clearBtn = document.getElementById('masterClientSearchClearBtn');
+  if (clearBtn) {
+    if (masterClientSearchQuery) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+    }
   }
 
-  totalAppts = columns.reduce((acc, c) => acc + c.count, 0);
-  totalRevenue = totalAppts * 2400;
+  let filtered = [...masterClientsCache];
 
-  const totalEl = document.getElementById('masterStatsTotalAppts');
-  const revenueEl = document.getElementById('masterStatsTotalRevenue');
-  const chartContainer = document.getElementById('masterStatsChartContainer');
-  const periodLabel = document.getElementById('masterStatsPeriodLabel');
-
-  if (totalEl) totalEl.textContent = `${totalAppts}`;
-  if (revenueEl) revenueEl.textContent = `${totalRevenue.toLocaleString('ru-RU')} ₽`;
-  if (periodLabel) {
-    const pNames = { day: 'за сегодня', week: 'за неделю', month: 'за месяц', year: 'за год' };
-    periodLabel.textContent = pNames[period] || '';
+  // 1. Text Search (name, phone or telegram)
+  if (masterClientSearchQuery) {
+    const qLower = masterClientSearchQuery.toLowerCase();
+    const qDigits = masterClientSearchQuery.replace(/\D/g, '');
+    filtered = filtered.filter(c => {
+      const nameMatch = (c.name || '').toLowerCase().includes(qLower);
+      const tgMatch = (c.telegram || '').toLowerCase().includes(qLower);
+      const phoneDigits = (c.phone || '').replace(/\D/g, '');
+      const phoneMatch = qDigits ? phoneDigits.includes(qDigits) : false;
+      return nameMatch || tgMatch || phoneMatch;
+    });
   }
 
-  if (chartContainer) {
-    const maxVal = Math.max(...columns.map(c => c.count), 1);
-    chartContainer.innerHTML = columns.map((col, idx) => {
-      const heightPercent = Math.max(12, Math.round((col.count / maxVal) * 100));
-      const isPeak = col.count === maxVal;
-      return `
-        <div class="flex-1 flex flex-col items-center justify-end h-full group cursor-pointer active:scale-95 transition-all">
-          <span class="text-[10px] font-bold text-slate-500 mb-1 transition-all ${isPeak ? 'text-primary font-extrabold' : ''}">${col.count}</span>
-          <div class="w-full max-w-[28px] rounded-t-xl transition-all duration-500 ${isPeak ? 'bg-gradient-to-t from-primary to-indigo-500 shadow-sm' : 'bg-primary-fixed hover:bg-primary-fixed/80'}"
-            style="height: ${heightPercent}%;"></div>
-          <span class="text-[9px] font-semibold text-slate-400 mt-2 truncate max-w-full text-center">${col.label}</span>
+  // 2. Category Filter
+  if (masterClientActiveFilter === 'upcoming') {
+    filtered = filtered.filter(c => c.nextVisit !== null);
+  } else if (masterClientActiveFilter === 'repeat') {
+    filtered = filtered.filter(c => c.visitsCount > 1);
+  }
+
+  const container = document.getElementById('masterClientsListContainer');
+  if (!container) return;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="py-12 px-4 rounded-3xl bg-white border border-dashed border-slate-200 text-center flex flex-col items-center justify-center gap-2">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-primary flex items-center justify-center">
+          <span class="material-symbols-outlined text-[26px]">person_search</span>
         </div>
-      `;
-    }).join('');
+        <h4 class="text-xs font-bold text-slate-700">Клиенты не найдены</h4>
+        <p class="text-[11px] text-slate-400 max-w-[240px]">
+          ${masterClientSearchQuery ? `По запросу «${masterClientSearchQuery}» ничего не найдено. Проверьте правильность номера или имени.` : 'В этой категории пока нет клиентов.'}
+        </p>
+        ${masterClientSearchQuery ? `
+          <button type="button" onclick="clearMasterClientSearch()"
+            class="mt-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-primary text-xs font-bold active:scale-95 transition-all">
+            Сбросить поиск
+          </button>
+        ` : ''}
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(c => `
+    <div class="p-3.5 rounded-3xl bg-white shadow-xs border border-slate-200/80 flex flex-col gap-2.5 transition-all">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-full overflow-hidden bg-primary-fixed/50 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+            ${c.avatar ? `<img src="${c.avatar}" class="w-full h-full object-cover" />` : (c.name ? c.name.charAt(0).toUpperCase() : 'К')}
+          </div>
+          <div class="flex flex-col text-left">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold text-on-surface">${c.name}</span>
+              ${c.visitsCount >= 3 ? `<span class="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700 text-[9px] font-extrabold uppercase">VIP</span>` : ''}
+            </div>
+            <span class="text-[11px] text-slate-500 font-medium">${c.phone || 'Телефон не указан'}</span>
+            ${c.telegram ? `<span class="text-[10px] text-primary font-semibold">${c.telegram}</span>` : ''}
+          </div>
+        </div>
+        <div class="flex flex-col items-end">
+          <span class="text-xs font-black text-primary">${c.totalSpent ? c.totalSpent.toLocaleString('ru-RU') + ' ₽' : '0 ₽'}</span>
+          <span class="text-[10px] text-slate-400 font-medium">${c.visitsCount} ${pluralize(c.visitsCount, 'визит', 'визита', 'визитов')}</span>
+        </div>
+      </div>
+
+      ${c.nextVisit ? `
+        <div class="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800 text-[11px] font-semibold flex items-center justify-between">
+          <span class="flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px] text-emerald-600">event</span>
+            <span>Запись: ${c.nextVisit.date} в ${c.nextVisit.time}</span>
+          </span>
+          <span class="font-bold text-[10px] text-emerald-700 truncate max-w-[120px]">${c.nextVisit.service}</span>
+        </div>
+      ` : (c.lastVisit ? `
+        <div class="px-3 py-1 rounded-xl bg-slate-50 text-slate-500 text-[10px] font-medium flex items-center gap-1">
+          <span class="material-symbols-outlined text-[13px] text-slate-400">history</span>
+          <span>Посл. визит: ${c.lastVisit.date}</span>
+        </div>
+      ` : '')}
+
+      <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
+        <button type="button" onclick="openMasterClientProfileById('${c.id}')"
+          class="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[15px]">history</span>
+          <span>История визитов</span>
+        </button>
+        ${c.phone ? `
+          <a href="tel:${c.phone.replace(/[^0-9+]/g, '')}"
+            class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center active:scale-95 transition-all shrink-0">
+            <span class="material-symbols-outlined text-[16px]">call</span>
+          </a>
+        ` : ''}
+        ${c.telegram ? `
+          <button type="button" onclick="openClientTelegramChat('${c.telegram}')"
+            class="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 border border-sky-200/60 flex items-center justify-center active:scale-95 transition-all shrink-0">
+            <span class="material-symbols-outlined text-[16px]">send</span>
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function clearMasterClientSearch() {
+  const input = document.getElementById('masterClientSearchInput');
+  if (input) input.value = '';
+  filterMasterClients('');
+}
+
+function setMasterClientFilter(filterType, btn) {
+  masterClientActiveFilter = filterType;
+  document.querySelectorAll('.master-client-filter-btn').forEach(b => {
+    b.classList.remove('bg-primary', 'text-white', 'font-bold', 'shadow-xs');
+    b.classList.add('bg-white', 'border', 'border-slate-200', 'text-slate-600', 'font-semibold');
+  });
+  if (btn) {
+    btn.classList.add('bg-primary', 'text-white', 'font-bold', 'shadow-xs');
+    btn.classList.remove('bg-white', 'border', 'border-slate-200', 'text-slate-600', 'font-semibold');
+  }
+  filterMasterClients(masterClientSearchQuery);
+}
+
+function openMasterClientProfileById(clientId) {
+  const found = masterClientsCache.find(c => c.id === clientId);
+  if (found) {
+    openMasterClientProfile(found);
   }
 }
 
+function openClientTelegramChat(handle) {
+  const cleanTg = (handle || '').replace('@', '').trim();
+  if (cleanTg) {
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(`https://t.me/${cleanTg}`);
+    } else {
+      window.open(`https://t.me/${cleanTg}`, '_blank');
+    }
+  } else {
+    showToast('У клиента не указан Telegram username');
+  }
+}
+
+function pluralize(n, one, two, five) {
+  n = Math.abs(n) % 100;
+  const n1 = n % 10;
+  if (n > 10 && n < 20) return five;
+  if (n1 > 1 && n1 < 5) return two;
+  if (n1 === 1) return one;
+  return five;
+}
+
+// Backward compatibility stub for stats
+function setMasterStatsPeriod() {}
+function renderMasterStats() {}
+
 // ------------------------------------------
-// PAGE 2: MASTER APPOINTMENTS (Google Calendar Style)
+// SECTION 2: MASTER APPOINTMENTS & FREE SLOTS (Раздел «Записи»)
 // ------------------------------------------
 let currentMasterApptDateKey = getFormattedDateKey(0);
 
@@ -530,6 +716,12 @@ function renderMasterAppointments(dateKey = currentMasterApptDateKey) {
   const dateStrip = document.getElementById('masterApptsDateStrip');
   const timelineContainer = document.getElementById('masterApptsTimelineContainer');
   const countBadge = document.getElementById('masterApptsTodayCountBadge');
+  const slotsContainer = document.getElementById('masterApptsActiveSlotsContainer');
+  const daySlotsLabel = document.getElementById('masterApptsSlotsCurrentDayLabel');
+  const presetChipsBar = document.getElementById('masterApptsPresetChipsBar');
+
+  const slotsMap = getMasterScheduleSlots();
+  const dateSlots = Array.isArray(slotsMap[dateKey]) ? slotsMap[dateKey] : (getMasterData().slots || ['10:00', '12:00', '14:30', '16:00', '18:00']);
 
   // 1. Build Google Calendar Day Strip (7 days)
   const daysList = [
@@ -546,29 +738,79 @@ function renderMasterAppointments(dateKey = currentMasterApptDateKey) {
     dateStrip.innerHTML = daysList.map(d => {
       const isSelected = (d.key === dateKey);
       const dayApptsCount = allAppts.filter(a => a.date === d.key).length;
+      const daySlotsCount = (slotsMap[d.key] || []).length;
       return `
         <button type="button" onclick="selectMasterApptDate('${d.key}')"
-          class="flex flex-col items-center justify-center min-w-[70px] py-2 px-2 rounded-2xl border transition-all active:scale-95 shrink-0 relative ${isSelected ? 'bg-primary text-white border-primary shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}">
+          class="flex flex-col items-center justify-center min-w-[72px] py-2 px-2 rounded-2xl border transition-all active:scale-95 shrink-0 relative ${isSelected ? 'bg-primary text-white border-primary shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}">
           <span class="text-[9px] uppercase font-bold tracking-tight ${isSelected ? 'text-white/80' : 'text-slate-400'}">${d.title}</span>
           <span class="text-xs font-extrabold mt-0.5">${d.sub.split(' ')[0]}</span>
-          ${dayApptsCount > 0 ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'} mt-1"></span>` : `<span class="w-1.5 h-1.5 rounded-full bg-transparent mt-1"></span>`}
+          <div class="flex items-center gap-1 mt-1">
+            ${dayApptsCount > 0 ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-amber-300' : 'bg-primary'}"></span>` : ''}
+            <span class="text-[9px] font-semibold ${isSelected ? 'text-white/90' : 'text-emerald-600'}">${daySlotsCount} ок.</span>
+          </div>
         </button>
       `;
     }).join('');
   }
 
-  // 2. Filter appointments for this date
-  const dayAppts = allAppts.filter(a => a.date === dateKey);
-  if (countBadge) countBadge.textContent = `${dayAppts.length} записей`;
+  // 2. Day Label for Slots
+  if (daySlotsLabel) {
+    const daysOffset = Math.round((new Date(dateKey) - new Date(getFormattedDateKey(0))) / (1000 * 60 * 60 * 24));
+    const prefix = daysOffset === 0 ? 'Сегодня, ' : (daysOffset === 1 ? 'Завтра, ' : '');
+    daySlotsLabel.textContent = `${prefix}${getFormattedDateDisplay(daysOffset)} • отображаются в карточке салона`;
+  }
 
-  // 3. Render Google Calendar Timeline
+  // 3. Render Active Free Slots Chips on this day
+  if (slotsContainer) {
+    if (dateSlots.length === 0) {
+      slotsContainer.innerHTML = `
+        <div class="w-full py-3 px-3 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center flex flex-col items-center justify-center gap-1">
+          <span class="text-xs font-semibold text-slate-500">На этот день окошек нет</span>
+          <span class="text-[10px] text-slate-400">Нажмите на любое время ниже для добавления в 1 клик</span>
+        </div>
+      `;
+    } else {
+      slotsContainer.innerHTML = dateSlots.map(timeStr => `
+        <div class="px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold text-xs flex items-center gap-1.5 shadow-2xs group active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[13px] text-emerald-600">schedule</span>
+          <span>${timeStr}</span>
+          <button type="button" onclick="deleteMasterDaySlot('${timeStr}')" title="Удалить окошко"
+            class="w-4 h-4 rounded-full bg-emerald-200/70 hover:bg-rose-500 hover:text-white text-emerald-800 flex items-center justify-center text-[10px] ml-0.5 transition-colors">
+            ✕
+          </button>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 4. Render Preset Add Chips (09:00 - 20:00)
+  if (presetChipsBar) {
+    const standardPresets = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+    presetChipsBar.innerHTML = standardPresets.map(preset => {
+      const isAdded = dateSlots.includes(preset);
+      return `
+        <button type="button" onclick="${isAdded ? `deleteMasterDaySlot('${preset}')` : `addMasterDaySlot('${preset}')`}"
+          class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 shrink-0 border ${isAdded ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'}">
+          ${isAdded ? '✓ ' : '+ '}${preset}
+        </button>
+      `;
+    }).join('');
+  }
+
+  // 5. Appointments for this date & Timeline
+  const dayAppts = allAppts.filter(a => a.date === dateKey);
+  if (countBadge) countBadge.textContent = `${dayAppts.length} ${pluralize(dayAppts.length, 'запись', 'записи', 'записей')}`;
+
   if (timelineContainer) {
     const hours = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
     timelineContainer.innerHTML = hours.map(hour => {
       const apptAtHour = dayAppts.find(a => a.time.startsWith(hour.substring(0, 2)));
+      const hasSlotAtHour = dateSlots.some(s => s.startsWith(hour.substring(0, 2)));
+      const slotTime = dateSlots.find(s => s.startsWith(hour.substring(0, 2)));
+
       return `
-        <div class="flex items-start gap-3 py-2 border-b border-slate-100 min-h-[70px]">
+        <div class="flex items-start gap-3 py-2 border-b border-slate-100 min-h-[64px]">
           <span class="text-xs font-bold text-slate-400 w-12 shrink-0 pt-1">${hour}</span>
           <div class="flex-1 min-w-0">
             ${apptAtHour ? `
@@ -584,21 +826,128 @@ function renderMasterAppointments(dateKey = currentMasterApptDateKey) {
                 <h4 class="text-xs font-bold text-on-surface truncate">${apptAtHour.service}</h4>
                 <div class="flex items-center gap-1.5 mt-0.5 text-slate-600">
                   <div class="w-5 h-5 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 text-primary text-[10px] font-bold">
-                    ${apptAtHour.client.avatar ? `<img src="${apptAtHour.client.avatar}" class="w-full h-full object-cover" />` : apptAtHour.client.name.substring(0, 1)}
+                    ${apptAtHour.client.avatar ? `<img src="${apptAtHour.client.avatar}" class="w-full h-full object-cover" />` : (apptAtHour.client.name ? apptAtHour.client.name.charAt(0) : 'К')}
                   </div>
                   <span class="text-[11px] font-medium text-slate-700 truncate">${apptAtHour.client.name}</span>
-                  <span class="text-[10px] text-slate-400">(${apptAtHour.client.telegram})</span>
+                  <span class="text-[10px] text-slate-400">(${apptAtHour.client.phone || apptAtHour.client.telegram || ''})</span>
                 </div>
               </div>
-            ` : `
-              <div class="h-8 border border-dashed border-slate-200/60 rounded-xl flex items-center px-3 text-[11px] text-slate-300">
-                Свободное время
+            ` : (hasSlotAtHour ? `
+              <div class="p-2.5 rounded-2xl bg-emerald-50/70 border border-dashed border-emerald-300 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span class="text-xs font-bold text-emerald-800">${slotTime} — Свободное окошко для записи</span>
+                </div>
+                <button type="button" onclick="deleteMasterDaySlot('${slotTime}')"
+                  class="text-[11px] text-rose-500 hover:text-rose-700 font-semibold px-2 py-0.5 rounded-md hover:bg-rose-50 transition-colors">
+                  Удалить
+                </button>
               </div>
-            `}
+            ` : `
+              <div class="h-8 border border-dashed border-slate-200/60 rounded-xl flex items-center justify-between px-3 text-[11px] text-slate-300">
+                <span>Свободно</span>
+                <button type="button" onclick="addMasterDaySlot('${hour}')" class="text-primary hover:underline text-[10px] font-bold">
+                  + Открыть запись
+                </button>
+              </div>
+            `)}
           </div>
         </div>
       `;
     }).join('');
+  }
+}
+
+function addMasterDaySlot(timeStr) {
+  if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) {
+    showToast('Введите корректное время (например: 14:30) ⚠️');
+    return;
+  }
+  const slotsMap = getMasterScheduleSlots();
+  if (!Array.isArray(slotsMap[currentMasterApptDateKey])) {
+    slotsMap[currentMasterApptDateKey] = [];
+  }
+  if (!slotsMap[currentMasterApptDateKey].includes(timeStr)) {
+    slotsMap[currentMasterApptDateKey].push(timeStr);
+    slotsMap[currentMasterApptDateKey].sort();
+    saveMasterScheduleSlots(slotsMap);
+
+    const mData = getMasterData();
+    mData.slots = slotsMap[currentMasterApptDateKey];
+    saveMasterData(mData);
+    syncMasterSlotsToVenues(mData.slots);
+
+    renderMasterAppointments(currentMasterApptDateKey);
+    showToast(`Окошко ${timeStr} сохранено в базе и открыто для клиентов! ✅`);
+  }
+}
+
+function deleteMasterDaySlot(timeStr) {
+  const slotsMap = getMasterScheduleSlots();
+  if (Array.isArray(slotsMap[currentMasterApptDateKey])) {
+    slotsMap[currentMasterApptDateKey] = slotsMap[currentMasterApptDateKey].filter(t => t !== timeStr);
+    saveMasterScheduleSlots(slotsMap);
+
+    const mData = getMasterData();
+    mData.slots = slotsMap[currentMasterApptDateKey];
+    saveMasterData(mData);
+    syncMasterSlotsToVenues(mData.slots);
+
+    renderMasterAppointments(currentMasterApptDateKey);
+    showToast(`Окошко ${timeStr} удалено 🗑️`);
+  }
+}
+
+function copyMasterSlotsToAllDays() {
+  const slotsMap = getMasterScheduleSlots();
+  const currentSlots = slotsMap[currentMasterApptDateKey] || getMasterData().slots || [];
+
+  for (let i = 0; i < 7; i++) {
+    slotsMap[getFormattedDateKey(i)] = [...currentSlots];
+  }
+  saveMasterScheduleSlots(slotsMap);
+
+  const mData = getMasterData();
+  mData.slots = [...currentSlots];
+  saveMasterData(mData);
+  syncMasterSlotsToVenues(mData.slots);
+
+  renderMasterAppointments(currentMasterApptDateKey);
+  showToast('Окошки успешно применены на всю неделю! 📅');
+}
+
+function syncMasterSlotsToVenues(slots) {
+  const master = getMasterData();
+  if (typeof venues !== 'undefined' && Array.isArray(venues)) {
+    for (const v of venues) {
+      if (v.masters && Array.isArray(v.masters)) {
+        for (const m of v.masters) {
+          const mCleanId = String(m.id || '').replace('db_master_', '');
+          const masterCleanId = String(master.id || '').replace('db_master_', '');
+          if (mCleanId === masterCleanId || m.name === master.name) {
+            m.slots = [...slots];
+          }
+        }
+      }
+    }
+  }
+
+  if (typeof currentSvcModalMaster !== 'undefined' && currentSvcModalMaster) {
+    const mCleanId = String(currentSvcModalMaster.id || '').replace('db_master_', '');
+    const masterCleanId = String(master.id || '').replace('db_master_', '');
+    if (mCleanId === masterCleanId || currentSvcModalMaster.name === master.name) {
+      currentSvcModalMaster.slots = [...slots];
+      if (typeof renderSvcSlotsCalendar === 'function') renderSvcSlotsCalendar();
+    }
+  }
+
+  if (typeof quickBookSelectedMaster !== 'undefined' && quickBookSelectedMaster) {
+    const mCleanId = String(quickBookSelectedMaster.id || '').replace('db_master_', '');
+    const masterCleanId = String(master.id || '').replace('db_master_', '');
+    if (mCleanId === masterCleanId || quickBookSelectedMaster.name === master.name) {
+      quickBookSelectedMaster.slots = [...slots];
+      if (typeof renderQuickBookCalendar === 'function') renderQuickBookCalendar();
+    }
   }
 }
 
@@ -895,37 +1244,17 @@ function saveMasterNewSlot() {
     return;
   }
 
-  slotsMap[currentMasterScheduleDateKey].push(timeStr);
-  slotsMap[currentMasterScheduleDateKey].sort();
-  saveMasterScheduleSlots(slotsMap);
-
-  // Sync to masterData.slots
-  const mData = getMasterData();
-  mData.slots = slotsMap[currentMasterScheduleDateKey];
-  saveMasterData(mData);
-
+  addMasterDaySlot(timeStr);
   closeMasterAddSlotModal();
-  renderMasterSchedule(currentMasterScheduleDateKey);
-  showToast(`Окошко ${timeStr} успешно добавлено! ⏰`);
+  if (input) input.value = '';
 }
 
 function deleteMasterSlot(timeStr) {
-  const slotsMap = getMasterScheduleSlots();
-  if (Array.isArray(slotsMap[currentMasterScheduleDateKey])) {
-    slotsMap[currentMasterScheduleDateKey] = slotsMap[currentMasterScheduleDateKey].filter(t => t !== timeStr);
-    saveMasterScheduleSlots(slotsMap);
-
-    const mData = getMasterData();
-    mData.slots = slotsMap[currentMasterScheduleDateKey];
-    saveMasterData(mData);
-
-    renderMasterSchedule(currentMasterScheduleDateKey);
-    showToast(`Окошко ${timeStr} удалено 🗑️`);
-  }
+  deleteMasterDaySlot(timeStr);
 }
 
 // ------------------------------------------
-// PAGE 4: MASTER PROFILE & SERVICES
+// SECTION 3: MASTER PROFILE & SERVICES (Раздел «Профиль» как у салона)
 // ------------------------------------------
 function renderMasterProfile() {
   const master = getMasterData();
@@ -934,38 +1263,74 @@ function renderMasterProfile() {
   const lastNameInput = document.getElementById('masterProfileLastNameInput');
   const roleInput = document.getElementById('masterProfileRoleInput');
   const expInput = document.getElementById('masterProfileExpInput');
+  const phoneInput = document.getElementById('masterProfilePhoneInput');
+  const tgInput = document.getElementById('masterProfileTelegramInput');
   const bioInput = document.getElementById('masterProfileBioInput');
+
   const salonNameText = document.getElementById('masterProfileSalonName');
   const salonAddrText = document.getElementById('masterProfileSalonAddress');
+  const displayName = document.getElementById('masterProfileDisplayName');
+  const displayRole = document.getElementById('masterProfileDisplayRole');
+
   const avImg = document.getElementById('masterProfileAvatarImg');
   const avFallback = document.getElementById('masterProfileAvatarFallback');
+  const avDeleteBtn = document.getElementById('masterProfileAvatarDeleteBtn');
+
+  const coverImg = document.getElementById('masterProfileCoverImg');
+  const coverFallback = document.getElementById('masterProfileCoverFallback');
+  const coverDeleteBtn = document.getElementById('masterProfileCoverDeleteBtn');
+
   const notifyToggle = document.getElementById('masterNotifyToggle');
 
   if (nameInput) nameInput.value = master.name || '';
   if (lastNameInput) lastNameInput.value = master.lastName || '';
   if (roleInput) roleInput.value = master.role_title || '';
   if (expInput) expInput.value = master.experience || '3 года';
+  if (phoneInput) phoneInput.value = master.phone || '';
+  if (tgInput) tgInput.value = (master.telegram_handle || '').replace('@', '');
   if (bioInput) bioInput.value = master.bio || '';
+
   if (salonNameText) salonNameText.textContent = master.salonName || 'Салон красоты';
   if (salonAddrText) salonAddrText.textContent = master.salonAddress || 'Адрес уточняется';
+  if (displayName) displayName.textContent = `${master.name || 'Мастер'} ${master.lastName || ''}`.trim();
+  if (displayRole) displayRole.textContent = master.role_title || 'Специалист салона';
 
   if (notifyToggle) {
     notifyToggle.checked = (master.notificationsEnabled !== false);
   }
 
+  // Avatar
   if (avImg && avFallback) {
     if (master.avatar_url) {
       avImg.src = master.avatar_url;
       avImg.classList.remove('hidden');
       avFallback.classList.add('hidden');
+      if (avDeleteBtn) avDeleteBtn.classList.remove('hidden');
     } else {
       avImg.src = '';
       avImg.classList.add('hidden');
       avFallback.classList.remove('hidden');
+      if (avDeleteBtn) avDeleteBtn.classList.add('hidden');
+    }
+  }
+
+  // Cover Image
+  if (coverImg && coverFallback) {
+    if (master.cover_url) {
+      coverImg.src = master.cover_url;
+      coverImg.classList.remove('hidden');
+      coverFallback.classList.add('hidden');
+      if (coverDeleteBtn) coverDeleteBtn.classList.remove('hidden');
+    } else {
+      coverImg.src = '';
+      coverImg.classList.add('hidden');
+      coverFallback.classList.remove('hidden');
+      if (coverDeleteBtn) coverDeleteBtn.classList.add('hidden');
     }
   }
 
   renderMasterServices();
+  renderMasterPortfolio();
 }
 
 function saveMasterProfileInfo() {
@@ -974,16 +1339,50 @@ function saveMasterProfileInfo() {
   const lastNameInput = document.getElementById('masterProfileLastNameInput');
   const roleInput = document.getElementById('masterProfileRoleInput');
   const expInput = document.getElementById('masterProfileExpInput');
+  const phoneInput = document.getElementById('masterProfilePhoneInput');
+  const tgInput = document.getElementById('masterProfileTelegramInput');
   const bioInput = document.getElementById('masterProfileBioInput');
 
   if (nameInput && nameInput.value.trim()) data.name = nameInput.value.trim();
   if (lastNameInput) data.lastName = lastNameInput.value.trim();
   if (roleInput && roleInput.value.trim()) data.role_title = roleInput.value.trim();
   if (expInput && expInput.value.trim()) data.experience = expInput.value.trim();
+  if (phoneInput) data.phone = phoneInput.value.trim();
+  if (tgInput) {
+    const rawTg = tgInput.value.trim();
+    data.telegram_handle = rawTg ? (rawTg.startsWith('@') ? rawTg : `@${rawTg}`) : '';
+  }
   if (bioInput) data.bio = bioInput.value.trim();
 
   saveMasterData(data);
-  showToast('Профиль мастера сохранен! ✅');
+  renderMasterProfile();
+  showToast('Профиль мастера сохранен в базе данных! ✅');
+}
+
+function handleMasterCoverSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const dataUrl = e.target.result;
+    const data = getMasterData();
+    data.cover_url = dataUrl;
+    saveMasterData(data);
+    renderMasterProfile();
+    showToast('Обложка профиля мастера обновлена! 🖼️');
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function confirmDeleteMasterCover(event) {
+  if (event) event.stopPropagation();
+  const data = getMasterData();
+  data.cover_url = '';
+  saveMasterData(data);
+  renderMasterProfile();
+  showToast('Обложка удалена');
 }
 
 function handleMasterProfileAvatarUploaded(event) {
@@ -993,14 +1392,81 @@ function handleMasterProfileAvatarUploaded(event) {
   const reader = new FileReader();
   reader.onload = function (e) {
     const dataUrl = e.target.result;
-    const data = getMasterData();
-    data.avatar_url = dataUrl;
-    saveMasterData(data);
-    renderMasterProfile();
-    showToast('Аватар мастера обновлен! 📸');
+    if (typeof openImageCropper === 'function') {
+      openImageCropper(dataUrl, 'master');
+    } else {
+      const data = getMasterData();
+      data.avatar_url = dataUrl;
+      saveMasterData(data);
+      renderMasterProfile();
+      showToast('Аватар мастера обновлен! 📸');
+    }
   };
   reader.readAsDataURL(file);
   event.target.value = '';
+}
+
+function confirmDeleteMasterAvatar(event) {
+  if (event) event.stopPropagation();
+  const data = getMasterData();
+  data.avatar_url = '';
+  saveMasterData(data);
+  renderMasterProfile();
+  showToast('Аватар удален');
+}
+
+function handleMasterPortfolioSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const dataUrl = e.target.result;
+    const data = getMasterData();
+    if (!Array.isArray(data.portfolio_photos)) data.portfolio_photos = [];
+    data.portfolio_photos.push(dataUrl);
+    saveMasterData(data);
+    renderMasterPortfolio();
+    showToast('Фото работы добавлено в портфолио! 📸');
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function deleteMasterPortfolioPhoto(index) {
+  const data = getMasterData();
+  if (Array.isArray(data.portfolio_photos)) {
+    data.portfolio_photos.splice(index, 1);
+    saveMasterData(data);
+    renderMasterPortfolio();
+    showToast('Фото удалено из портфолио 🗑️');
+  }
+}
+
+function renderMasterPortfolio() {
+  const container = document.getElementById('masterProfilePortfolioGrid');
+  if (!container) return;
+  const data = getMasterData();
+  const photos = Array.isArray(data.portfolio_photos) ? data.portfolio_photos : [];
+
+  if (photos.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-3 py-6 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+        У вас пока нет фото в портфолио. Нажмите «Добавить фото», чтобы показать свои работы клиентам!
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = photos.map((p, idx) => `
+    <div class="relative rounded-2xl overflow-hidden aspect-square border border-slate-200 shadow-2xs group">
+      <img src="${p}" class="w-full h-full object-cover" />
+      <button type="button" onclick="deleteMasterPortfolioPhoto(${idx})" title="Удалить фото"
+        class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center text-xs shadow-md active:scale-90 transition-all">
+        ✕
+      </button>
+    </div>
+  `).join('');
 }
 
 function toggleMasterNotifications(enabled) {
@@ -1292,3 +1758,19 @@ window.saveMasterService = saveMasterService;
 window.deleteMasterService = deleteMasterService;
 window.checkAndRenderMasterPanelButton = checkAndRenderMasterPanelButton;
 window.copyMasterInviteLink = copyMasterInviteLink;
+window.renderMasterClients = renderMasterClients;
+window.filterMasterClients = filterMasterClients;
+window.clearMasterClientSearch = clearMasterClientSearch;
+window.setMasterClientFilter = setMasterClientFilter;
+window.openMasterClientProfileById = openMasterClientProfileById;
+window.openClientTelegramChat = openClientTelegramChat;
+window.addMasterDaySlot = addMasterDaySlot;
+window.deleteMasterDaySlot = deleteMasterDaySlot;
+window.copyMasterSlotsToAllDays = copyMasterSlotsToAllDays;
+window.syncMasterSlotsToVenues = syncMasterSlotsToVenues;
+window.handleMasterCoverSelected = handleMasterCoverSelected;
+window.confirmDeleteMasterCover = confirmDeleteMasterCover;
+window.confirmDeleteMasterAvatar = confirmDeleteMasterAvatar;
+window.handleMasterPortfolioSelected = handleMasterPortfolioSelected;
+window.deleteMasterPortfolioPhoto = deleteMasterPortfolioPhoto;
+window.renderMasterPortfolio = renderMasterPortfolio;
