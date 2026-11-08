@@ -5,7 +5,7 @@ from aiohttp import web
 from sqlalchemy import select
 
 from bot.database.base import async_session_maker
-from bot.database.models import Salon, User, Master
+from bot.database.models import Salon, User, Master, Booking
 from bot.database.requests import sync_salon_masters, transliterate_to_latin
 from bot.handlers.user import get_user_app_url
 from aiogram.types import MenuButtonWebApp, WebAppInfo
@@ -444,6 +444,132 @@ async def handle_update_master(request: web.Request) -> web.Response:
         }, headers=CORS_HEADERS)
 
 
+async def handle_create_booking(request: web.Request) -> web.Response:
+    """Создает новую запись клиента и сохраняет в БД PostgreSQL"""
+    try:
+        data = await request.json()
+    except Exception as e:
+        return web.json_response({"error": f"Invalid JSON: {e}"}, status=400, headers=CORS_HEADERS)
+
+    user_id_raw = data.get("user_id") or 1205557089
+    try:
+        user_id = int(user_id_raw)
+    except Exception:
+        user_id = 1205557089
+
+    salon_name = data.get("salon") or "Beauty Studio"
+    master_name = data.get("master") or "Алина Романова"
+    booking_date = data.get("date") or "Сегодня"
+    booking_time = data.get("time") or "14:00"
+    services = data.get("services") or "Маникюр"
+    total_price = float(data.get("total") or 0.0)
+    status = data.get("status") or "active"
+    client_name = data.get("client_name") or "Клиент"
+    client_phone = data.get("client_phone") or ""
+    client_handle = data.get("client_handle") or ""
+    salon_id_raw = data.get("salon_id")
+    master_id_raw = data.get("master_id")
+
+    salon_id = int(salon_id_raw) if salon_id_raw and str(salon_id_raw).isdigit() else 1
+    master_id = int(master_id_raw) if master_id_raw and str(master_id_raw).isdigit() else None
+
+    async with async_session_maker() as session:
+        # Убеждаемся, что пользователь существует в users
+        u_res = await session.execute(select(User).where(User.telegram_id == user_id))
+        user = u_res.scalar_one_or_none()
+        if not user:
+            user = User(
+                telegram_id=user_id,
+                first_name=client_name or "Клиент",
+                phone=client_phone or None,
+                username=client_handle.replace("@", "") if client_handle else None
+            )
+            session.add(user)
+            await session.flush()
+        elif client_phone and not user.phone:
+            user.phone = client_phone
+
+        booking = Booking(
+            user_id=user_id,
+            salon_id=salon_id,
+            salon=salon_name,
+            master_id=master_id,
+            master=master_name,
+            client_name=client_name,
+            client_phone=client_phone,
+            client_handle=client_handle,
+            booking_date=booking_date,
+            booking_time=booking_time,
+            services=services,
+            total_price=total_price,
+            status=status
+        )
+        session.add(booking)
+        await session.commit()
+        await session.refresh(booking)
+
+        logger.info(f"✅ [API] Запись #{booking.id} сохранена в PostgreSQL ({client_name} -> {master_name}, {booking_date} в {booking_time})")
+        return web.json_response({
+            "status": "ok",
+            "booking_id": booking.id,
+            "message": "Запись успешно сохранена в базе данных"
+        }, headers=CORS_HEADERS)
+
+
+async def handle_get_pro_bookings(request: web.Request) -> web.Response:
+    """Возвращает все записи клиентов для отображения в кабинете салона PRO"""
+    async with async_session_maker() as session:
+        res = await session.execute(select(Booking).order_by(Booking.id.desc()))
+        bookings = res.scalars().all()
+        items = []
+        for b in bookings:
+            items.append({
+                "id": f"pro_bk_{b.id}",
+                "bookingId": b.id,
+                "clientName": b.client_name or (b.user.first_name if b.user and b.user.first_name else "Клиент"),
+                "clientPhone": b.client_phone or (b.user.phone if b.user and b.user.phone else ""),
+                "clientHandle": b.client_handle or (f"@{b.user.username}" if b.user and b.user.username else ""),
+                "salon": b.salon,
+                "salon_id": b.salon_id,
+                "master": b.master,
+                "master_id": b.master_id,
+                "service": b.services,
+                "price": b.total_price,
+                "date": b.booking_date,
+                "time": b.booking_time,
+                "status": b.status,
+                "createdAt": int(b.created_at.timestamp() * 1000) if getattr(b, "created_at", None) else 0
+            })
+        return web.json_response({"status": "ok", "bookings": items}, headers=CORS_HEADERS)
+
+
+async def handle_update_booking_status(request: web.Request) -> web.Response:
+    """Обновляет статус записи (active, completed, cancelled) в PostgreSQL"""
+    try:
+        data = await request.json()
+    except Exception as e:
+        return web.json_response({"error": f"Invalid JSON: {e}"}, status=400, headers=CORS_HEADERS)
+
+    booking_id_raw = data.get("booking_id")
+    new_status = data.get("status") or "completed"
+
+    if not booking_id_raw:
+        return web.json_response({"error": "booking_id is required"}, status=400, headers=CORS_HEADERS)
+
+    clean_id_str = str(booking_id_raw).replace("pro_bk_", "").replace("bk_", "").replace("pro_", "")
+    if clean_id_str.isdigit():
+        async with async_session_maker() as session:
+            res = await session.execute(select(Booking).where(Booking.id == int(clean_id_str)))
+            booking = res.scalar_one_or_none()
+            if booking:
+                booking.status = new_status
+                await session.commit()
+                logger.info(f"✅ [API] Статус записи #{booking.id} обновлен на '{new_status}'")
+                return web.json_response({"status": "ok", "booking_id": booking.id, "new_status": new_status}, headers=CORS_HEADERS)
+
+    return web.json_response({"status": "ok", "note": "Updated locally or demo booking"}, headers=CORS_HEADERS)
+
+
 async def start_api_server(bot, host="0.0.0.0", port=8080):
     """Запускает HTTP сервер для прямого взаимодействия с Mini App"""
     app = web.Application()
@@ -460,10 +586,16 @@ async def start_api_server(bot, host="0.0.0.0", port=8080):
     app.router.add_post("/api/master_update", handle_update_master)
     app.router.add_options("/api/master_get", handle_cors_options)
     app.router.add_get("/api/master_get", handle_get_master)
+    app.router.add_options("/api/booking_create", handle_cors_options)
+    app.router.add_post("/api/booking_create", handle_create_booking)
+    app.router.add_options("/api/pro_bookings_get", handle_cors_options)
+    app.router.add_get("/api/pro_bookings_get", handle_get_pro_bookings)
+    app.router.add_options("/api/booking_update_status", handle_cors_options)
+    app.router.add_post("/api/booking_update_status", handle_update_booking_status)
 
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
-    logger.info(f"🚀 Локальный HTTP API сервер запущен на http://127.0.0.1:{port} (эндпоинты /api/pro_salon_update, /api/pro_salon_get, /api/user_phone_update, /api/user_phone_get, /api/master_update, /api/master_get)")
+    logger.info(f"🚀 Локальный HTTP API сервер запущен на http://127.0.0.1:{port} (эндпоинты /api/booking_create, /api/pro_bookings_get, /api/booking_update_status)")
     return runner

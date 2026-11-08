@@ -1026,14 +1026,34 @@
     }
 
     function openDirectBooking(opts) {
+      const activeVenues = (typeof venues !== 'undefined') ? venues : [];
+      const currentSalon = activeVenues.find(v => v.id === state.activeSalon) || activeVenues[0] || (typeof getProSalonData === 'function' ? getProSalonData() : null);
+
+      const effSalonName = opts.salon || currentSalon?.name || 'Beauty Studio';
+      const effAddress = opts.address || currentSalon?.address || 'ул. Большая Садовая, 42';
+      const effMaster = opts.master || (state.currentBooking?.master || 'Алина Романова');
+      const effDate = opts.date || state.selectedDate || 'Сегодня';
+      const effTime = opts.time || state.selectedTime || '14:00';
+      const effPrice = (opts.price !== undefined) ? opts.price : 2500;
+      const effService = opts.service || 'Маникюр с покрытием гель-лак Luxio';
+
+      let effDateKey = opts.dateKey;
+      if (!effDateKey && typeof getFormattedDateKey === 'function') {
+        effDateKey = (effDate === 'Завтра') ? getFormattedDateKey(1) : getFormattedDateKey(0);
+      }
+
       state.currentBooking = {
-        salon: opts.salon || 'Beauty Studio',
-        address: opts.address || 'ул. Большая Садовая, 42',
-        master: opts.master || (state.currentBooking?.master || 'Алина Романова'),
-        service: opts.service || 'Маникюр с покрытием гель-лак Luxio',
-        price: opts.price || 2500,
-        date: opts.date || state.selectedDate || 'Сегодня',
-        time: opts.time || state.selectedTime || '14:00'
+        salon: effSalonName,
+        salonId: opts.salonId || currentSalon?.id || 1,
+        address: effAddress,
+        master: effMaster,
+        masterId: opts.masterId || '',
+        service: effService,
+        price: effPrice,
+        duration: opts.duration || 60,
+        date: effDate,
+        dateKey: effDateKey || (new Date().toISOString().split('T')[0]),
+        time: effTime
       };
 
       const mSalon = document.getElementById('modalSalon');
@@ -1056,13 +1076,33 @@
     }
 
     function openBookingConfirmationModal() {
+      const activeVenues = (typeof venues !== 'undefined') ? venues : [];
+      const salon = activeVenues.find(v => v.id === state.activeSalon) || activeVenues[0] || (typeof getProSalonData === 'function' ? getProSalonData() : null);
+      const salonName = salon?.name || 'Beauty Studio';
+      const salonAddr = salon?.address || 'ул. Большая Садовая, 42';
+
+      const masterInfo = (typeof getMasterById === 'function') ? getMasterById(state.activeMaster) : null;
+      const masterName = masterInfo?.name || (state.activeMaster ? 'Мастер' : 'Алина Романова');
+      const masterId = masterInfo?.id || state.activeMaster || 'm_1';
+
+      const selectedSvcs = (state.selectedServices && state.selectedServices.length) ? state.selectedServices : [
+        { name: 'Маникюр с покрытием гель-лак Luxio', price: 2500, duration: 60 }
+      ];
+      const svcName = selectedSvcs.map(s => s.name).join(' + ');
+      const total = selectedSvcs.reduce((sum, s) => sum + (s.price || 0), 0);
+      const totalDuration = selectedSvcs.reduce((sum, s) => sum + (s.duration || 60), 0);
+
       openDirectBooking({
-        salon: 'Beauty Studio',
-        master: 'Алина Романова',
-        service: state.selectedServices.map(s => s.name).join(' + '),
-        price: state.selectedServices.reduce((sum, s) => sum + s.price, 0),
-        date: state.selectedDate,
-        time: state.selectedTime
+        salon: salonName,
+        salonId: salon?.id || 1,
+        address: salonAddr,
+        master: masterName,
+        masterId: masterId,
+        service: svcName,
+        price: total,
+        duration: totalDuration,
+        date: state.selectedDate || 'Сегодня',
+        time: state.selectedTime || '14:00'
       });
     }
 
@@ -1081,30 +1121,126 @@
         salon: 'Beauty Studio',
         address: 'ул. Большая Садовая, 42',
         master: 'Алина Романова',
+        masterId: 'm_1',
         service: 'Маникюр с покрытием гель-лак Luxio',
         price: 2500,
+        duration: 60,
         date: 'Сегодня',
         time: '14:00'
       };
 
+      // Получаем реальные данные клиента
+      let clientName = 'Клиент';
+      if (state.user?.first_name || state.user?.last_name) {
+        clientName = `${state.user.first_name || ''} ${state.user.last_name || ''}`.trim();
+      } else if (state.user?.username) {
+        clientName = `@${state.user.username}`;
+      } else {
+        clientName = 'Анна Смирнова';
+      }
+
+      const clientPhone = state.user?.phone || localStorage.getItem('okoshko_user_phone_v1') || '+7 (925) 345-67-89';
+      const clientHandle = state.user?.username ? `@${state.user.username}` : '@anna_smirnova';
+
+      let effDateKey = bookingData.dateKey;
+      if (!effDateKey) {
+        if (typeof getFormattedDateKey === 'function') {
+          effDateKey = (bookingData.date === 'Завтра') ? getFormattedDateKey(1) : getFormattedDateKey(0);
+        } else {
+          effDateKey = new Date().toISOString().split('T')[0];
+        }
+      }
+
+      // 1. Создаем объект записи для клиента
       const newAppt = {
         id: 'bk_' + Date.now(),
-        salon: bookingData.salon,
+        salon: bookingData.salon || 'Beauty Studio',
+        salonId: bookingData.salonId || 1,
         address: bookingData.address || 'ул. Большая Садовая, 42',
-        master: bookingData.master,
-        service: bookingData.service,
-        date: bookingData.date,
-        time: bookingData.time,
-        total: bookingData.price,
+        master: bookingData.master || 'Алина Романова',
+        masterId: bookingData.masterId || 'm_1',
+        service: bookingData.service || 'Маникюр с покрытием гель-лак Luxio',
+        date: bookingData.date || 'Сегодня',
+        dateKey: effDateKey,
+        time: bookingData.time || '14:00',
+        duration: bookingData.duration || 60,
+        total: bookingData.price || 2500,
+        price: bookingData.price || 2500,
         status: 'active',
         img: bookingData.img || '',
-        rating: '5.0'
+        rating: '5.0',
+        createdAt: Date.now()
       };
 
-      const all = getStoredAppointments();
-      all.unshift(newAppt);
-      saveStoredAppointments(all);
+      // Сохраняем в записи клиента
+      const allClientAppts = getStoredAppointments();
+      allClientAppts.unshift(newAppt);
+      saveStoredAppointments(allClientAppts);
       renderAppointments();
+
+      // 2. СОХРАНЯЕМ В ЗАПИСИ САЛОНА (PRO APPOINTMENTS для календаря салона)
+      try {
+        const proAppointments = (typeof getProAppointments === 'function') ? getProAppointments() : [];
+        const proAppt = {
+          id: 'pro_' + newAppt.id,
+          bookingId: newAppt.id,
+          clientName: clientName,
+          clientPhone: clientPhone,
+          clientHandle: clientHandle,
+          salon: newAppt.salon,
+          salonId: newAppt.salonId,
+          master: newAppt.master,
+          masterId: newAppt.masterId,
+          service: newAppt.service,
+          price: newAppt.total,
+          date: newAppt.date,
+          dateKey: effDateKey,
+          time: newAppt.time,
+          duration: newAppt.duration,
+          status: 'active',
+          createdAt: Date.now()
+        };
+
+        // Удаляем дубликат по bookingId если был, и добавляем вперед
+        const filteredPro = proAppointments.filter(p => p.bookingId !== newAppt.id && p.id !== proAppt.id);
+        filteredPro.unshift(proAppt);
+
+        if (typeof saveProAppointments === 'function') {
+          saveProAppointments(filteredPro);
+        } else {
+          localStorage.setItem('okoshko_pro_clients_appointments_v1', JSON.stringify(filteredPro));
+        }
+        console.log('✅ Запись клиента успешно добавлена в расписание салона PRO:', proAppt);
+      } catch (proErr) {
+        console.warn('Ошибка сохранения записи в PRO:', proErr);
+      }
+
+      // 3. Синхронизируем с Backend API сервером PostgreSQL при наличии
+      try {
+        fetch('http://127.0.0.1:8080/api/booking_create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: state.user?.id || 1205557089,
+            client_name: clientName,
+            client_phone: clientPhone,
+            client_handle: clientHandle,
+            salon: newAppt.salon,
+            salon_id: newAppt.salonId,
+            master: newAppt.master,
+            master_id: newAppt.masterId,
+            date: newAppt.date,
+            time: newAppt.time,
+            services: newAppt.service,
+            total: newAppt.total,
+            status: 'active'
+          })
+        }).then(res => res.json()).then(data => {
+          if (data && data.booking_id) {
+            console.log('✅ Бронь сохранена в базе данных API:', data.booking_id);
+          }
+        }).catch(() => {});
+      } catch (apiErr) { }
 
       showToast('🎉 Запись успешно подтверждена!');
 
@@ -1114,7 +1250,7 @@
         }
       } catch (e) { }
 
-      // Send to bot backend via Telegram WebApp sendData
+      // 4. Отправляем в Telegram-бот через sendData если Mini App открыт из чата
       try {
         if (window.Telegram?.WebApp?.sendData) {
           window.Telegram.WebApp.sendData(JSON.stringify({
@@ -1124,7 +1260,10 @@
             date: newAppt.date,
             time: newAppt.time,
             services: newAppt.service,
-            total: newAppt.total
+            total: newAppt.total,
+            client_name: clientName,
+            client_phone: clientPhone,
+            client_handle: clientHandle
           }));
         }
       } catch (e) {

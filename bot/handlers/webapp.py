@@ -33,6 +33,9 @@ async def handle_web_app_data(message: Message):
             booking_id = None
             if message.from_user:
                 try:
+                    c_name = data.get("client_name") or f"{message.from_user.first_name or ''} {message.from_user.last_name or ''}".strip() or "Клиент"
+                    c_phone = data.get("client_phone") or ""
+                    c_handle = data.get("client_handle") or (f"@{message.from_user.username}" if message.from_user.username else "")
                     await get_or_create_user(
                         telegram_id=message.from_user.id,
                         username=message.from_user.username,
@@ -47,6 +50,12 @@ async def handle_web_app_data(message: Message):
                         booking_time=time,
                         services=services,
                         total_price=float(total) if total else 0.0,
+                        status="confirmed",
+                        client_name=c_name,
+                        client_phone=c_phone,
+                        client_handle=c_handle,
+                        salon_id=data.get("salon_id"),
+                        master_id=data.get("master_id"),
                     )
                     booking_id = booking.id
                 except Exception as e:

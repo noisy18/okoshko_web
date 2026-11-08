@@ -60,6 +60,12 @@ async def init_db():
             # Миграции колонок users
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) DEFAULT 'client';"))
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS salon_id INTEGER;"))
+            # Миграции колонок bookings
+            await conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_name VARCHAR(128);"))
+            await conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_phone VARCHAR(32);"))
+            await conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_handle VARCHAR(128);"))
+            await conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS salon_id INTEGER;"))
+            await conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS master_id INTEGER;"))
         logger.info("✅ База данных PostgreSQL успешно инициализирована.")
     except Exception as e:
         logger.error(f"❌ Ошибка подключения к базе данных PostgreSQL: {e}")

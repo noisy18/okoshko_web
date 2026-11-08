@@ -543,3 +543,54 @@
       background-size: 33.333% 33.333%;
     }
 
+    /* ======================================================== */
+    /* GOOGLE CALENDAR SCHEDULE GRID STYLES FOR SALON (PRO)     */
+    /* ======================================================== */
+    .google-cal-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+    }
+
+    .google-cal-corner-sticky {
+      position: sticky;
+      left: 0;
+      top: 0;
+      z-index: 40;
+      background-color: #f1f5f9;
+    }
+
+    .google-cal-header-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background-color: #f8fafc;
+    }
+
+    .google-cal-master-sticky {
+      position: sticky;
+      left: 0;
+      z-index: 20;
+      background-color: #ffffff;
+      box-shadow: 3px 0 10px rgba(0, 0, 0, 0.04);
+    }
+
+    .google-cal-cell {
+      position: relative;
+      transition: background-color 0.15s ease;
+    }
+
+    .google-cal-cell:hover {
+      background-color: #f8fafc;
+    }
+
+    .google-cal-event-card {
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      user-select: none;
+    }
+
+    .google-cal-event-card:active {
+      transform: scale(0.97);
+    }
+
+

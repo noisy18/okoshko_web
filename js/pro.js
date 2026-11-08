@@ -12,40 +12,117 @@ const PRO_APPOINTMENTS_STORAGE_KEY = 'okoshko_pro_clients_appointments_v1';
 const BOT_LINK = 'https://t.me/okooshko_bot';
 
 // Default initial state for PRO Salon (Clean baseline partner, no mock data)
+function getFormattedDateKey(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+const DEFAULT_INITIAL_SERVICES = [
+  { id: 'svc_1', name: 'Маникюр с покрытием гель-лак Luxio', price: 2500, duration: 60, desc: 'Аппаратный маникюр, укрепление и покрытие Luxio', masterIds: ['m_1', 'm_2'] },
+  { id: 'svc_2', name: 'Архитектура и окрашивание бровей', price: 1800, duration: 45, desc: 'Подбор формы, коррекция пинцетом/воском, окрашивание', masterIds: ['m_2', 'm_3'] },
+  { id: 'svc_3', name: 'Smart-педикюр с покрытием', price: 3200, duration: 80, desc: 'Комплексная обработка стоп дисками и пальчиков с покрытием', masterIds: ['m_1', 'm_3'] },
+  { id: 'svc_4', name: 'Ламинирование ресниц + ботокс', price: 2400, duration: 60, desc: 'Эффектный изгиб, глубокое питание и окрашивание', masterIds: ['m_2'] }
+];
+
+const DEFAULT_INITIAL_MASTERS = [
+  { id: 'm_1', name: 'Алина Романова', lastName: 'Романова', role_title: 'Топ-мастер ногтевого сервиса', experience: '5 лет', rating: 5.0, grade_badge: 'TOP MASTER', avatar_url: '', telegram_handle: '@alina_nails', telegram_id: null },
+  { id: 'm_2', name: 'Мария Иванова', lastName: 'Иванова', role_title: 'Стилист-бровист и лэшмейкер', experience: '4 года', rating: 4.9, grade_badge: 'PRO', avatar_url: '', telegram_handle: '@maria_beauty', telegram_id: null },
+  { id: 'm_3', name: 'Елена Васильева', lastName: 'Васильева', role_title: 'Мастер педикюра и подологии', experience: '6 лет', rating: 5.0, grade_badge: 'EXPERT', avatar_url: '', telegram_handle: '@elena_podolog', telegram_id: null }
+];
+
 const DEFAULT_PRO_SALON = {
-  name: '',
-  city: 'Ростов-на-Дону',
-  cityKey: 'rostov',
-  address: '',
-  latitude: 47.239300,
-  longitude: 39.711800,
-  phone: '',
+  name: 'Beauty Studio',
+  city: 'Москва',
+  cityKey: 'moscow',
+  address: 'ул. Большая Садовая, 42',
+  latitude: 55.765000,
+  longitude: 37.605000,
+  phone: '+7 (925) 123-45-67',
   creatorTag: '@maximtepin',
-  adminTag: '', // Не назначен по умолчанию
+  adminTag: '',
   notificationsEnabled: true,
-  categoryText: '',
+  categoryText: 'Салон красоты • Маникюр • Брови',
   rating: '5.0',
-  reviewsCount: 0,
+  reviewsCount: 148,
   avatarUrl: '',
   coverUrl: '',
   updatedAt: 0,
-  services: [],
-  masters: [],
+  services: DEFAULT_INITIAL_SERVICES,
+  masters: DEFAULT_INITIAL_MASTERS,
   photos: [],
-  filterTags: [],
-  salonType: '',
-  searchKeywords: [],
-  isPromoted: false,
-  top: false,
+  filterTags: ['Маникюр', 'Педикюр', 'Брови'],
+  salonType: 'Салон красоты',
+  searchKeywords: ['маникюр', 'брови', 'педикюр', 'салон'],
+  isPromoted: true,
+  top: true,
   schedule: {
     days: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
-    workFrom: '07:00',
+    workFrom: '09:00',
     workTo: '21:00'
   }
 };
 
-// Default initial client appointments for PRO partner (Clean baseline)
-const DEFAULT_PRO_APPOINTMENTS = [];
+// Default initial client appointments for PRO partner (Realistic Google Calendar appointments)
+const DEFAULT_PRO_APPOINTMENTS = [
+  {
+    id: 'pro_demo_1',
+    bookingId: 'bk_demo_1',
+    clientName: 'Анна Смирнова',
+    clientPhone: '+7 (925) 345-67-89',
+    clientHandle: '@anna_smirnova',
+    salon: 'Beauty Studio',
+    master: 'Алина Романова',
+    masterId: 'm_1',
+    service: 'Маникюр с покрытием гель-лак Luxio',
+    price: 2500,
+    date: 'Сегодня',
+    dateKey: getFormattedDateKey(0),
+    time: '11:00',
+    duration: 60,
+    status: 'active',
+    createdAt: Date.now() - 3600000 * 2
+  },
+  {
+    id: 'pro_demo_2',
+    bookingId: 'bk_demo_2',
+    clientName: 'Дарья Ковалева',
+    clientPhone: '+7 (918) 789-01-23',
+    clientHandle: '@daria_k',
+    salon: 'Beauty Studio',
+    master: 'Мария Иванова',
+    masterId: 'm_2',
+    service: 'Архитектура и окрашивание бровей',
+    price: 1800,
+    date: 'Сегодня',
+    dateKey: getFormattedDateKey(0),
+    time: '14:00',
+    duration: 45,
+    status: 'active',
+    createdAt: Date.now() - 3600000
+  },
+  {
+    id: 'pro_demo_3',
+    bookingId: 'bk_demo_3',
+    clientName: 'Виктория Соколова',
+    clientPhone: '+7 (903) 456-78-90',
+    clientHandle: '@vika_sokolova',
+    salon: 'Beauty Studio',
+    master: 'Елена Васильева',
+    masterId: 'm_3',
+    service: 'Smart-педикюр с покрытием',
+    price: 3200,
+    date: 'Завтра',
+    dateKey: getFormattedDateKey(1),
+    time: '12:00',
+    duration: 80,
+    status: 'active',
+    createdAt: Date.now() - 1800000
+  }
+];
 
 function getProSalonData() {
   try {
@@ -53,7 +130,16 @@ function getProSalonData() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        return Object.assign({}, DEFAULT_PRO_SALON, parsed);
+        const merged = Object.assign({}, DEFAULT_PRO_SALON, parsed);
+        if (!merged.masters || merged.masters.length === 0) {
+          merged.masters = JSON.parse(JSON.stringify(DEFAULT_INITIAL_MASTERS));
+        }
+        if (!merged.services || merged.services.length === 0) {
+          merged.services = JSON.parse(JSON.stringify(DEFAULT_INITIAL_SERVICES));
+        }
+        if (!merged.name) merged.name = 'Beauty Studio';
+        if (!merged.address) merged.address = 'ул. Большая Садовая, 42';
+        return merged;
       }
     }
   } catch (e) { }
@@ -204,8 +290,8 @@ function syncVenuesWithProSalon(data) {
         owner_id: data.owner_id || null,
         coords: [lat, lon],
         description: data.description || '',
-        services: data.services || [],
-        masters: data.masters || [],
+        services: (data.services && data.services.length) ? data.services : DEFAULT_INITIAL_SERVICES,
+        masters: (data.masters && data.masters.length) ? data.masters : DEFAULT_INITIAL_MASTERS,
         schedule: data.schedule || {
           days: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
           workFrom: '07:00',
@@ -3528,7 +3614,373 @@ function saveProServiceMastersEdit() {
 }
 
 // ------------------------------------------
-// PRO CLIENT APPOINTMENTS RENDERING
+// PRO CLIENT APPOINTMENTS & GOOGLE CALENDAR RENDERING
+// ------------------------------------------
+let proCalendarActiveDateKey = (typeof getFormattedDateKey === 'function') ? getFormattedDateKey(0) : new Date().toISOString().split('T')[0];
+let proAppointmentsViewMode = 'calendar'; // 'calendar' | 'list'
+let activeProModalApptId = null;
+
+const PRO_CAL_TIME_SLOTS = [
+  '09:00', '10:00', '11:00', '12:00', '13:00', '14:00',
+  '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'
+];
+
+function pluralizeVisits(n) {
+  if (n % 10 === 1 && n % 100 !== 11) return 'запись';
+  if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'записи';
+  return 'записей';
+}
+
+function switchProApptsView(mode) {
+  proAppointmentsViewMode = mode;
+  const calBtn = document.getElementById('proViewBtnCalendar');
+  const listBtn = document.getElementById('proViewBtnList');
+  const calContainer = document.getElementById('proCalendarViewContainer');
+  const listContainer = document.getElementById('proListViewContainer');
+
+  if (mode === 'calendar') {
+    if (calBtn) calBtn.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all shadow-xs bg-white text-primary flex items-center justify-center gap-1.5';
+    if (listBtn) listBtn.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1.5';
+    if (calContainer) calContainer.classList.remove('hidden');
+    if (listContainer) listContainer.classList.add('hidden');
+  } else {
+    if (listBtn) listBtn.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all shadow-xs bg-white text-primary flex items-center justify-center gap-1.5';
+    if (calBtn) calBtn.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1.5';
+    if (listContainer) listContainer.classList.remove('hidden');
+    if (calContainer) calContainer.classList.add('hidden');
+  }
+  renderProAppointments();
+}
+
+function navProCalendarDate(offset) {
+  try {
+    const parts = proCalendarActiveDateKey.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    d.setDate(d.getDate() + offset);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    proCalendarActiveDateKey = `${y}-${m}-${day}`;
+  } catch (e) {
+    proCalendarActiveDateKey = getFormattedDateKey(0);
+  }
+  renderProCalendarDayStrip();
+  renderProCalendarGrid();
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+  } catch (e) { }
+}
+
+function navProCalendarToday() {
+  proCalendarActiveDateKey = getFormattedDateKey(0);
+  renderProCalendarDayStrip();
+  renderProCalendarGrid();
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    }
+  } catch (e) { }
+}
+
+function selectProCalendarDate(dateKey) {
+  proCalendarActiveDateKey = dateKey;
+  renderProCalendarDayStrip();
+  renderProCalendarGrid();
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+  } catch (e) { }
+}
+
+// Нормализация и проверка попадания записи на выбранную дату
+function isApptOnDate(appt, targetDateKey) {
+  if (!appt) return false;
+  const todayKey = getFormattedDateKey(0);
+  const tomorrowKey = getFormattedDateKey(1);
+
+  if (appt.dateKey && appt.dateKey === targetDateKey) return true;
+
+  const apptDateStr = String(appt.date || '').trim().toLowerCase();
+  if (apptDateStr === 'сегодня' && targetDateKey === todayKey) return true;
+  if (apptDateStr === 'завтра' && targetDateKey === tomorrowKey) return true;
+
+  // Проверка по дате YYYY-MM-DD в строке
+  if (apptDateStr.includes(targetDateKey)) return true;
+
+  // Проверка по числу и месяцу (например "8 ноября" или "08.11")
+  try {
+    const parts = targetDateKey.split('-').map(Number);
+    const targetDay = parts[2];
+    const targetMonthIdx = parts[1] - 1;
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const targetMonthShort = months[targetMonthIdx];
+
+    if (apptDateStr.includes(`${targetDay}`) && apptDateStr.includes(targetMonthShort)) {
+      return true;
+    }
+  } catch (e) { }
+
+  return false;
+}
+
+// Рендеринг горизонтальной полосы дней (Google Calendar strip)
+function renderProCalendarDayStrip() {
+  const strip = document.getElementById('proCalendarDayStrip');
+  if (!strip) return;
+
+  const allAppts = getProAppointments();
+  const days = [];
+  const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+  // Генерируем 14 дней (от вчера до +12 дней)
+  for (let i = -1; i <= 12; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const key = `${y}-${m}-${day}`;
+
+    const apptsCount = allAppts.filter(a => isApptOnDate(a, key) && a.status === 'active').length;
+    let label = (i === 0) ? 'Сегодня' : (i === 1 ? 'Завтра' : weekdays[d.getDay()]);
+
+    days.push({
+      key,
+      dayNum: d.getDate(),
+      monthShort: months[d.getMonth()],
+      weekday: label,
+      isToday: (i === 0),
+      count: apptsCount
+    });
+  }
+
+  strip.innerHTML = days.map(d => {
+    const isSelected = (d.key === proCalendarActiveDateKey);
+    return `
+      <button type="button" onclick="selectProCalendarDate('${d.key}')"
+        class="flex flex-col items-center justify-center min-w-[58px] py-2 px-1.5 rounded-2xl border transition-all active:scale-95 shrink-0 ${isSelected ? 'bg-primary text-white border-primary shadow-xs' : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'}">
+        <span class="text-[9px] uppercase font-bold tracking-tight ${isSelected ? 'text-white/80' : 'text-slate-400'}">${d.weekday}</span>
+        <span class="text-sm font-extrabold mt-0.5">${d.dayNum}</span>
+        <div class="h-4 flex items-center justify-center mt-0.5">
+          ${d.count > 0 ? `
+            <span class="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold ${isSelected ? 'bg-white text-primary' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}">
+              ${d.count}
+            </span>
+          ` : `
+            <span class="text-[9px] text-slate-300 font-medium">${d.monthShort}</span>
+          `}
+        </div>
+      </button>
+    `;
+  }).join('');
+
+  // Обновляем текстовый заголовок активного дня
+  const curDisplay = document.getElementById('proCalendarCurrentDateDisplay');
+  const weekdayDisplay = document.getElementById('proCalendarWeekdayDisplay');
+  if (curDisplay || weekdayDisplay) {
+    try {
+      const parts = proCalendarActiveDateKey.split('-').map(Number);
+      const selDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      const fullMonths = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+      const fullWeekdays = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+
+      const isToday = (proCalendarActiveDateKey === getFormattedDateKey(0));
+      const isTomorrow = (proCalendarActiveDateKey === getFormattedDateKey(1));
+      const prefix = isToday ? 'Сегодня, ' : (isTomorrow ? 'Завтра, ' : '');
+
+      if (curDisplay) curDisplay.textContent = `${prefix}${selDate.getDate()} ${fullMonths[selDate.getMonth()]} ${selDate.getFullYear()}`;
+      if (weekdayDisplay) weekdayDisplay.textContent = fullWeekdays[selDate.getDay()];
+    } catch (e) { }
+  }
+}
+
+// Рендеринг таблицы Google Календаря (мастера слева, даты и время сверху, запись клиента на пересечении)
+function renderProCalendarGrid() {
+  const table = document.getElementById('proCalendarTable');
+  if (!table) return;
+
+  const salonData = getProSalonData();
+  const allAppts = getProAppointments();
+
+  // 1. Получаем список мастеров
+  let masters = (salonData.masters && salonData.masters.length > 0) ? [...salonData.masters] : [...DEFAULT_INITIAL_MASTERS];
+
+  // Добавляем мастеров из существующих записей, если они не указаны в профиле салона
+  allAppts.forEach(a => {
+    if (a.master) {
+      const exists = masters.some(m => (m.id && a.masterId && m.id === a.masterId) || m.name.toLowerCase().includes(a.master.toLowerCase()) || a.master.toLowerCase().includes(m.name.toLowerCase()));
+      if (!exists) {
+        masters.push({
+          id: a.masterId || `m_custom_${Date.now()}`,
+          name: a.master,
+          role_title: 'Специалист',
+          avatar_url: ''
+        });
+      }
+    }
+  });
+
+  // Записи на выбранный день
+  const dayAppts = allAppts.filter(a => isApptOnDate(a, proCalendarActiveDateKey));
+
+  const countLabel = document.getElementById('proCalendarDayCountLabel');
+  if (countLabel) {
+    countLabel.textContent = `${dayAppts.length} ${pluralizeVisits(dayAppts.length)}`;
+  }
+
+  // 2. Формируем THEAD: левый угол (Мастера) + сверху колонки времени
+  let theadHtml = `
+    <thead>
+      <tr>
+        <th class="google-cal-corner-sticky border-b border-r border-slate-200/90 p-3 min-w-[130px] w-[130px] text-left">
+          <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
+            <span class="material-symbols-outlined text-[17px] text-primary">diversity_1</span>
+            <span>Мастера</span>
+          </div>
+        </th>
+  `;
+
+  PRO_CAL_TIME_SLOTS.forEach(time => {
+    theadHtml += `
+      <th class="google-cal-header-sticky border-b border-r border-slate-200/80 p-2.5 text-center text-xs font-bold text-slate-700 min-w-[105px] w-[105px]">
+        <span>${time}</span>
+      </th>
+    `;
+  });
+
+  theadHtml += `</tr></thead>`;
+
+  // 3. Формируем TBODY: строки мастеров, на пересечении с часами - записи клиентов
+  let tbodyHtml = `<tbody>`;
+
+  masters.forEach((m, mIdx) => {
+    // Считаем активные записи мастера на этот день
+    const masterDayAppts = dayAppts.filter(a => {
+      if (a.masterId && m.id && a.masterId === m.id) return true;
+      const an = (a.master || '').toLowerCase();
+      const mn = (m.name || '').toLowerCase();
+      return an.includes(mn) || mn.includes(an);
+    });
+
+    const initials = m.name ? m.name.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase() : 'М';
+    const avatarImg = m.avatar_url ? `<img src="${m.avatar_url}" alt="${m.name}" class="w-full h-full object-cover" />` : initials;
+
+    tbodyHtml += `
+      <tr>
+        <!-- Левая колонка: Мастер (sticky left) -->
+        <td class="google-cal-master-sticky border-b border-r border-slate-200/90 p-2.5 min-w-[130px] w-[130px]">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden shadow-2xs">
+              ${avatarImg}
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-xs font-bold text-on-surface truncate leading-tight">${m.name}</span>
+              <span class="text-[10px] text-slate-400 truncate mt-0.5">${m.role_title || 'Специалист'}</span>
+              ${masterDayAppts.length > 0 ? `
+                <span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/80 rounded px-1.5 py-0.2 mt-0.5 w-fit">
+                  ${masterDayAppts.length} ${pluralizeVisits(masterDayAppts.length)}
+                </span>
+              ` : ''}
+            </div>
+          </div>
+        </td>
+    `;
+
+    // Колонки времени
+    PRO_CAL_TIME_SLOTS.forEach(timeSlot => {
+      const slotHour = parseInt(timeSlot.split(':')[0], 10);
+
+      // Ищем запись для этого мастера в этот час
+      const matchingAppts = masterDayAppts.filter(a => {
+        const apptHour = parseInt((a.time || '14:00').split(':')[0], 10);
+        return apptHour === slotHour;
+      });
+
+      if (matchingAppts.length > 0) {
+        // На пересечении: Запись клиента (Google Calendar Event card)
+        tbodyHtml += `
+          <td class="border-b border-r border-slate-100 p-1.5 min-w-[105px] w-[105px] h-[85px] align-top bg-white">
+            <div class="flex flex-col gap-1 h-full">
+        `;
+
+        matchingAppts.forEach(a => {
+          let theme = {
+            border: 'border-l-emerald-500',
+            bg: 'bg-emerald-50/90 border border-emerald-200/70',
+            textTitle: 'text-emerald-950',
+            icon: 'text-emerald-600',
+            badgeBg: 'bg-emerald-500',
+            badgeText: 'Подтверждена'
+          };
+
+          if (a.status === 'completed') {
+            theme = {
+              border: 'border-l-slate-500',
+              bg: 'bg-slate-50 border border-slate-200/70',
+              textTitle: 'text-slate-800',
+              icon: 'text-slate-500',
+              badgeBg: 'bg-slate-400',
+              badgeText: 'Завершен'
+            };
+          } else if (a.status === 'cancelled') {
+            theme = {
+              border: 'border-l-rose-500',
+              bg: 'bg-rose-50 border border-rose-200/70',
+              textTitle: 'text-rose-900 line-through',
+              icon: 'text-rose-500',
+              badgeBg: 'bg-rose-500',
+              badgeText: 'Отменена'
+            };
+          }
+
+          tbodyHtml += `
+            <div onclick="openProAppointmentDetails('${a.id}')"
+              class="google-cal-event-card p-2 rounded-xl border-l-[3.5px] ${theme.border} ${theme.bg} shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer flex flex-col justify-between min-h-[72px] group">
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center justify-between gap-1 min-w-0">
+                  <div class="flex items-center gap-1 min-w-0">
+                    <span class="material-symbols-outlined text-[13px] ${theme.icon} shrink-0">person</span>
+                    <span class="text-[11px] font-extrabold ${theme.textTitle} truncate">${a.clientName || 'Клиент'}</span>
+                  </div>
+                  <span class="text-[9px] font-bold px-1 rounded shrink-0 ${a.status === 'completed' ? 'bg-slate-200 text-slate-700' : (a.status === 'cancelled' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-800')}">${theme.badgeText}</span>
+                </div>
+                <span class="text-[10px] text-slate-600 font-medium truncate mt-0.5">${a.service || 'Процедура'}</span>
+              </div>
+              <div class="flex items-center justify-between text-[10px] mt-1 pt-1 border-t border-slate-200/50">
+                <span class="font-extrabold text-primary">${a.time}</span>
+                <span class="font-bold text-slate-800">${a.price ? a.price.toLocaleString('ru-RU') + ' ₽' : ''}</span>
+              </div>
+            </div>
+          `;
+        });
+
+        tbodyHtml += `
+            </div>
+          </td>
+        `;
+      } else {
+        // Пустая ячейка на пересечении
+        tbodyHtml += `
+          <td class="google-cal-cell border-b border-r border-slate-100/90 p-1 min-w-[105px] w-[105px] h-[85px] align-middle text-center bg-white group cursor-default">
+            <span class="text-xs text-slate-200 group-hover:text-primary transition-colors select-none font-bold">+</span>
+          </td>
+        `;
+      }
+    });
+
+    tbodyHtml += `</tr>`;
+  });
+
+  tbodyHtml += `</tbody>`;
+  table.innerHTML = theadHtml + tbodyHtml;
+}
+
+// ------------------------------------------
+// PRO APPOINTMENTS MAIN CONTROLLER
 // ------------------------------------------
 function renderProAppointments() {
   const allAppts = getProAppointments();
@@ -3540,9 +3992,14 @@ function renderProAppointments() {
   const historyList = allAppts.filter(a => a.status !== 'active');
 
   if (badge) {
-    badge.textContent = `${activeList.length} активных`;
+    badge.textContent = `${activeList.length} ${pluralizeVisits(activeList.length)}`;
   }
 
+  // 1. Рендерим Google Календарь
+  renderProCalendarDayStrip();
+  renderProCalendarGrid();
+
+  // 2. Рендерим список для переключения в режим "Списком"
   if (activeContainer) {
     if (activeList.length === 0) {
       activeContainer.innerHTML = `
@@ -3552,7 +4009,7 @@ function renderProAppointments() {
           </div>
           <div>
             <h3 class="font-bold text-sm text-on-surface">Нет активных записей</h3>
-            <p class="text-xs text-slate-400 mt-1">Новые записи клиентов на процедуры появятся здесь</p>
+            <p class="text-xs text-slate-400 mt-1">Новые записи клиентов из карточки салона появятся здесь и в календаре</p>
           </div>
         </div>
       `;
@@ -3560,7 +4017,7 @@ function renderProAppointments() {
       activeContainer.innerHTML = activeList.map(a => `
         <div class="p-4 rounded-3xl bg-white shadow-xs border border-slate-200/80 flex flex-col gap-3">
           <div class="flex items-start justify-between">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="openProAppointmentDetails('${a.id}')">
               <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-primary to-primary-container text-white flex items-center justify-center font-bold text-sm shadow-xs">
                 ${a.clientName ? a.clientName[0] : 'К'}
               </div>
@@ -3574,7 +4031,7 @@ function renderProAppointments() {
             </span>
           </div>
 
-          <div class="p-3 rounded-2xl bg-surface-container-low flex flex-col gap-1 text-xs">
+          <div class="p-3 rounded-2xl bg-surface-container-low flex flex-col gap-1 text-xs cursor-pointer" onclick="openProAppointmentDetails('${a.id}')">
             <div class="flex justify-between items-center text-slate-700">
               <span class="font-medium">${a.service}</span>
               <span class="font-bold text-primary">${a.price.toLocaleString('ru-RU')} ₽</span>
@@ -3586,12 +4043,12 @@ function renderProAppointments() {
           </div>
 
           <div class="flex items-center gap-2 pt-1">
-            <button onclick="confirmProAction('Завершить визит?', 'Отметить визит клиента как успешно завершенный?', () => completeProAppointment('${a.id}'))"
-              class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs active:scale-95 transition-all flex items-center justify-center gap-1">
+            <button type="button" onclick="confirmProAction('Завершить визит?', 'Отметить визит клиента как успешно завершенный?', () => completeProAppointment('${a.id}'))"
+              class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs active:scale-95 transition-all flex items-center justify-center gap-1 shadow-2xs">
               <span class="material-symbols-outlined text-[15px]">done_all</span>
               <span>Визит завершен</span>
             </button>
-            <button onclick="confirmProAction('Отменить запись?', 'Вы уверены, что хотите отменить эту запись клиента?', () => cancelProAppointment('${a.id}'))"
+            <button type="button" onclick="confirmProAction('Отменить запись?', 'Вы уверены, что хотите отменить эту запись клиента?', () => cancelProAppointment('${a.id}'))"
               class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs active:scale-95 transition-all">
               Отмена
             </button>
@@ -3606,20 +4063,154 @@ function renderProAppointments() {
       historyContainer.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs">История завершенных визитов пуста</div>';
     } else {
       historyContainer.innerHTML = historyList.map(a => `
-        <div class="p-3 rounded-2xl bg-white border border-slate-200/60 flex items-center justify-between text-xs">
+        <div onclick="openProAppointmentDetails('${a.id}')"
+          class="p-3 rounded-2xl bg-white border border-slate-200/60 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors">
           <div class="flex flex-col">
             <span class="font-bold text-slate-700">${a.clientName}</span>
-            <span class="text-[10px] text-slate-400">${a.service} • ${a.date}</span>
+            <span class="text-[10px] text-slate-400">${a.service} • ${a.date} в ${a.time} • ${a.master}</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="font-bold text-slate-800">${a.price.toLocaleString('ru-RU')} ₽</span>
-            <span class="px-1.5 py-0.5 rounded-full ${a.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'} text-[10px] font-semibold">
+            <span class="px-2 py-0.5 rounded-full ${a.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'} text-[10px] font-semibold">
               ${a.status === 'completed' ? 'Завершен' : 'Отменен'}
             </span>
           </div>
         </div>
       `).join('');
     }
+  }
+
+  // 3. Фоновая синхронизация с API сервером при его наличии
+  try {
+    fetch('http://127.0.0.1:8080/api/pro_bookings_get')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.bookings && Array.isArray(data.bookings) && data.bookings.length > 0) {
+          const current = getProAppointments();
+          let changed = false;
+          data.bookings.forEach(dbAppt => {
+            const idx = current.findIndex(c => c.bookingId === dbAppt.bookingId || c.id === dbAppt.id);
+            if (idx === -1) {
+              current.unshift(dbAppt);
+              changed = true;
+            } else if (current[idx].status !== dbAppt.status) {
+              current[idx].status = dbAppt.status;
+              changed = true;
+            }
+          });
+          if (changed) {
+            localStorage.setItem(PRO_APPOINTMENTS_STORAGE_KEY, JSON.stringify(current));
+            renderProCalendarDayStrip();
+            renderProCalendarGrid();
+          }
+        }
+      })
+      .catch(() => {});
+  } catch (e) { }
+}
+
+// ------------------------------------------
+// PRO APPOINTMENT DETAILS MODAL & ACTIONS
+// ------------------------------------------
+function openProAppointmentDetails(id) {
+  const allAppts = getProAppointments();
+  const appt = allAppts.find(a => a.id === id);
+  if (!appt) {
+    showToast('Запись не найдена');
+    return;
+  }
+
+  activeProModalApptId = id;
+
+  const modal = document.getElementById('proAppointmentDetailsModal');
+  const nameEl = document.getElementById('proApptModalClientName');
+  const tgEl = document.getElementById('proApptModalClientTg');
+  const phoneEl = document.getElementById('proApptModalClientPhone');
+  const avatarFallback = document.getElementById('proApptModalClientAvatarFallback');
+  const tgBtn = document.getElementById('proApptModalTgBtn');
+  const phoneBtn = document.getElementById('proApptModalPhoneBtn');
+
+  const masterEl = document.getElementById('proApptModalMaster');
+  const serviceEl = document.getElementById('proApptModalService');
+  const dateEl = document.getElementById('proApptModalDate');
+  const timeEl = document.getElementById('proApptModalTime');
+  const priceEl = document.getElementById('proApptModalPrice');
+  const statusEl = document.getElementById('proApptModalStatusBadge');
+
+  if (nameEl) nameEl.textContent = appt.clientName || 'Клиент';
+  if (avatarFallback) avatarFallback.textContent = appt.clientName ? appt.clientName[0].toUpperCase() : 'К';
+
+  const tgHandle = appt.clientHandle || '@client';
+  const phone = appt.clientPhone || '+7 (925) 345-67-89';
+
+  if (tgEl) tgEl.textContent = tgHandle;
+  if (phoneEl) phoneEl.textContent = phone;
+
+  if (tgBtn) {
+    const cleanTg = tgHandle.replace('@', '');
+    tgBtn.href = `https://t.me/${cleanTg}`;
+  }
+  if (phoneBtn) {
+    phoneBtn.href = `tel:${phone.replace(/[^+\d]/g, '')}`;
+  }
+
+  if (masterEl) masterEl.textContent = appt.master || 'Алина Романова';
+  if (serviceEl) serviceEl.textContent = appt.service || 'Процедура';
+  if (dateEl) dateEl.textContent = appt.date || 'Сегодня';
+  if (timeEl) timeEl.textContent = appt.time || '14:00';
+  if (priceEl) priceEl.textContent = `${(appt.price || 0).toLocaleString('ru-RU')} ₽`;
+
+  if (statusEl) {
+    if (appt.status === 'completed') {
+      statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200';
+      statusEl.textContent = 'Завершен';
+    } else if (appt.status === 'cancelled') {
+      statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200';
+      statusEl.textContent = 'Отменена';
+    } else {
+      statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200';
+      statusEl.textContent = 'Подтверждена';
+    }
+  }
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    }
+  } catch (e) { }
+}
+
+function closeProAppointmentDetailsModal() {
+  const modal = document.getElementById('proAppointmentDetailsModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function handleProModalComplete() {
+  if (activeProModalApptId) {
+    completeProAppointment(activeProModalApptId);
+    closeProAppointmentDetailsModal();
+  }
+}
+
+function handleProModalCancel() {
+  if (activeProModalApptId) {
+    cancelProAppointment(activeProModalApptId);
+    closeProAppointmentDetailsModal();
+  }
+}
+
+function handleProModalDelete() {
+  if (activeProModalApptId) {
+    deleteProAppointment(activeProModalApptId);
+    closeProAppointmentDetailsModal();
   }
 }
 
@@ -3630,6 +4221,13 @@ function completeProAppointment(id) {
     target.status = 'completed';
     saveProAppointments(appts);
     showToast('Визит отмечен как завершенный 🎉');
+    try {
+      fetch('http://127.0.0.1:8080/api/booking_update_status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: id, status: 'completed' })
+      }).catch(() => {});
+    } catch (e) { }
   }
 }
 
@@ -3640,8 +4238,47 @@ function cancelProAppointment(id) {
     target.status = 'cancelled';
     saveProAppointments(appts);
     showToast('Запись отменена');
+    try {
+      fetch('http://127.0.0.1:8080/api/booking_update_status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: id, status: 'cancelled' })
+      }).catch(() => {});
+    } catch (e) { }
   }
 }
+
+function deleteProAppointment(id) {
+  const appts = getProAppointments();
+  const filtered = appts.filter(a => a.id !== id);
+  saveProAppointments(filtered);
+  showToast('Запись удалена из расписания 🗑️');
+}
+
+function toggleQuickRoleMode() {
+  const menu = document.getElementById('headerQuickOptionsMenu');
+  if (menu) menu.classList.add('hidden');
+  if (state.isProMode) {
+    exitProMode();
+  } else {
+    enterProMode();
+  }
+}
+
+window.switchProApptsView = switchProApptsView;
+window.navProCalendarDate = navProCalendarDate;
+window.navProCalendarToday = navProCalendarToday;
+window.selectProCalendarDate = selectProCalendarDate;
+window.renderProCalendarDayStrip = renderProCalendarDayStrip;
+window.renderProCalendarGrid = renderProCalendarGrid;
+window.openProAppointmentDetails = openProAppointmentDetails;
+window.closeProAppointmentDetailsModal = closeProAppointmentDetailsModal;
+window.handleProModalComplete = handleProModalComplete;
+window.handleProModalCancel = handleProModalCancel;
+window.handleProModalDelete = handleProModalDelete;
+window.deleteProAppointment = deleteProAppointment;
+window.toggleQuickRoleMode = toggleQuickRoleMode;
+
 
 // ------------------------------------------
 // PRO STATS & ANALYTICS RENDERING

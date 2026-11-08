@@ -76,18 +76,29 @@ async def create_booking(
     booking_time: str,
     services: str,
     total_price: float,
+    status: str = "confirmed",
+    client_name: Optional[str] = None,
+    client_phone: Optional[str] = None,
+    client_handle: Optional[str] = None,
+    salon_id: Optional[int] = None,
+    master_id: Optional[int] = None,
 ) -> Booking:
     """Сохраняет новую запись клиента в БД"""
     async with async_session_maker() as session:
         booking = Booking(
             user_id=user_id,
+            salon_id=salon_id,
             salon=salon,
+            master_id=master_id,
             master=master,
+            client_name=client_name,
+            client_phone=client_phone,
+            client_handle=client_handle,
             booking_date=booking_date,
             booking_time=booking_time,
             services=services,
             total_price=total_price,
-            status="confirmed",
+            status=status,
         )
         session.add(booking)
         await session.commit()

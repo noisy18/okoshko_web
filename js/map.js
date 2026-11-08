@@ -886,7 +886,10 @@
       // Filter masters assigned to the selected service
       let masters = allMasters;
       if (currentSvcModalServiceObj) {
-        masters = allMasters.filter(m => isMasterAssignedToService(m, currentSvcModalServiceObj));
+        const assigned = allMasters.filter(m => isMasterAssignedToService(m, currentSvcModalServiceObj));
+        if (assigned.length > 0) {
+          masters = assigned;
+        }
       }
 
       // If currently selected master is not in filtered masters, reset
@@ -1062,10 +1065,13 @@
 
       openDirectBooking({
         salon: salonName,
+        salonId: salon?.id || 1,
         address: salonAddr,
         master: currentSvcModalMaster.name,
+        masterId: currentSvcModalMaster.id || '',
         service: currentSvcModalService,
         price: currentSvcModalPrice,
+        duration: currentSvcModalDuration || 60,
         date: currentSvcModalDate || 'Сегодня',
         time: currentSvcModalTime || '14:00'
       });
@@ -1191,7 +1197,8 @@
       }
 
       const allMasters = quickBookActiveSalon?.masters || [];
-      const assigned = allMasters.filter(m => isMasterAssignedToService(m, quickBookSelectedService));
+      const assignedFiltered = allMasters.filter(m => isMasterAssignedToService(m, quickBookSelectedService));
+      const assigned = assignedFiltered.length > 0 ? assignedFiltered : allMasters;
 
       if (hint) {
         if (quickBookSelectedMaster) {
@@ -1353,10 +1360,13 @@
 
       openDirectBooking({
         salon: salonName,
+        salonId: salon?.id || 1,
         address: salonAddr,
         master: quickBookSelectedMaster.name,
+        masterId: quickBookSelectedMaster.id || '',
         service: quickBookSelectedService.name,
         price: quickBookSelectedService.price || 0,
+        duration: quickBookSelectedService.duration || 60,
         date: quickBookSelectedDate || 'Сегодня',
         time: quickBookSelectedTime || '10:00'
       });
